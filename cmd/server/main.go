@@ -2,6 +2,7 @@ package main
 
 import (
 	"ecommerce/config"
+	"ecommerce/internal/delivery/http/router"
 	"ecommerce/internal/infrastructure/database"
 	"ecommerce/pkg/logger"
 )
@@ -21,4 +22,9 @@ func main() {
 	"database",cfg.Database.Name,
 	)
 	_=db
+	r:=router.SetupRouter(log)
+	log.Info("Server starting","port",cfg.Server.Port)
+	if r.Run(":"+cfg.Server.Port);err!=nil{
+		log.Error("server stopped unexpectedly","error",err)
+	}
 }
