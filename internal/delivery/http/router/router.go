@@ -14,5 +14,6 @@ func SetupRouter(log *slog.Logger) *gin.Engine {
 		middleware.Logger(log),
 		middleware.CORS(),
 	)
+	RegisterRoutes(r)
 	return r
 }
