@@ -1,0 +1,13 @@
+CREATE TYPE role AS ENUM ('user','admin');
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    phone VARCHAR(20) UNIQUE,
+    role role NOT NULL DEFAULT 'user',
+    password VARCHAR(255),
+    is_blocked BOOLEAN NOT NULL DEFAULT FALSE,
+    last_seen TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
