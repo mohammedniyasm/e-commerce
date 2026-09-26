@@ -9,7 +9,11 @@ import (
 
 func main() {
 	cfg := config.LoadConfig()
-	log := logger.New()
+	log,logCloser,err := logger.New()
+	if err != nil{
+		panic(err)
+	}
+	defer logCloser.Close()
 	log.Info("configuration loaded",
 		"server_port", cfg.Server.Port,
 	)
