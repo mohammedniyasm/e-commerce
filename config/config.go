@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	Redis    RedisConfig
 }
 type ServerConfig struct {
 	Port string
@@ -20,6 +21,11 @@ type DatabaseConfig struct {
 	Password string
 	Name     string
 	SSLMode  string
+}
+type RedisConfig struct {
+	Host     string
+	Port     string
+	Password string
 }
 
 func LoadConfig() Config {
@@ -35,6 +41,11 @@ func LoadConfig() Config {
 			Password: os.Getenv("DB_PASSWORD"),
 			Name:     os.Getenv("DB_NAME"),
 			SSLMode:  os.Getenv("DB_SSLMODE"),
+		},
+		Redis: RedisConfig{
+			Host:     os.Getenv("REDIS_HOST"),
+			Port:     os.Getenv("REDIS_PORT"),
+			Password: os.Getenv("REDIS_PASSWORD"),
 		},
 	}
 }

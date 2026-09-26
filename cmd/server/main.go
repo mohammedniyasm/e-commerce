@@ -22,10 +22,10 @@ func main() {
 		log.Error("Failed to connect database", "error", err)
 		return
 	}
-	log.Info("database connected succefully",
+	log.Info("database connected successfully",
 		"database", cfg.Database.Name,
 	)
-	app := bootstrap.NewApplication(db, log)
+	app := bootstrap.NewApplication(db, log,cfg.Redis)
 	log.Info("Server starting", "port", cfg.Server.Port)
 	if app.Router.Run(":" + cfg.Server.Port); err != nil {
 		log.Error("server stopped unexpectedly", "error", err)
