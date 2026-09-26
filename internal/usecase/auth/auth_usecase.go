@@ -5,6 +5,7 @@ import (
 	"ecommerce/internal/delivery/http/validator"
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
+	"ecommerce/internal/infrastructure/redis"
 	"ecommerce/internal/usecase/interfaces"
 	"errors"
 	"log/slog"
@@ -14,12 +15,14 @@ import (
 
 type AuthUseCase struct {
 	userRepo interfaces.UserRepository
+	otpStore redis.OTPStore
 	log      *slog.Logger
 }
 
-func NewAuthUseCase(userRepo interfaces.UserRepository, log *slog.Logger) *AuthUseCase {
+func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, log *slog.Logger) *AuthUseCase {
 	return &AuthUseCase{
 		userRepo: userRepo,
+		otpStore: otpStore,
 		log:      log,
 	}
 }
@@ -30,6 +33,9 @@ func (u *AuthUseCase) Register(ctx context.Context, user *models.User) (*models.
 	}
 	if !validator.ValidatePhone(user.Phone) {
 		return nil, domainerrors.ErrInvalidPhone
+	}
+	if user.Password == nil {
+		return nil, domainerrors.ErrWeakPassword
 	}
 	if !validator.ValidatePassword(*user.Password) {
 		return nil, domainerrors.ErrWeakPassword
@@ -72,7 +78,7 @@ func (u *AuthUseCase) Register(ctx context.Context, user *models.User) (*models.
 		)
 		return nil, err
 	}
-	u.log.Info("user signup succeful",
+	u.log.Info("user signup successful",
 		"user_id", user.ID,
 		"user_email", user.Email)
 	return user, nil
