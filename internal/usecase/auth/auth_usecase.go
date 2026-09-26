@@ -7,17 +7,20 @@ import (
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/usecase/interfaces"
 	"errors"
+	"log/slog"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthUseCase struct {
 	userRepo interfaces.UserRepository
+	log      *slog.Logger
 }
 
-func NewAuthUseCase(userRepo interfaces.UserRepository) *AuthUseCase {
+func NewAuthUseCase(userRepo interfaces.UserRepository, log *slog.Logger) *AuthUseCase {
 	return &AuthUseCase{
 		userRepo: userRepo,
+		log:      log,
 	}
 }
 
@@ -33,9 +36,19 @@ func (u *AuthUseCase) Register(ctx context.Context, user *models.User) (*models.
 	}
 	existingUser, err := u.userRepo.FindByEmail(ctx, user.Email)
 	if err == nil && existingUser != nil {
+		u.log.Warn(
+			"user signup failed",
+			"reason", "email already exists",
+			"email", user.Email,
+		)
 		return nil, domainerrors.ErrEmailAlreadyExists
 	}
 	if err != nil && !errors.Is(err, domainerrors.ErrUserNotFound) {
+		u.log.Error(
+			"failed to check existing user",
+			"email", user.Email,
+			"error", err,
+		)
 		return nil, err
 	}
 	if user.Role == "" {
@@ -43,13 +56,25 @@ func (u *AuthUseCase) Register(ctx context.Context, user *models.User) (*models.
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*user.Password), bcrypt.DefaultCost)
 	if err != nil {
+		u.log.Error(
+			"failed to hash password",
+			"error", err,
+		)
 		return nil, err
 	}
 	user.Password = stringPtr(string(hashedPassword))
 	err = u.userRepo.Create(ctx, user)
 	if err != nil {
+		u.log.Error(
+			"failed to create user",
+			"email", user.Email,
+			"error", err,
+		)
 		return nil, err
 	}
+	u.log.Info("user signup succeful",
+		"user_id", user.ID,
+		"user_email", user.Email)
 	return user, nil
 }
 func stringPtr(value string) *string {

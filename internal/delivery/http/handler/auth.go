@@ -36,27 +36,27 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 	createdUser, err := h.authUsecase.Register(c, user)
 	if err != nil {
-		if errors.Is(err,domainerrors.ErrInvalidName){
-			c.JSON(400,response.APIResponse{
+		if errors.Is(err, domainerrors.ErrInvalidName) {
+			c.JSON(400, response.APIResponse{
 				Success: false,
 				Message: "Invalid Name",
-				Error: "INVALID_NAME",
+				Error:   "INVALID_NAME",
 			})
 			return
 		}
-		if errors.Is(err,domainerrors.ErrInvalidPhone){
-			c.JSON(400,response.APIResponse{
+		if errors.Is(err, domainerrors.ErrInvalidPhone) {
+			c.JSON(400, response.APIResponse{
 				Success: false,
 				Message: "Invalid Phone",
-				Error: "INVALID_PHONE",
+				Error:   "INVALID_PHONE",
 			})
 			return
 		}
-		if errors.Is(err,domainerrors.ErrWeakPassword){
-			c.JSON(400,response.APIResponse{
+		if errors.Is(err, domainerrors.ErrWeakPassword) {
+			c.JSON(400, response.APIResponse{
 				Success: false,
 				Message: "Password does not meet the required strength",
-				Error: "WEAK_PASSWORD",
+				Error:   "WEAK_PASSWORD",
 			})
 			return
 		}

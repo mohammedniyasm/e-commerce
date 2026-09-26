@@ -9,8 +9,8 @@ import (
 
 func main() {
 	cfg := config.LoadConfig()
-	log,logCloser,err := logger.New()
-	if err != nil{
+	log, logCloser, err := logger.New()
+	if err != nil {
 		panic(err)
 	}
 	defer logCloser.Close()
