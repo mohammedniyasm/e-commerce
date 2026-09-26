@@ -5,6 +5,7 @@ import (
 	"ecommerce/internal/delivery/http/validator"
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
+	"ecommerce/internal/infrastructure/redis"
 	"ecommerce/internal/usecase/interfaces"
 	"errors"
 	"log/slog"
@@ -14,12 +15,14 @@ import (
 
 type AuthUseCase struct {
 	userRepo interfaces.UserRepository
+	otpStore redis.OTPStore
 	log      *slog.Logger
 }
 
-func NewAuthUseCase(userRepo interfaces.UserRepository, log *slog.Logger) *AuthUseCase {
+func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, log *slog.Logger) *AuthUseCase {
 	return &AuthUseCase{
 		userRepo: userRepo,
+		otpStore: otpStore,
 		log:      log,
 	}
 }

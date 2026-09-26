@@ -18,9 +18,10 @@ type Application struct {
 }
 
 func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.RedisConfig) *Application {
-	redis.NewRedisClient(cfg, log)
+	redisClient := redis.NewRedisClient(cfg, log)
+	otpStore := redis.NewOTPStore(redisClient)
 	userRepository := postgres.NewUserRepository(db)
-	authUseCase := auth.NewAuthUseCase(userRepository, log)
+	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, log)
 	authHandler := handler.NewAuthHandler(authUseCase)
 	r := router.SetupRouter(log, authHandler)
 	return &Application{
