@@ -9,7 +9,7 @@ import (
 )
 
 func SetupRouter(log *slog.Logger, authHandler *handler.AuthHandler) *gin.Engine {
-	r := gin.New()
+	r := gin.Default()
 	r.Use(
 		middleware.Recovery(log),
 		middleware.Logger(log),
