@@ -31,6 +31,9 @@ func (u *AuthUseCase) Register(ctx context.Context, user *models.User) (*models.
 	if !validator.ValidatePhone(user.Phone) {
 		return nil, domainerrors.ErrInvalidPhone
 	}
+	if user.Password == nil {
+		return nil, domainerrors.ErrWeakPassword
+	}
 	if !validator.ValidatePassword(*user.Password) {
 		return nil, domainerrors.ErrWeakPassword
 	}
@@ -72,7 +75,7 @@ func (u *AuthUseCase) Register(ctx context.Context, user *models.User) (*models.
 		)
 		return nil, err
 	}
-	u.log.Info("user signup succeful",
+	u.log.Info("user signup successful",
 		"user_id", user.ID,
 		"user_email", user.Email)
 	return user, nil
