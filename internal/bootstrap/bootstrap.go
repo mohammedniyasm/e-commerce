@@ -4,6 +4,7 @@ import (
 	"ecommerce/config"
 	"ecommerce/internal/delivery/http/handler"
 	"ecommerce/internal/delivery/http/router"
+	authinfra "ecommerce/internal/infrastructure/auth"
 	"ecommerce/internal/infrastructure/redis"
 	"ecommerce/internal/repository/postgres"
 	"ecommerce/internal/usecase/auth"
@@ -17,12 +18,14 @@ type Application struct {
 	Router *gin.Engine
 }
 
-func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.RedisConfig) *Application {
-	redisClient := redis.NewRedisClient(cfg, log)
+func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) *Application {
+	redisClient := redis.NewRedisClient(cfg.Redis, log)
 	otpStore := redis.NewOTPStore(redisClient)
+	jwtService := authinfra.NewJWTService(cfg.JWT)
 	userRepository := postgres.NewUserRepository(db)
-	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, log)
+	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, log)
 	authHandler := handler.NewAuthHandler(authUseCase)
+
 	r := router.SetupRouter(log, authHandler)
 	return &Application{
 		Router: r,

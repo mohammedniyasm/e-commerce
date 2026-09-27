@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -10,6 +11,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Redis    RedisConfig
+	JWT      JWTConfig
 }
 type ServerConfig struct {
 	Port string
@@ -27,9 +29,23 @@ type RedisConfig struct {
 	Port     string
 	Password string
 }
+type JWTConfig struct {
+	AccessSecret  string
+	RefreshSecret string
+	AccessExpiry  time.Duration
+	RefreshExpiry time.Duration
+}
 
-func LoadConfig() Config {
+func LoadConfig() (Config, error) {
 	_ = godotenv.Load()
+	accessExpiry, err := time.ParseDuration(os.Getenv("JWT_ACCESS_EXPIRY"))
+	if err != nil {
+		return Config{}, err
+	}
+	refreshExpiry, err := time.ParseDuration(os.Getenv("JWT_REFRESH_EXPIRY"))
+	if err != nil {
+		return Config{}, err
+	}
 	return Config{
 		Server: ServerConfig{
 			Port: os.Getenv("SERVER_PORT"),
@@ -47,5 +63,11 @@ func LoadConfig() Config {
 			Port:     os.Getenv("REDIS_PORT"),
 			Password: os.Getenv("REDIS_PASSWORD"),
 		},
-	}
+		JWT: JWTConfig{
+			AccessSecret:  os.Getenv("JWT_ACCESS_SECRET"),
+			RefreshSecret: os.Getenv("JWT_REFRESH_SECRET"),
+			AccessExpiry:  accessExpiry,
+			RefreshExpiry: refreshExpiry,
+		},
+	}, nil
 }

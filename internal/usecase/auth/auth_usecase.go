@@ -14,16 +14,18 @@ import (
 )
 
 type AuthUseCase struct {
-	userRepo interfaces.UserRepository
-	otpStore redis.OTPStore
-	log      *slog.Logger
+	userRepo   interfaces.UserRepository
+	otpStore   redis.OTPStore
+	jwtService interfaces.JWTService
+	log        *slog.Logger
 }
 
-func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, log *slog.Logger) *AuthUseCase {
+func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, jwtService interfaces.JWTService, log *slog.Logger) *AuthUseCase {
 	return &AuthUseCase{
-		userRepo: userRepo,
-		otpStore: otpStore,
-		log:      log,
+		userRepo:   userRepo,
+		otpStore:   otpStore,
+		jwtService: jwtService,
+		log:        log,
 	}
 }
 
