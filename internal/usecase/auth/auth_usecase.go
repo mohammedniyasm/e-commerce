@@ -9,6 +9,7 @@ import (
 	"ecommerce/internal/usecase/interfaces"
 	"errors"
 	"log/slog"
+	"strconv"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -137,15 +138,40 @@ func (u *AuthUseCase) Login(ctx context.Context, email string, password string) 
 		)
 		return "", "", err
 	}
-	err=u.refreshSessionStore.Save(ctx,jti,user.ID)
-	if err != nil{
+	err = u.refreshSessionStore.Save(ctx, jti, user.ID)
+	if err != nil {
 		u.log.Error("failed to save refreshh session",
-			"uset_id",user.ID,
-			"error",err,
-	)
-	return "","",err
+			"uset_id", user.ID,
+			"error", err,
+		)
+		return "", "", err
 	}
 	return accessToken, refreshToken, nil
+}
+func (u *AuthUseCase) RefreshAccessToken(ctx context.Context, refreshToken string) (string, error) {
+	userID, jti, err := u.jwtService.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		return "", err
+	}
+	sessionUserID, err := u.refreshSessionStore.Get(ctx, jti)
+	if err != nil {
+		return "", err
+	}
+	if userID != strconv.FormatUint(uint64(sessionUserID), 10) {
+		return "", errors.New("refresh session user mismatch")
+	}
+	user,err := u.userRepo.FindByID(ctx,sessionUserID)
+	if err != nil{
+		return "",err
+	}
+	if user.IsBlocked{
+		return "",domainerrors.ErrUserBlocked
+	}
+	accessToken, err := u.jwtService.GenerateAccessToken(user.ID, string(user.Role))
+	if err != nil {
+		return "", err
+	}
+	return accessToken, nil
 }
 func stringPtr(value string) *string {
 	return &value

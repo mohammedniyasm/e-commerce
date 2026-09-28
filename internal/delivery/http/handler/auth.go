@@ -86,9 +86,37 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		},
 	})
 }
-func (h *AuthHandler) Login(c *gin.Context){
+func (h *AuthHandler) Login(c *gin.Context) {
 	var req request.LoginRequest
-	if err := c.ShouldBindJSON(&req);err!=nil{
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+			Error:   err.Error(),
+		})
+		return
+	}
+	accessToken, refreshToken, err := h.authUsecase.Login(c.Request.Context(), req.Email, req.Password)
+	if err != nil {
+		c.JSON(401, response.APIResponse{
+			Success: false,
+			Message: "login failed",
+			Error:   err.Error(),
+		})
+		return
+	}
+	c.JSON(200, response.APIResponse{
+		Success: true,
+		Message: "login successful",
+		Data: response.LoginResponse{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		},
+	})
+}
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	var req request.RefreshTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400,response.APIResponse{
 			Success: false,
 			Message: "invalid request",
@@ -96,21 +124,21 @@ func (h *AuthHandler) Login(c *gin.Context){
 		})
 		return
 	}
-	accessToken,refreshToken,err:=h.authUsecase.Login(c.Request.Context(),req.Email,req.Password)
+	accessToken,err:=h.authUsecase.RefreshAccessToken(c.Request.Context(),req.RefreshToken)
 	if err != nil{
 		c.JSON(401,response.APIResponse{
 			Success: false,
-			Message: "login failed",
+			Message: "refresh token failed",
 			Error: err.Error(),
 		})
 		return
 	}
 	c.JSON(200,response.APIResponse{
 		Success: true,
-		Message: "login successful",
+		Message: "Access token refreshed Succefully",
 		Data: response.LoginResponse{
 			AccessToken: accessToken,
-			RefreshToken: refreshToken,
+			RefreshToken: req.RefreshToken,
 		},
 	})
 }
