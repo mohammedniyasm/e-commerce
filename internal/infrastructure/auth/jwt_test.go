@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 )
+
 func TestJWTService_RejectsExpiredAccessToken(t *testing.T) {
 	cfg := config.JWTConfig{
 		AccessSecret:  "test-access-secret",

@@ -35,9 +35,9 @@ func (s *JWTService) GenerateAccessToken(userID uint, role string) (string, erro
 	now := time.Now()
 	claims := AccessClaims{
 		// Subject: strconv.FormatUint(uint64(userID), 10),
-		Role:    role,
+		Role: role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject: strconv.FormatUint(uint64(userID), 10),
+			Subject:   strconv.FormatUint(uint64(userID), 10),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.config.AccessExpiry)),
 		},
@@ -51,7 +51,7 @@ func (s *JWTService) GenerateRefreshToken(userID uint) (string, string, error) {
 	jti := uuid.NewString()
 	claims := RefreshClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject: strconv.FormatUint(uint64(userID), 10),
+			Subject:   strconv.FormatUint(uint64(userID), 10),
 			ID:        jti,
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.config.RefreshExpiry)),

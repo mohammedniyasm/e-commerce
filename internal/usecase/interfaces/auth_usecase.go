@@ -6,5 +6,6 @@ import (
 )
 
 type AuthUseCase interface {
-	Register(ctc context.Context, user *models.User) (*models.User, error)
+	Register(ctx context.Context, user *models.User) (*models.User, error)
+	Login(ctx context.Context, email string, password string) (string, string, error)
 }
