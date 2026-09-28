@@ -84,3 +84,19 @@ func (s *JWTService) ValidateAccessToken(tokenString string) (*interfaces.Access
 		Role:   claims.Role,
 	}, nil
 }
+func (s *JWTService) ValidateRefreshToken(tokenString string) (string, string, error) {
+	var claims RefreshClaims
+	token, err := jwt.ParseWithClaims(tokenString, &claims, func(t *jwt.Token) (any, error) {
+		if t.Method != jwt.SigningMethodHS256 {
+			return nil, fmt.Errorf("unexpected signing method, %s", t.Method.Alg())
+		}
+		return []byte(s.config.RefreshSecret), nil
+	})
+	if err != nil {
+		return "", "", err
+	}
+	if !token.Valid{
+		return "", "", fmt.Errorf("invalid refresh token")
+	}
+	return claims.Subject, claims.ID, nil
+}

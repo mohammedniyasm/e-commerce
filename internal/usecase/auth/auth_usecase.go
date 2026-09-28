@@ -128,7 +128,7 @@ func (u *AuthUseCase) Login(ctx context.Context, email string, password string) 
 		)
 		return "", "", err
 	}
-	refreshToken, _, err := u.jwtService.GenerateRefreshToken(user.ID)
+	refreshToken, jti, err := u.jwtService.GenerateRefreshToken(user.ID)
 	if err != nil {
 		u.log.Error(
 			"failed to generate refresh token",
@@ -136,6 +136,14 @@ func (u *AuthUseCase) Login(ctx context.Context, email string, password string) 
 			"error", err,
 		)
 		return "", "", err
+	}
+	err=u.refreshSessionStore.Save(ctx,jti,user.ID)
+	if err != nil{
+		u.log.Error("failed to save refreshh session",
+			"uset_id",user.ID,
+			"error",err,
+	)
+	return "","",err
 	}
 	return accessToken, refreshToken, nil
 }
