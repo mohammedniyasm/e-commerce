@@ -142,3 +142,27 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		},
 	})
 }
+func (h *AuthHandler) Logout(c *gin.Context){
+	var req request.LogoutRequest
+	if err:=c.ShouldBindJSON(&req);err != nil{
+		c.JSON(400,response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+			Error: err.Error(),
+		})
+		return
+	}
+	err:=h.authUsecase.Logout(c.Request.Context(),req.RefreshToken)
+	if err!=nil{
+		c.JSON(401,response.APIResponse{
+			Success: false,
+			Message: "logout failed",
+			Error: err.Error(),
+		})
+		return
+	}
+	c.JSON(200,response.APIResponse{
+		Success: true,
+		Message: "logout successful",
+	})
+}

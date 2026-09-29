@@ -173,6 +173,20 @@ func (u *AuthUseCase) RefreshAccessToken(ctx context.Context, refreshToken strin
 	}
 	return accessToken, nil
 }
+func (u *AuthUseCase) Logout(ctx context.Context,refreshToken string)error{
+	if refreshToken == ""{
+		return domainerrors.ErrInvalidCredentials
+	}
+	_,jti,err:=u.jwtService.ValidateRefreshToken(refreshToken)
+	if err != nil{
+		return err
+	}
+	err=u.refreshSessionStore.Delete(ctx,jti)
+	if err != nil{
+		return err
+	}
+	return nil
+}
 func stringPtr(value string) *string {
 	return &value
 }
