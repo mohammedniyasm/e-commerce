@@ -10,4 +10,7 @@ type AuthUseCase interface {
 	Login(ctx context.Context, email string, password string) (string, string, error)
 	RefreshAccessToken(ctx context.Context,refreshToken string)(string,error)
 	Logout(ctx context.Context,refreshToken string)error
+
+	SendVerficationOTP(ctx context.Context,email string)error
+	VerifyEmail(ctx context.Context,email,otp string)error
 }

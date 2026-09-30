@@ -10,6 +10,7 @@ import (
 	"errors"
 	"log/slog"
 	"strconv"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -160,12 +161,12 @@ func (u *AuthUseCase) RefreshAccessToken(ctx context.Context, refreshToken strin
 	if userID != strconv.FormatUint(uint64(sessionUserID), 10) {
 		return "", errors.New("refresh session user mismatch")
 	}
-	user,err := u.userRepo.FindByID(ctx,sessionUserID)
-	if err != nil{
-		return "",err
+	user, err := u.userRepo.FindByID(ctx, sessionUserID)
+	if err != nil {
+		return "", err
 	}
-	if user.IsBlocked{
-		return "",domainerrors.ErrUserBlocked
+	if user.IsBlocked {
+		return "", domainerrors.ErrUserBlocked
 	}
 	accessToken, err := u.jwtService.GenerateAccessToken(user.ID, string(user.Role))
 	if err != nil {
@@ -173,18 +174,56 @@ func (u *AuthUseCase) RefreshAccessToken(ctx context.Context, refreshToken strin
 	}
 	return accessToken, nil
 }
-func (u *AuthUseCase) Logout(ctx context.Context,refreshToken string)error{
-	if refreshToken == ""{
+func (u *AuthUseCase) Logout(ctx context.Context, refreshToken string) error {
+	if refreshToken == "" {
 		return domainerrors.ErrInvalidCredentials
 	}
-	_,jti,err:=u.jwtService.ValidateRefreshToken(refreshToken)
-	if err != nil{
+	_, jti, err := u.jwtService.ValidateRefreshToken(refreshToken)
+	if err != nil {
 		return err
 	}
-	err=u.refreshSessionStore.Delete(ctx,jti)
-	if err != nil{
+	err = u.refreshSessionStore.Delete(ctx, jti)
+	if err != nil {
 		return err
 	}
+	return nil
+}
+func (u *AuthUseCase) SendVerficationOTP(ctx context.Context, email string) error {
+	otp, err := generateOTP()
+	if err != nil {
+		return err
+	}
+	key := emailVerificationOTPKey(email)
+	err = u.otpStore.Set(ctx, key, otp, emailVerificationOTPExpiry)
+	if err != nil {
+		return err
+	}
+	u.log.Info("email verification OTP generated", "email", email)
+	return nil
+}
+func (u *AuthUseCase) VerifyEmail(ctx context.Context, email, otp string) error {
+	key := emailVerificationOTPKey(email)
+	storedOTP, err := u.otpStore.Get(ctx, key)
+	if err != nil {
+		return err
+	}
+	if storedOTP != otp {
+		return errors.New("Invalid OTP")
+	}
+	user, err := u.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+	verifiedAt := time.Now()
+	err = u.userRepo.UpdateEmailVerifiedAt(ctx, user.ID, verifiedAt)
+	if err != nil {
+		return err
+	}
+	err = u.otpStore.Delete(ctx, key)
+	if err != nil {
+		return err
+	}
+	u.log.Info("email verified successfully", "email", email)
 	return nil
 }
 func stringPtr(value string) *string {

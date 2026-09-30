@@ -27,7 +27,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) *Applicati
 	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore, log)
 	authHandler := handler.NewAuthHandler(authUseCase)
 
-	r := router.SetupRouter(log, authHandler)
+	r := router.SetupRouter(log, authHandler, jwtService, userRepository)
 	return &Application{
 		Router: r,
 	}

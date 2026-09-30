@@ -7,6 +7,7 @@ import (
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/usecase/interfaces"
 	"errors"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -117,52 +118,100 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req request.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400,response.APIResponse{
+		c.JSON(400, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error: err.Error(),
+			Error:   err.Error(),
 		})
 		return
 	}
-	accessToken,err:=h.authUsecase.RefreshAccessToken(c.Request.Context(),req.RefreshToken)
-	if err != nil{
-		c.JSON(401,response.APIResponse{
+	accessToken, err := h.authUsecase.RefreshAccessToken(c.Request.Context(), req.RefreshToken)
+	if err != nil {
+		c.JSON(401, response.APIResponse{
 			Success: false,
 			Message: "refresh token failed",
-			Error: err.Error(),
+			Error:   err.Error(),
 		})
 		return
 	}
-	c.JSON(200,response.APIResponse{
+	c.JSON(200, response.APIResponse{
 		Success: true,
 		Message: "Access token refreshed Succefully",
 		Data: response.LoginResponse{
-			AccessToken: accessToken,
+			AccessToken:  accessToken,
 			RefreshToken: req.RefreshToken,
 		},
 	})
 }
-func (h *AuthHandler) Logout(c *gin.Context){
+func (h *AuthHandler) Logout(c *gin.Context) {
 	var req request.LogoutRequest
-	if err:=c.ShouldBindJSON(&req);err != nil{
-		c.JSON(400,response.APIResponse{
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error: err.Error(),
+			Error:   err.Error(),
 		})
 		return
 	}
-	err:=h.authUsecase.Logout(c.Request.Context(),req.RefreshToken)
-	if err!=nil{
-		c.JSON(401,response.APIResponse{
+	err := h.authUsecase.Logout(c.Request.Context(), req.RefreshToken)
+	if err != nil {
+		c.JSON(401, response.APIResponse{
 			Success: false,
 			Message: "logout failed",
+			Error:   err.Error(),
+		})
+		return
+	}
+	c.JSON(200, response.APIResponse{
+		Success: true,
+		Message: "logout successful",
+	})
+}
+func (h *AuthHandler) SendVerificationOTP(c *gin.Context) {
+	var req request.SendVerificationOTPRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+			Error:   domainerrors.ErrInvalidCredentials.Error(),
+		})
+		return
+	}
+	err := h.authUsecase.SendVerficationOTP(c.Request.Context(), req.Email)
+	if err != nil {
+		c.JSON(500, response.APIResponse{
+			Success: false,
+			Message: "failed to send verification OTP",
+			Error:   err.Error(),
+		})
+		return
+	}
+	c.JSON(200, response.APIResponse{
+		Success: true,
+		Message: "verification OTP send successfully",
+	})
+}
+func (h *AuthHandler) VerifyEmail(c *gin.Context) {
+	var req request.VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+			Error:   err.Error(),
+		})
+		return
+	}
+	if err := h.authUsecase.VerifyEmail(c.Request.Context(), req.Email, req.OTP);err != nil{
+		c.JSON(401,response.APIResponse{
+			Success: false,
+			Message: "email verification failed",
 			Error: err.Error(),
 		})
 		return
 	}
 	c.JSON(200,response.APIResponse{
 		Success: true,
-		Message: "logout successful",
+		Message: "email verified successfully",
 	})
+	
 }

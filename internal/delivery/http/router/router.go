@@ -3,18 +3,19 @@ package router
 import (
 	"ecommerce/internal/delivery/http/handler"
 	"ecommerce/internal/delivery/http/middleware"
+	"ecommerce/internal/usecase/interfaces"
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(log *slog.Logger, authHandler *handler.AuthHandler) *gin.Engine {
+func SetupRouter(log *slog.Logger, authHandler *handler.AuthHandler, jwtServices interfaces.JWTService, userRepo interfaces.UserRepository) *gin.Engine {
 	r := gin.Default()
 	r.Use(
 		middleware.Recovery(log),
 		middleware.Logger(log),
 		middleware.CORS(),
 	)
-	RegisterRoutes(r, authHandler)
+	RegisterRoutes(r, authHandler, jwtServices, userRepo)
 	return r
 }
