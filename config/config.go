@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -12,6 +13,7 @@ type Config struct {
 	Database DatabaseConfig
 	Redis    RedisConfig
 	JWT      JWTConfig
+	Cookie   CookieConfig
 }
 type ServerConfig struct {
 	Port string
@@ -35,6 +37,14 @@ type JWTConfig struct {
 	AccessExpiry  time.Duration
 	RefreshExpiry time.Duration
 }
+type CookieConfig struct {
+	RefreshTokenName string
+	HTTPOnly         bool
+	Secure           bool
+	SameSite         string
+	Path             string
+	MaxAge           int
+}
 
 func LoadConfig() (Config, error) {
 	_ = godotenv.Load()
@@ -43,6 +53,19 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 	refreshExpiry, err := time.ParseDuration(os.Getenv("JWT_REFRESH_EXPIRY"))
+	if err != nil {
+		return Config{}, err
+	}
+	cookieHTTPOnly, err := strconv.ParseBool(
+		os.Getenv("REFRESH_TOKEN_COOKIE_HTTP_ONLY"),
+	)
+	if err != nil {
+		return Config{}, err
+	}
+
+	cookieSecure, err := strconv.ParseBool(
+		os.Getenv("REFRESH_TOKEN_COOKIE_SECURE"),
+	)
 	if err != nil {
 		return Config{}, err
 	}
@@ -68,6 +91,14 @@ func LoadConfig() (Config, error) {
 			RefreshSecret: os.Getenv("JWT_REFRESH_SECRET"),
 			AccessExpiry:  accessExpiry,
 			RefreshExpiry: refreshExpiry,
+		},
+		Cookie: CookieConfig{
+			RefreshTokenName: os.Getenv("REFRESH_TOKEN_COOKIE_NAME"),
+			HTTPOnly:         cookieHTTPOnly,
+			Secure:           cookieSecure,
+			SameSite:         os.Getenv("REFRESH_TOKEN_COOKIE_SAME_SITE"),
+			Path:             os.Getenv("REFRESH_TOKEN_COOKIE_PATH"),
+			MaxAge:           int(refreshExpiry.Seconds()),
 		},
 	}, nil
 }

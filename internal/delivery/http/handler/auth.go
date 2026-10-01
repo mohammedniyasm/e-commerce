@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"ecommerce/config"
 	"ecommerce/internal/delivery/http/dto/request"
 	"ecommerce/internal/delivery/http/dto/response"
+	"ecommerce/internal/delivery/http/middleware"
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/usecase/interfaces"
@@ -14,11 +16,13 @@ import (
 
 type AuthHandler struct {
 	authUsecase interfaces.AuthUseCase
+	cookie      config.CookieConfig
 }
 
-func NewAuthHandler(authUsecase interfaces.AuthUseCase) *AuthHandler {
+func NewAuthHandler(authUsecase interfaces.AuthUseCase, cookie config.CookieConfig) *AuthHandler {
 	return &AuthHandler{
 		authUsecase: authUsecase,
+		cookie:      cookie,
 	}
 }
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -106,26 +110,27 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		})
 		return
 	}
+	SetRefreshTokenCookie(c.Writer, h.cookie, refreshToken, h.cookie.MaxAge)
 	c.JSON(200, response.APIResponse{
 		Success: true,
 		Message: "login successful",
 		Data: response.LoginResponse{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
+			AccessToken: accessToken,
 		},
 	})
 }
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
-	var req request.RefreshTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	refreshToken, err := c.Cookie(h.cookie.RefreshTokenName)
+	if err != nil {
 		c.JSON(400, response.APIResponse{
 			Success: false,
-			Message: "invalid request",
+			Message: "refresh token cookie required",
 			Error:   err.Error(),
 		})
 		return
 	}
-	accessToken, err := h.authUsecase.RefreshAccessToken(c.Request.Context(), req.RefreshToken)
+
+	accessToken, err := h.authUsecase.RefreshAccessToken(c.Request.Context(), refreshToken)
 	if err != nil {
 		c.JSON(401, response.APIResponse{
 			Success: false,
@@ -134,26 +139,41 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		})
 		return
 	}
+	SetRefreshTokenCookie(c.Writer, h.cookie, refreshToken, h.cookie.MaxAge)
 	c.JSON(200, response.APIResponse{
 		Success: true,
 		Message: "Access token refreshed Succefully",
 		Data: response.LoginResponse{
-			AccessToken:  accessToken,
-			RefreshToken: req.RefreshToken,
+			AccessToken: accessToken,
 		},
 	})
 }
 func (h *AuthHandler) Logout(c *gin.Context) {
-	var req request.LogoutRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	refreshToken, err := c.Cookie(h.cookie.RefreshTokenName)
+	if err != nil {
 		c.JSON(400, response.APIResponse{
 			Success: false,
-			Message: "invalid request",
+			Message: "refresh token cookie required",
 			Error:   err.Error(),
 		})
 		return
 	}
-	err := h.authUsecase.Logout(c.Request.Context(), req.RefreshToken)
+	accessClaimValue, exists := c.Get(middleware.AccessClaimsKey)
+	if !exists {
+		c.JSON(401, response.APIResponse{
+			Success: false,
+			Message: "access claims missing",
+		})
+		return
+	}
+	accessClaims,ok:=accessClaimValue.(*interfaces.AccessClaims)
+	if !ok{
+		c.JSON(401,response.APIResponse{
+			Success: false,
+			Message: "invalid access claims",
+		})
+	}
+	err = h.authUsecase.Logout(c.Request.Context(), refreshToken, accessClaims)
 	if err != nil {
 		c.JSON(401, response.APIResponse{
 			Success: false,
@@ -162,6 +182,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		})
 		return
 	}
+	clearRefreshTokenCookie(c.Writer, h.cookie)
 	c.JSON(200, response.APIResponse{
 		Success: true,
 		Message: "logout successful",
@@ -201,17 +222,17 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 		})
 		return
 	}
-	if err := h.authUsecase.VerifyEmail(c.Request.Context(), req.Email, req.OTP);err != nil{
-		c.JSON(401,response.APIResponse{
+	if err := h.authUsecase.VerifyEmail(c.Request.Context(), req.Email, req.OTP); err != nil {
+		c.JSON(401, response.APIResponse{
 			Success: false,
 			Message: "email verification failed",
-			Error: err.Error(),
+			Error:   err.Error(),
 		})
 		return
 	}
-	c.JSON(200,response.APIResponse{
+	c.JSON(200, response.APIResponse{
 		Success: true,
 		Message: "email verified successfully",
 	})
-	
+
 }

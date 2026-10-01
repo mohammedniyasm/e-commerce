@@ -1,8 +1,12 @@
 package interfaces
 
+import "time"
+
 type AccessClaims struct {
-	UserID string `json:"sub"`
-	Role   string `json:"role"`
+	UserID    string    `json:"sub"`
+	Role      string    `json:"role"`
+	JTI       string    `json:"jti"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 type JWTService interface {
 	GenerateAccessToken(userID uint, role string) (string, error)

@@ -16,20 +16,22 @@ import (
 )
 
 type AuthUseCase struct {
-	userRepo            interfaces.UserRepository
-	otpStore            redis.OTPStore
-	jwtService          interfaces.JWTService
-	refreshSessionStore interfaces.RefreshSessionStore
-	log                 *slog.Logger
+	userRepo             interfaces.UserRepository
+	otpStore             redis.OTPStore
+	jwtService           interfaces.JWTService
+	refreshSessionStore  interfaces.RefreshSessionStore
+	accessTokenBlacklist interfaces.AccessTokenBlacklist
+	log                  *slog.Logger
 }
 
-func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, jwtService interfaces.JWTService, refreshSessionStore interfaces.RefreshSessionStore, log *slog.Logger) *AuthUseCase {
+func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, jwtService interfaces.JWTService, refreshSessionStore interfaces.RefreshSessionStore, accessTokenBlacklist interfaces.AccessTokenBlacklist, log *slog.Logger) *AuthUseCase {
 	return &AuthUseCase{
-		userRepo:            userRepo,
-		otpStore:            otpStore,
-		jwtService:          jwtService,
-		refreshSessionStore: refreshSessionStore,
-		log:                 log,
+		userRepo:             userRepo,
+		otpStore:             otpStore,
+		jwtService:           jwtService,
+		refreshSessionStore:  refreshSessionStore,
+		accessTokenBlacklist: accessTokenBlacklist,
+		log:                  log,
 	}
 }
 
@@ -174,7 +176,7 @@ func (u *AuthUseCase) RefreshAccessToken(ctx context.Context, refreshToken strin
 	}
 	return accessToken, nil
 }
-func (u *AuthUseCase) Logout(ctx context.Context, refreshToken string) error {
+func (u *AuthUseCase) Logout(ctx context.Context, refreshToken string, accessClaims *interfaces.AccessClaims) error {
 	if refreshToken == "" {
 		return domainerrors.ErrInvalidCredentials
 	}
@@ -182,10 +184,19 @@ func (u *AuthUseCase) Logout(ctx context.Context, refreshToken string) error {
 	if err != nil {
 		return err
 	}
-	err = u.refreshSessionStore.Delete(ctx, jti)
-	if err != nil {
-		return err
+	errr := u.refreshSessionStore.Delete(ctx, jti)
+	if errr != nil {
+		return errr
 	}
+	remainingLifetime := time.Until(accessClaims.ExpiresAt)
+	if remainingLifetime > 0 {
+		err := u.accessTokenBlacklist.Blacklist(ctx, accessClaims.JTI, remainingLifetime)
+
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 func (u *AuthUseCase) SendVerficationOTP(ctx context.Context, email string) error {

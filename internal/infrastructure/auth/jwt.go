@@ -23,7 +23,9 @@ func NewJWTService(config config.JWTConfig) *JWTService {
 
 type AccessClaims struct {
 	// UserId string `json:"sub"`
-	Role string `json:"role"`
+	Role      string `json:"role"`
+	// JTI       string `json:"jti"`
+	// ExpiresAt time.Time
 	jwt.RegisteredClaims
 }
 type RefreshClaims struct {
@@ -33,11 +35,13 @@ type RefreshClaims struct {
 
 func (s *JWTService) GenerateAccessToken(userID uint, role string) (string, error) {
 	now := time.Now()
+	jti := uuid.NewString()
 	claims := AccessClaims{
 		// Subject: strconv.FormatUint(uint64(userID), 10),
 		Role: role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   strconv.FormatUint(uint64(userID), 10),
+			ID:        jti,
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.config.AccessExpiry)),
 		},
@@ -80,8 +84,10 @@ func (s *JWTService) ValidateAccessToken(tokenString string) (*interfaces.Access
 		return nil, fmt.Errorf("Invalid Access token")
 	}
 	return &interfaces.AccessClaims{
-		UserID: claims.Subject,
-		Role:   claims.Role,
+		UserID:    claims.Subject,
+		Role:      claims.Role,
+		JTI:       claims.ID,
+		ExpiresAt: claims.ExpiresAt.Time,
 	}, nil
 }
 func (s *JWTService) ValidateRefreshToken(tokenString string) (string, string, error) {
@@ -95,7 +101,7 @@ func (s *JWTService) ValidateRefreshToken(tokenString string) (string, string, e
 	if err != nil {
 		return "", "", err
 	}
-	if !token.Valid{
+	if !token.Valid {
 		return "", "", fmt.Errorf("invalid refresh token")
 	}
 	return claims.Subject, claims.ID, nil
