@@ -12,4 +12,5 @@ type UserRepository interface {
 	FindByID(ctx context.Context, id uint) (*models.User, error)
 	UpdateEmailVerifiedAt(ctx context.Context, userID uint, verifiedAt time.Time) error
 	IsBlocked(ctx context.Context,userID uint)(bool,error)
+	UpdatePassword(ctx context.Context,userID uint,hashedPassword string)error
 }

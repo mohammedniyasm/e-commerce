@@ -202,6 +202,13 @@ func (u *AuthUseCase) Logout(ctx context.Context, refreshToken string, accessCla
 	return nil
 }
 func (u *AuthUseCase) SendVerficationOTP(ctx context.Context, email string) error {
+	user, err := u.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+	if user.EmailVerifiedAt != nil {
+		return domainerrors.ErrEmailAlreadyVerified
+	}
 	otp, err := generateOTP()
 	if err != nil {
 		return err
@@ -211,28 +218,31 @@ func (u *AuthUseCase) SendVerficationOTP(ctx context.Context, email string) erro
 	if err != nil {
 		return err
 	}
-	err=u.emailSender.SendVerificationOTP(ctx,email,otp)
-	if err != nil{
-		_=u.otpStore.Delete(ctx,key)
+	err = u.emailSender.SendVerificationOTP(ctx, email, otp)
+	if err != nil {
+		_ = u.otpStore.Delete(ctx, key)
 	}
 	u.log.Info("email verification OTP generated", "email", email)
 	return nil
 }
 func (u *AuthUseCase) ResendVerificationOTP(ctx context.Context, email string) error {
-	return u.SendVerficationOTP(ctx,email)
+	return u.SendVerficationOTP(ctx, email)
 }
-func (u *AuthUseCase) VerifyEmail(ctx context.Context, email, otp string) error {
-	key := emailVerificationOTPKey(email)
+func (u *AuthUseCase) VerifyEmail(ctx context.Context, userID uint, otp string) error {
+	user, err := u.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user.EmailVerifiedAt != nil {
+		return domainerrors.ErrEmailAlreadyVerified
+	}
+	key := emailVerificationOTPKey(user.Email)
 	storedOTP, err := u.otpStore.Get(ctx, key)
 	if err != nil {
 		return err
 	}
 	if storedOTP != otp {
 		return errors.New("Invalid OTP")
-	}
-	user, err := u.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		return err
 	}
 	verifiedAt := time.Now()
 	err = u.userRepo.UpdateEmailVerifiedAt(ctx, user.ID, verifiedAt)
@@ -243,7 +253,101 @@ func (u *AuthUseCase) VerifyEmail(ctx context.Context, email, otp string) error 
 	if err != nil {
 		return err
 	}
-	u.log.Info("email verified successfully", "email", email)
+	u.log.Info("email verified successfully", "email", user.Email)
+	return nil
+}
+func (u *AuthUseCase) ForgotPassword(ctx context.Context, email string) error {
+	user, err := u.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrUserNotFound) {
+			return nil
+		}
+		return err
+	}
+	otp, err := generateOTP()
+	if err != nil {
+		return err
+	}
+	key := passwordResetOTPKey(user.Email)
+	err = u.otpStore.Set(ctx, key, otp, passwordResetOTPExpiry)
+	if err != nil {
+		return err
+	}
+	err = u.emailSender.SendVerificationOTP(ctx, user.Email, otp)
+	if err != nil {
+		_ = u.otpStore.Delete(ctx, key)
+		return err
+	}
+	u.log.Info(
+		"password reset OTP sent",
+		"email", email,
+	)
+	return nil
+}
+func (u *AuthUseCase) VerifyForgotPasswordOTP(ctx context.Context, email, otp string) (string, error) {
+	user, err := u.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return "", err
+	}
+	key := passwordResetOTPKey(user.Email)
+	storedOTP, err := u.otpStore.Get(ctx, key)
+	if err != nil {
+		return "", err
+	}
+	if storedOTP != otp {
+		return "", domainerrors.ErrInvalidOTP
+	}
+	resetToken, err := generaratePasswordResetToken()
+	if err != nil {
+		return "", err
+	}
+	resetKey := passwordResetTokenKey(resetToken)
+	if err := u.otpStore.Set(ctx, resetKey, strconv.FormatUint(uint64(user.ID), 10), passwordResetTokenExpiry); err != nil {
+		return "", err
+	}
+	if err := u.otpStore.Delete(ctx, key); err != nil {
+		return "", err
+	}
+	return resetToken, nil
+}
+func (u *AuthUseCase) ResendForgotPasswordOTP(ctx context.Context, email string) error {
+	return u.ForgotPassword(ctx, email)
+}
+func (u *AuthUseCase) ResetPassword(ctx context.Context, resetToken string, newPassword string) error {
+	if resetToken == "" || newPassword == "" {
+		return domainerrors.ErrInvalidCredentials
+	}
+	if !validator.ValidatePassword(newPassword) {
+		return domainerrors.ErrWeakPassword
+	}
+	key := passwordResetTokenKey(resetToken)
+	userIDString, err := u.otpStore.Get(ctx, key)
+	if err != nil {
+		return err
+	}
+	userID, err := strconv.ParseUint(userIDString, 10, 64)
+	if err != nil {
+		return err
+	}
+	user, err := u.userRepo.FindByID(ctx, uint(userID))
+	if err != nil {
+		return err
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	if err := u.userRepo.UpdatePassword(ctx, user.ID, string(hashedPassword)); err != nil {
+		return err
+	}
+	err = u.otpStore.Delete(ctx, key)
+	if err != nil {
+		return err
+	}
+	u.log.Info(
+		"password reset successful",
+		"user_id", user.ID,
+	)
 	return nil
 }
 func stringPtr(value string) *string {

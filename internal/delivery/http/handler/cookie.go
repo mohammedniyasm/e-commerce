@@ -37,3 +37,26 @@ func getSameSiteMode(value string) http.SameSite {
 		return http.SameSiteLaxMode
 	}
 }
+func setPasswordResetCookie(w http.ResponseWriter,cookieConfig config.CookieConfig,resetToken string,maxAge int) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookieConfig.PasswordResetTokenName,
+		Value:    resetToken,
+		Path:     cookieConfig.PasswordResetPath,
+		HttpOnly: cookieConfig.PasswordResetHTTPOnly,
+		Secure:   cookieConfig.PasswordResetSecure,
+		SameSite: getSameSiteMode(cookieConfig.PasswordResetSameSite),
+		MaxAge:   maxAge,
+	})
+}
+
+func clearPasswordResetCookie(w http.ResponseWriter,cookieConfig config.CookieConfig) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookieConfig.PasswordResetTokenName,
+		Value:    "",
+		Path:     cookieConfig.PasswordResetPath,
+		HttpOnly: cookieConfig.PasswordResetHTTPOnly,
+		Secure:   cookieConfig.PasswordResetSecure,
+		SameSite: getSameSiteMode(cookieConfig.PasswordResetSameSite),
+		MaxAge:   -1,
+	})
+}

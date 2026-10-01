@@ -60,3 +60,7 @@ func (r *UserRepository) IsBlocked(ctx context.Context, userID uint) (bool, erro
 	}
 	return isBlocked, nil
 }
+func (r *UserRepository) UpdatePassword(ctx context.Context,userID uint,hashedPassword string)error{
+	result:=r.db.Table("users").WithContext(ctx).Where("id = ?",userID).Update("password",hashedPassword)
+	return result.Error
+}

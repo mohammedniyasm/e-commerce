@@ -45,6 +45,12 @@ type CookieConfig struct {
 	SameSite         string
 	Path             string
 	MaxAge           int
+
+	PasswordResetTokenName string
+	PasswordResetHTTPOnly  bool
+	PasswordResetSecure    bool
+	PasswordResetSameSite  string
+	PasswordResetPath      string
 }
 type EmailConfig struct {
 	SMTPHost string
@@ -81,6 +87,19 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	passwordResetHTTPOnly, err := strconv.ParseBool(
+		os.Getenv("PASSWORD_RESET_COOKIE_HTTP_ONLY"),
+	)
+	if err != nil {
+		return Config{}, err
+	}
+
+	passwordResetSecure, err := strconv.ParseBool(
+		os.Getenv("PASSWORD_RESET_COOKIE_SECURE"),
+	)
+	if err != nil {
+		return Config{}, err
+	}
 	return Config{
 		Server: ServerConfig{
 			Port: os.Getenv("SERVER_PORT"),
@@ -111,6 +130,12 @@ func LoadConfig() (Config, error) {
 			SameSite:         os.Getenv("REFRESH_TOKEN_COOKIE_SAME_SITE"),
 			Path:             os.Getenv("REFRESH_TOKEN_COOKIE_PATH"),
 			MaxAge:           int(refreshExpiry.Seconds()),
+
+			PasswordResetTokenName: os.Getenv("PASSWORD_RESET_COOKIE_NAME"),
+			PasswordResetHTTPOnly:  passwordResetHTTPOnly,
+			PasswordResetSecure:    passwordResetSecure,
+			PasswordResetSameSite:  os.Getenv("PASSWORD_RESET_COOKIE_SAME_SITE"),
+			PasswordResetPath:      os.Getenv("PASSWORD_RESET_COOKIE_PATH"),
 		},
 		Email: EmailConfig{
 			SMTPHost: os.Getenv("SMTP_HOST"),
