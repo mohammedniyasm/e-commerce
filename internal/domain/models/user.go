@@ -19,6 +19,7 @@ type User struct {
 	ProfileImage    string   `gorm:"size:255"`
 	Role            UserRole `gorm:"not null;default:user"`
 	IsBlocked       bool     `gorm:"not null;default:false"`
+	GoogleID        *string  `gorm:"size:255" json:"google_id"`
 	LastSeen        *time.Time
 	CreatedAt       time.Time
 	UpdatedAt       *time.Time

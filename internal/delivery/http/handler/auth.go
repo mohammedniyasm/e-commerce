@@ -424,3 +424,38 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		Message: "password reset successfully",
 	})
 }
+func (h *AuthHandler) GoogleLogin(c *gin.Context) {
+	var req request.GoogleLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+			Error:   err.Error(),
+		})
+		return
+	}
+	accessToken, refreshToken, err := h.authUsecase.GoogleLogin(c.Request.Context(),req.IDToken)
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrUserBlocked) {
+			c.JSON(http.StatusForbidden, response.APIResponse{
+				Success: false,
+				Message: "user account is blocked",
+			})
+			return
+		}
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "google authentication failed",
+			Error:   err.Error(),
+		})
+		return
+	}
+	SetRefreshTokenCookie(c.Writer,h.cookie,refreshToken,h.cookie.MaxAge)
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "google login successful",
+		Data: map[string]string{
+			"access_token": accessToken,
+		},
+	})
+}

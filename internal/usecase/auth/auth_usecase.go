@@ -22,18 +22,21 @@ type AuthUseCase struct {
 	refreshSessionStore  interfaces.RefreshSessionStore
 	accessTokenBlacklist interfaces.AccessTokenBlacklist
 	emailSender          interfaces.EmailSender
+	googleTokenVerifier  interfaces.GoogleTokenVerifier
 	log                  *slog.Logger
 }
 
-func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, jwtService interfaces.JWTService, refreshSessionStore interfaces.RefreshSessionStore, accessTokenBlacklist interfaces.AccessTokenBlacklist, emailSender interfaces.EmailSender, log *slog.Logger) *AuthUseCase {
+func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, jwtService interfaces.JWTService, refreshSessionStore interfaces.RefreshSessionStore, accessTokenBlacklist interfaces.AccessTokenBlacklist, emailSender interfaces.EmailSender, googleTokenVerifier interfaces.GoogleTokenVerifier, log *slog.Logger) *AuthUseCase {
 	return &AuthUseCase{
 		userRepo:             userRepo,
 		otpStore:             otpStore,
 		jwtService:           jwtService,
 		refreshSessionStore:  refreshSessionStore,
 		accessTokenBlacklist: accessTokenBlacklist,
+		googleTokenVerifier:  googleTokenVerifier,
 		emailSender:          emailSender,
-		log:                  log,
+
+		log: log,
 	}
 }
 
@@ -350,6 +353,85 @@ func (u *AuthUseCase) ResetPassword(ctx context.Context, resetToken string, newP
 	)
 	return nil
 }
+func (u *AuthUseCase) GoogleLogin(ctx context.Context, idToken string) (string, string, error) {
+	googleUser, err := u.googleTokenVerifier.Verify(ctx, idToken)
+	if err != nil {
+		u.log.Warn(
+			"google login failed",
+			"reason", "invalid google token",
+			"error", err,
+		)
+		return "", "", domainerrors.ErrInvalidCredentials
+	}
+	user, err := u.userRepo.FindByGoogleID(ctx, googleUser.SubjectID)
+	if err != nil && !errors.Is(err, domainerrors.ErrUserNotFound) {
+		return "", "", err
+	}
+	if err == nil && user != nil {
+		if user.IsBlocked {
+			return "", "", domainerrors.ErrUserBlocked
+		}
+		return u.generateAuthTokens(ctx, user)
+	}
+	user, err = u.userRepo.FindByEmail(ctx, googleUser.Email)
+	if err == nil && user != nil {
+		if err := u.userRepo.LinkGoogleID(ctx, user.ID, googleUser.SubjectID); err != nil {
+			return "", "", err
+		}
+		if user.EmailVerifiedAt == nil {
+			now := time.Now()
+			if err := u.userRepo.UpdateEmailVerifiedAt(ctx,user.ID,now); err != nil {
+				return "", "", err
+			}
+		}
+		if user.IsBlocked {
+			return "", "", domainerrors.ErrUserBlocked
+		}
+		return u.generateAuthTokens(ctx, user)
+	}
+	if err != nil && !errors.Is(err, domainerrors.ErrUserNotFound) {
+		return "", "", err
+	}
+	googleID := googleUser.SubjectID
+	now := time.Now()
+
+	newUser := &models.User{
+		Name:            googleUser.Name,
+		Email:           googleUser.Email,
+		Password:        nil,
+		GoogleID:        &googleID,
+		EmailVerifiedAt: &now,
+		ProfileImage:    googleUser.Picture,
+		Role:            models.RoleUser,
+		IsBlocked:       false,
+	}
+
+	if err := u.userRepo.Create(ctx, newUser); err != nil {
+		return "", "", err
+	}
+
+	u.log.Info(
+		"google user created",
+		"user_id", newUser.ID,
+		"email", newUser.Email,
+	)
+
+	return u.generateAuthTokens(ctx, newUser)
+}
 func stringPtr(value string) *string {
 	return &value
+}
+func (u *AuthUseCase) generateAuthTokens(ctx context.Context, user *models.User) (string, string, error) {
+	accessToken, err := u.jwtService.GenerateAccessToken(user.ID, string(user.Role))
+	if err != nil {
+		return "", "", err
+	}
+	refreshToken, jti, err := u.jwtService.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return "", "", err
+	}
+	if err := u.refreshSessionStore.Save(ctx, jti, user.ID); err != nil {
+		return "", "", err
+	}
+	return accessToken, refreshToken, nil
 }

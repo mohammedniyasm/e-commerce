@@ -18,6 +18,7 @@ func RegisterRoutes(r *gin.Engine, authHandler *handler.AuthHandler, jwtService 
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
+		auth.POST("/google", authHandler.GoogleLogin)
 		auth.POST("/refresh-token", authHandler.RefreshToken)
 		auth.POST("/forgot-password", authHandler.ForgotPassword)
 		auth.POST("/forgot-password/verify-otp", authHandler.VerifyForgotPassword)

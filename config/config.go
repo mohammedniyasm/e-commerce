@@ -15,6 +15,7 @@ type Config struct {
 	JWT      JWTConfig
 	Cookie   CookieConfig
 	Email    EmailConfig
+	Google   GoogleConfig
 }
 type ServerConfig struct {
 	Port string
@@ -58,6 +59,9 @@ type EmailConfig struct {
 	Username string
 	Password string
 	From     string
+}
+type GoogleConfig struct {
+	ClientID string
 }
 
 func LoadConfig() (Config, error) {
@@ -143,6 +147,9 @@ func LoadConfig() (Config, error) {
 			Username: os.Getenv("SMTP_USERNAME"),
 			Password: os.Getenv("SMTP_PASSWORD"),
 			From:     os.Getenv("SMTP_FROM"),
+		},
+		Google: GoogleConfig{
+			ClientID: os.Getenv("GOOGLE_CLIENT_ID"),
 		},
 	}, nil
 }

@@ -26,8 +26,9 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) *Applicati
 	otpStore := redis.NewOTPStore(redisClient)
 	jwtService := authinfra.NewJWTService(cfg.JWT)
 	emailSender:=email.NewSMTPEmailSender(cfg.Email)
+	googleTokenVerifier:=authinfra.NewGoogleTokenVerifier(cfg.Google.ClientID)
 	userRepository := postgres.NewUserRepository(db)
-	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore,accessTokenBlacklistStore,emailSender, log)
+	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore,accessTokenBlacklistStore,emailSender,googleTokenVerifier, log)
 	authHandler := handler.NewAuthHandler(authUseCase,cfg.Cookie)
 	
 	r := router.SetupRouter(log, authHandler, jwtService, userRepository,accessTokenBlacklistStore)

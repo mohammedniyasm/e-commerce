@@ -60,7 +60,22 @@ func (r *UserRepository) IsBlocked(ctx context.Context, userID uint) (bool, erro
 	}
 	return isBlocked, nil
 }
-func (r *UserRepository) UpdatePassword(ctx context.Context,userID uint,hashedPassword string)error{
-	result:=r.db.Table("users").WithContext(ctx).Where("id = ?",userID).Update("password",hashedPassword)
+func (r *UserRepository) UpdatePassword(ctx context.Context, userID uint, hashedPassword string) error {
+	result := r.db.Table("users").WithContext(ctx).Where("id = ?", userID).Update("password", hashedPassword)
+	return result.Error
+}
+func (r *UserRepository) FindByGoogleID(ctx context.Context, googleID string) (*models.User, error){
+	var user models.User
+	err:=r.db.WithContext(ctx).Where("google_id = ?",googleID).First(&user).Error
+	if err != nil{
+		if errors.Is(err,gorm.ErrRecordNotFound){
+			return nil,domainerrors.ErrUserNotFound
+		}
+		return nil,err
+	}
+	return &user,nil
+}
+func (r *UserRepository) LinkGoogleID(ctx context.Context,userID uint,googleID string,) error {
+	result := r.db.WithContext(ctx).Table("users").Where("id = ?", userID).Update("google_id", googleID)
 	return result.Error
 }
