@@ -212,6 +212,30 @@ func (h *AuthHandler) SendVerificationOTP(c *gin.Context) {
 		Message: "verification OTP send successfully",
 	})
 }
+func (h *AuthHandler) ResendVerificationOTP(c *gin.Context) {
+	var req request.SendVerificationOTPRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+			Error:   domainerrors.ErrInvalidCredentials.Error(),
+		})
+		return
+	}
+	err := h.authUsecase.ResendVerificationOTP(c.Request.Context(), req.Email)
+	if err != nil {
+		c.JSON(500, response.APIResponse{
+			Success: false,
+			Message: "failed to resend verification OTP",
+			Error:   err.Error(),
+		})
+		return
+	}
+	c.JSON(200, response.APIResponse{
+		Success: true,
+		Message: "verification OTP resent successfully",
+	})
+}
 func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 	var req request.VerifyEmailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

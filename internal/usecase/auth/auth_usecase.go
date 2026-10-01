@@ -21,16 +21,18 @@ type AuthUseCase struct {
 	jwtService           interfaces.JWTService
 	refreshSessionStore  interfaces.RefreshSessionStore
 	accessTokenBlacklist interfaces.AccessTokenBlacklist
+	emailSender          interfaces.EmailSender
 	log                  *slog.Logger
 }
 
-func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, jwtService interfaces.JWTService, refreshSessionStore interfaces.RefreshSessionStore, accessTokenBlacklist interfaces.AccessTokenBlacklist, log *slog.Logger) *AuthUseCase {
+func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, jwtService interfaces.JWTService, refreshSessionStore interfaces.RefreshSessionStore, accessTokenBlacklist interfaces.AccessTokenBlacklist, emailSender interfaces.EmailSender, log *slog.Logger) *AuthUseCase {
 	return &AuthUseCase{
 		userRepo:             userRepo,
 		otpStore:             otpStore,
 		jwtService:           jwtService,
 		refreshSessionStore:  refreshSessionStore,
 		accessTokenBlacklist: accessTokenBlacklist,
+		emailSender:          emailSender,
 		log:                  log,
 	}
 }
@@ -209,8 +211,15 @@ func (u *AuthUseCase) SendVerficationOTP(ctx context.Context, email string) erro
 	if err != nil {
 		return err
 	}
+	err=u.emailSender.SendVerificationOTP(ctx,email,otp)
+	if err != nil{
+		_=u.otpStore.Delete(ctx,key)
+	}
 	u.log.Info("email verification OTP generated", "email", email)
 	return nil
+}
+func (u *AuthUseCase) ResendVerificationOTP(ctx context.Context, email string) error {
+	return u.SendVerficationOTP(ctx,email)
 }
 func (u *AuthUseCase) VerifyEmail(ctx context.Context, email, otp string) error {
 	key := emailVerificationOTPKey(email)

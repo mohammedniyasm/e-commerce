@@ -14,6 +14,7 @@ type Config struct {
 	Redis    RedisConfig
 	JWT      JWTConfig
 	Cookie   CookieConfig
+	Email    EmailConfig
 }
 type ServerConfig struct {
 	Port string
@@ -45,6 +46,13 @@ type CookieConfig struct {
 	Path             string
 	MaxAge           int
 }
+type EmailConfig struct {
+	SMTPHost string
+	SMTPPort int
+	Username string
+	Password string
+	From     string
+}
 
 func LoadConfig() (Config, error) {
 	_ = godotenv.Load()
@@ -66,6 +74,10 @@ func LoadConfig() (Config, error) {
 	cookieSecure, err := strconv.ParseBool(
 		os.Getenv("REFRESH_TOKEN_COOKIE_SECURE"),
 	)
+	if err != nil {
+		return Config{}, err
+	}
+	smtpPort, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	if err != nil {
 		return Config{}, err
 	}
@@ -99,6 +111,13 @@ func LoadConfig() (Config, error) {
 			SameSite:         os.Getenv("REFRESH_TOKEN_COOKIE_SAME_SITE"),
 			Path:             os.Getenv("REFRESH_TOKEN_COOKIE_PATH"),
 			MaxAge:           int(refreshExpiry.Seconds()),
+		},
+		Email: EmailConfig{
+			SMTPHost: os.Getenv("SMTP_HOST"),
+			SMTPPort: smtpPort,
+			Username: os.Getenv("SMTP_USERNAME"),
+			Password: os.Getenv("SMTP_PASSWORD"),
+			From:     os.Getenv("SMTP_FROM"),
 		},
 	}, nil
 }

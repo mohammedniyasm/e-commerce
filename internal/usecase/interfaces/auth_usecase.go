@@ -12,5 +12,6 @@ type AuthUseCase interface {
 	Logout(ctx context.Context,refreshToken string,accessClaims *AccessClaims)error
 
 	SendVerficationOTP(ctx context.Context,email string)error
+	ResendVerificationOTP(ctx context.Context, email string) error
 	VerifyEmail(ctx context.Context,email,otp string)error
 }
