@@ -132,7 +132,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	accessToken,newRefreshToken, err := h.authUsecase.RefreshAccessToken(c.Request.Context(), refreshToken)
+	accessToken, newRefreshToken, err := h.authUsecase.RefreshAccessToken(c.Request.Context(), refreshToken)
 	if err != nil {
 		c.JSON(401, response.APIResponse{
 			Success: false,
@@ -434,7 +434,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		})
 		return
 	}
-	accessToken, refreshToken, err := h.authUsecase.GoogleLogin(c.Request.Context(),req.IDToken)
+	accessToken, refreshToken, err := h.authUsecase.GoogleLogin(c.Request.Context(), req.IDToken)
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrUserBlocked) {
 			c.JSON(http.StatusForbidden, response.APIResponse{
@@ -450,12 +450,70 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		})
 		return
 	}
-	SetRefreshTokenCookie(c.Writer,h.cookie,refreshToken,h.cookie.MaxAge)
+	SetRefreshTokenCookie(c.Writer, h.cookie, refreshToken, h.cookie.MaxAge)
 	c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
 		Message: "google login successful",
 		Data: map[string]string{
 			"access_token": accessToken,
+		},
+	})
+}
+func (h *AuthHandler) AdminLogin(c *gin.Context) {
+	var req request.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	accessToken, refreshToken, err :=
+		h.authUsecase.AdminLogin(
+			c.Request.Context(),
+			req.Email,
+			req.Password,
+		)
+
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrInvalidCredentials) {
+			c.JSON(http.StatusUnauthorized, response.APIResponse{
+				Success: false,
+				Message: "invalid admin credentials",
+			})
+			return
+		}
+
+		if errors.Is(err, domainerrors.ErrUserBlocked) {
+			c.JSON(http.StatusForbidden, response.APIResponse{
+				Success: false,
+				Message: "admin account is blocked",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "admin login failed",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	SetRefreshTokenCookie(
+		c.Writer,
+		h.cookie,
+		refreshToken,
+		h.cookie.MaxAge,
+	)
+
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "admin login successful",
+		Data: response.LoginResponse{
+			AccessToken: accessToken,
 		},
 	})
 }

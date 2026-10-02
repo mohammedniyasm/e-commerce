@@ -95,11 +95,68 @@ func (r *UserRepository) UpdateEmail(ctx context.Context, userID uint, email str
 
 	return result.Error
 }
-func (r *UserRepository) UpdateProfileImage(ctx context.Context,userID uint,profileImage string) error {
+func (r *UserRepository) UpdateProfileImage(ctx context.Context, userID uint, profileImage string) error {
 	return r.db.
 		WithContext(ctx).
 		Model(&models.User{}).
 		Where("id = ?", userID).
 		Update("profile_image", profileImage).
 		Error
+}
+func (r *UserRepository) ListUsers(ctx context.Context, search string, offset int, limit int) ([]models.User, int64, error) {
+
+	var users []models.User
+	var total int64
+
+	query := r.db.WithContext(ctx).Model(&models.User{})
+
+	if search != "" {
+		searchPattern := "%" + search + "%"
+
+		query = query.Where(
+			"name ILIKE ? OR email ILIKE ? OR phone ILIKE ?",
+			searchPattern,
+			searchPattern,
+			searchPattern,
+		)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+	return users, total, nil
+}
+func (r *UserRepository) SetBlocked(ctx context.Context, userID uint, blocked bool) error {
+	result := r.db.
+		WithContext(ctx).
+		Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("is_blocked", blocked)
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return domainerrors.ErrUserNotFound
+	}
+	return nil
+}
+func (r *UserRepository) Delete(ctx context.Context, userID uint) error {
+	result := r.db.
+		WithContext(ctx).
+		Delete(&models.User{}, userID)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return domainerrors.ErrUserNotFound
+	}
+
+	return nil
 }
