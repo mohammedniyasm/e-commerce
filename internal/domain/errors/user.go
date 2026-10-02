@@ -13,4 +13,6 @@ var (
 	ErrRefreshSessionNotFound = errors.New("refresh session not found")
 	ErrInvalidOTP             = errors.New("invalid otp")
 	ErrEmailAlreadyVerified   = errors.New("email is already verified")
+	ErrInvalidUserID          = errors.New("invalid user id")
+	ErrInvalidAddress         = errors.New("invalid address")
 )
