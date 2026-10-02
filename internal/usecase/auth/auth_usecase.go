@@ -156,30 +156,45 @@ func (u *AuthUseCase) Login(ctx context.Context, email string, password string) 
 	}
 	return accessToken, refreshToken, nil
 }
-func (u *AuthUseCase) RefreshAccessToken(ctx context.Context, refreshToken string) (string, error) {
+func (u *AuthUseCase) RefreshAccessToken(ctx context.Context, refreshToken string) (string, string, error) {
 	userID, jti, err := u.jwtService.ValidateRefreshToken(refreshToken)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	sessionUserID, err := u.refreshSessionStore.Get(ctx, jti)
+	sessionUserID, found, err := u.refreshSessionStore.Consume(ctx, jti)
 	if err != nil {
-		return "", err
+		return "", "", err
+	}
+	if !found {
+		return "", "", domainerrors.ErrInvalidCredentials
 	}
 	if userID != strconv.FormatUint(uint64(sessionUserID), 10) {
-		return "", errors.New("refresh session user mismatch")
+		return "", "", errors.New("refresh session user mismatch")
 	}
 	user, err := u.userRepo.FindByID(ctx, sessionUserID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if user.IsBlocked {
-		return "", domainerrors.ErrUserBlocked
+		return "", "", domainerrors.ErrUserBlocked
 	}
 	accessToken, err := u.jwtService.GenerateAccessToken(user.ID, string(user.Role))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return accessToken, nil
+	newRefreshToken, newJTI, err := u.jwtService.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return "", "", err
+	}
+	err = u.refreshSessionStore.Save(ctx,newJTI,user.ID,)
+	if err != nil {
+		return "", "", err
+	}
+	u.log.Info(
+		"refresh token rotated",
+		"user_id", user.ID,
+	)
+	return accessToken, newRefreshToken, nil
 }
 func (u *AuthUseCase) Logout(ctx context.Context, refreshToken string, accessClaims *interfaces.AccessClaims) error {
 	if refreshToken == "" {
@@ -380,7 +395,7 @@ func (u *AuthUseCase) GoogleLogin(ctx context.Context, idToken string) (string, 
 		}
 		if user.EmailVerifiedAt == nil {
 			now := time.Now()
-			if err := u.userRepo.UpdateEmailVerifiedAt(ctx,user.ID,now); err != nil {
+			if err := u.userRepo.UpdateEmailVerifiedAt(ctx, user.ID, now); err != nil {
 				return "", "", err
 			}
 		}

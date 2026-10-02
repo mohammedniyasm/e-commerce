@@ -21,17 +21,18 @@ type Application struct {
 
 func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) *Application {
 	redisClient := redis.NewRedisClient(cfg.Redis, log)
-	accessTokenBlacklistStore:=redis.NewAccessTokenBlacklistStore(redisClient)
+	rateLimiter := redis.NewRedisRateLimiter(redisClient)
+	accessTokenBlacklistStore := redis.NewAccessTokenBlacklistStore(redisClient)
 	refreshSessionStore := redis.NewRefreshSessionStore(redisClient, cfg.JWT.RefreshExpiry)
 	otpStore := redis.NewOTPStore(redisClient)
 	jwtService := authinfra.NewJWTService(cfg.JWT)
-	emailSender:=email.NewSMTPEmailSender(cfg.Email)
-	googleTokenVerifier:=authinfra.NewGoogleTokenVerifier(cfg.Google.ClientID)
+	emailSender := email.NewSMTPEmailSender(cfg.Email)
+	googleTokenVerifier := authinfra.NewGoogleTokenVerifier(cfg.Google.ClientID)
 	userRepository := postgres.NewUserRepository(db)
-	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore,accessTokenBlacklistStore,emailSender,googleTokenVerifier, log)
-	authHandler := handler.NewAuthHandler(authUseCase,cfg.Cookie)
-	
-	r := router.SetupRouter(log, authHandler, jwtService, userRepository,accessTokenBlacklistStore)
+	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore, accessTokenBlacklistStore, emailSender, googleTokenVerifier, log)
+	authHandler := handler.NewAuthHandler(authUseCase, cfg.Cookie)
+
+	r := router.SetupRouter(log, authHandler, jwtService, userRepository, accessTokenBlacklistStore, rateLimiter)
 	return &Application{
 		Router: r,
 	}

@@ -9,13 +9,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(log *slog.Logger, authHandler *handler.AuthHandler, jwtServices interfaces.JWTService, userRepo interfaces.UserRepository,blacklist interfaces.AccessTokenBlacklist) *gin.Engine {
+func SetupRouter(log *slog.Logger, authHandler *handler.AuthHandler, jwtServices interfaces.JWTService, userRepo interfaces.UserRepository,blacklist interfaces.AccessTokenBlacklist,rateLimiter interfaces.RateLimiter) *gin.Engine {
 	r := gin.Default()
 	r.Use(
 		middleware.Recovery(log),
 		middleware.Logger(log),
 		middleware.CORS(),
 	)
-	RegisterRoutes(r, authHandler, jwtServices, userRepo,blacklist)
+	RegisterRoutes(r, authHandler, jwtServices, userRepo,blacklist,rateLimiter)
 	return r
 }

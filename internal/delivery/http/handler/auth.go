@@ -132,7 +132,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := h.authUsecase.RefreshAccessToken(c.Request.Context(), refreshToken)
+	accessToken,newRefreshToken, err := h.authUsecase.RefreshAccessToken(c.Request.Context(), refreshToken)
 	if err != nil {
 		c.JSON(401, response.APIResponse{
 			Success: false,
@@ -141,7 +141,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		})
 		return
 	}
-	SetRefreshTokenCookie(c.Writer, h.cookie, refreshToken, h.cookie.MaxAge)
+	SetRefreshTokenCookie(c.Writer, h.cookie, newRefreshToken, h.cookie.MaxAge)
 	c.JSON(200, response.APIResponse{
 		Success: true,
 		Message: "Access token refreshed Succefully",

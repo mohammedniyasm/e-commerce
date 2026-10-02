@@ -30,8 +30,8 @@ func (s *RefreshSessionStore) Get(ctx context.Context, jti string) (uint, error)
 
 	value, err := s.client.Get(ctx, key).Result()
 	if err != nil {
-		if errors.Is(err,redis.Nil){
-			return 0,domainerrors.ErrRefreshSessionNotFound
+		if errors.Is(err, redis.Nil) {
+			return 0, domainerrors.ErrRefreshSessionNotFound
 		}
 		return 0, err
 	}
@@ -47,4 +47,28 @@ func (s *RefreshSessionStore) Delete(ctx context.Context, jti string) error {
 	key := "refresh_session:" + jti
 
 	return s.client.Del(ctx, key).Err()
+}
+var consumeRefreshSessionScript = redis.NewScript(`
+local value = redis.call("GET", KEYS[1])
+if not value then
+	return ""
+end
+redis.call("DEL", KEYS[1])
+return value
+`)
+func (r *RefreshSessionStore) Consume(ctx context.Context,jti string) (uint, bool, error) {
+	key := "refresh_session:" + jti
+
+	value, err := consumeRefreshSessionScript.Run(ctx,r.client,[]string{key}).Text()
+	if err != nil {
+		return 0, false, err
+	}
+	if value == "" {
+		return 0, false, nil
+	}
+	userID, err := strconv.ParseUint(value, 10, 64)
+	if err != nil {
+		return 0, false, err
+	}
+	return uint(userID), true, nil
 }
