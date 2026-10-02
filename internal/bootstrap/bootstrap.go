@@ -7,8 +7,12 @@ import (
 	authinfra "ecommerce/internal/infrastructure/auth"
 	"ecommerce/internal/infrastructure/email"
 	"ecommerce/internal/infrastructure/redis"
+	"ecommerce/internal/infrastructure/storage"
 	"ecommerce/internal/repository/postgres"
+	"ecommerce/internal/usecase/address"
 	"ecommerce/internal/usecase/auth"
+	"ecommerce/internal/usecase/profile"
+	"fmt"
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
@@ -19,9 +23,13 @@ type Application struct {
 	Router *gin.Engine
 }
 
-func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) *Application {
+func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Application, error) {
 	redisClient := redis.NewRedisClient(cfg.Redis, log)
 	rateLimiter := redis.NewRedisRateLimiter(redisClient)
+	profileStorage, err := storage.NewMinIOStorage(storage.MinIOConfig(cfg.MinIO))
+	if err != nil {
+		return nil, fmt.Errorf("initialize MinIO storage: %w", err)
+	}
 	accessTokenBlacklistStore := redis.NewAccessTokenBlacklistStore(redisClient)
 	refreshSessionStore := redis.NewRefreshSessionStore(redisClient, cfg.JWT.RefreshExpiry)
 	otpStore := redis.NewOTPStore(redisClient)
@@ -31,9 +39,13 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) *Applicati
 	userRepository := postgres.NewUserRepository(db)
 	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore, accessTokenBlacklistStore, emailSender, googleTokenVerifier, log)
 	authHandler := handler.NewAuthHandler(authUseCase, cfg.Cookie)
-
-	r := router.SetupRouter(log, authHandler, jwtService, userRepository, accessTokenBlacklistStore, rateLimiter)
+	profileUsecase := profile.NewProfileUseCase(userRepository, otpStore, emailSender, profileStorage, log)
+	profileHandler := handler.NewProfileHandler(profileUsecase)
+	addressRepository := postgres.NewAddressRepository(db)
+	addressUseCase := address.NewAddressUseCase(addressRepository, log)
+	addressHandler := handler.NewAddressHandler(addressUseCase)
+	r := router.SetupRouter(log, authHandler, jwtService, userRepository, accessTokenBlacklistStore, rateLimiter, profileHandler, addressHandler)
 	return &Application{
 		Router: r,
-	}
+	}, nil
 }

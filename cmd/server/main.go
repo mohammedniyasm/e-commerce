@@ -6,6 +6,7 @@ import (
 	"ecommerce/internal/infrastructure/database"
 	"ecommerce/pkg/logger"
 	"log"
+	"os"
 )
 
 func main() {
@@ -30,7 +31,11 @@ func main() {
 	log.Info("database connected successfully",
 		"database", cfg.Database.Name,
 	)
-	app := bootstrap.NewApplication(db, log, cfg)
+	app, err := bootstrap.NewApplication(db, log, cfg)
+	if err != nil {
+		log.Error("failed to start application", "error", err)
+		os.Exit(1)
+	}
 	log.Info("Server starting", "port", cfg.Server.Port)
 	if app.Router.Run(":" + cfg.Server.Port); err != nil {
 		log.Error("server stopped unexpectedly", "error", err)

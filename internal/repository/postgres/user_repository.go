@@ -64,18 +64,42 @@ func (r *UserRepository) UpdatePassword(ctx context.Context, userID uint, hashed
 	result := r.db.Table("users").WithContext(ctx).Where("id = ?", userID).Update("password", hashedPassword)
 	return result.Error
 }
-func (r *UserRepository) FindByGoogleID(ctx context.Context, googleID string) (*models.User, error){
+func (r *UserRepository) FindByGoogleID(ctx context.Context, googleID string) (*models.User, error) {
 	var user models.User
-	err:=r.db.WithContext(ctx).Where("google_id = ?",googleID).First(&user).Error
-	if err != nil{
-		if errors.Is(err,gorm.ErrRecordNotFound){
-			return nil,domainerrors.ErrUserNotFound
+	err := r.db.WithContext(ctx).Where("google_id = ?", googleID).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrUserNotFound
 		}
-		return nil,err
+		return nil, err
 	}
-	return &user,nil
+	return &user, nil
 }
-func (r *UserRepository) LinkGoogleID(ctx context.Context,userID uint,googleID string,) error {
+func (r *UserRepository) LinkGoogleID(ctx context.Context, userID uint, googleID string) error {
 	result := r.db.WithContext(ctx).Table("users").Where("id = ?", userID).Update("google_id", googleID)
 	return result.Error
+}
+func (r *UserRepository) UpdateProfile(ctx context.Context, userID uint, name, phone string) error {
+	err := r.db.Table("users").WithContext(ctx).Where("id = ?", userID).Updates(map[string]interface{}{
+		"name":  name,
+		"phone": phone,
+	}).Error
+	return err
+}
+func (r *UserRepository) UpdateEmail(ctx context.Context, userID uint, email string) error {
+	result := r.db.
+		WithContext(ctx).
+		Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("email", email)
+
+	return result.Error
+}
+func (r *UserRepository) UpdateProfileImage(ctx context.Context,userID uint,profileImage string) error {
+	return r.db.
+		WithContext(ctx).
+		Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("profile_image", profileImage).
+		Error
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(r *gin.Engine, authHandler *handler.AuthHandler, jwtService interfaces.JWTService, userRepo interfaces.UserRepository, blacklist interfaces.AccessTokenBlacklist, rateLimiter interfaces.RateLimiter) {
+func RegisterRoutes(r *gin.Engine, authHandler *handler.AuthHandler, jwtService interfaces.JWTService, userRepo interfaces.UserRepository, blacklist interfaces.AccessTokenBlacklist, rateLimiter interfaces.RateLimiter, profileHandler *handler.ProfileHandler, addressHandler *handler.AddressHandler) {
 	v1 := r.Group("/api/v1")
 	v1.GET("/health", handler.Health)
 	authMiddleware := middleware.AuthMiddleware(jwtService, userRepo, blacklist)
@@ -24,10 +24,28 @@ func RegisterRoutes(r *gin.Engine, authHandler *handler.AuthHandler, jwtService 
 		auth.POST("/forgot-password/verify-otp", middleware.RateLimit(rateLimiter, 5, 300, "forgot-password-verify"), authHandler.VerifyForgotPassword)
 		auth.POST("/forgot-password/resend-otp", middleware.RateLimit(rateLimiter, 3, 300, "forgot-password-resend"), authHandler.ResendForgotPasswordOTP)
 		auth.POST("/reset-password", middleware.RateLimit(rateLimiter, 5, 600, "reset-password"), authHandler.ResetPassword)
-		// auth.POST("/logout", authHandler.Logout)
+
 		protected.POST("/logout", authHandler.Logout)
 		protected.POST("/email/send-verification-otp", middleware.RateLimit(rateLimiter, 3, 300, "email-verification-send"), authHandler.SendVerificationOTP)
 		protected.POST("/email/verify-email", middleware.RateLimit(rateLimiter, 5, 300, "email-verification-verify"), authHandler.VerifyEmail)
 		protected.POST("/email/resend-otp", middleware.RateLimit(rateLimiter, 3, 300, "email-verification-resend"), authHandler.ResendVerificationOTP)
+	}
+	profile := v1.Group("/user")
+	protected = profile.Group("")
+	protected.Use(authMiddleware)
+	{
+		protected.GET("/profile", profileHandler.GetProfile)
+		protected.PUT("/profile", profileHandler.UpdateProfile)
+		protected.PUT("/profile/password", profileHandler.ChangePassword)
+		protected.POST("/profile/email", profileHandler.SendEmailChangeOTP)
+		protected.POST("/profile/email/verify", profileHandler.VerifyEmailChangeOTP)
+		protected.POST("/profile/image", profileHandler.UploadProfileImage)
+		protected.DELETE("/profile/image", profileHandler.DeleteProfileImage)
+
+		protected.GET("/addresses", addressHandler.GetAddresses)
+		protected.POST("/addresses", addressHandler.AddAddress)
+		protected.PUT("/addresses/:id", addressHandler.UpdateAddress)
+		protected.DELETE("/addresses/:id", addressHandler.DeleteAddress)
+		protected.PATCH("/addresses/:id/default", addressHandler.SetDefaultAddress)
 	}
 }

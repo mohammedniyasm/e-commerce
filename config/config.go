@@ -16,6 +16,7 @@ type Config struct {
 	Cookie   CookieConfig
 	Email    EmailConfig
 	Google   GoogleConfig
+	MinIO    MinIOConfig
 }
 type ServerConfig struct {
 	Port string
@@ -63,6 +64,13 @@ type EmailConfig struct {
 type GoogleConfig struct {
 	ClientID string
 }
+type MinIOConfig struct {
+	Endpoint  string
+	AccessKey string
+	SecretKey string
+	UseSSL    bool
+	Bucket    string
+}
 
 func LoadConfig() (Config, error) {
 	_ = godotenv.Load()
@@ -100,6 +108,12 @@ func LoadConfig() (Config, error) {
 
 	passwordResetSecure, err := strconv.ParseBool(
 		os.Getenv("PASSWORD_RESET_COOKIE_SECURE"),
+	)
+	if err != nil {
+		return Config{}, err
+	}
+	useSSL, err := strconv.ParseBool(
+		os.Getenv("MINIO_USE_SSL"),
 	)
 	if err != nil {
 		return Config{}, err
@@ -150,6 +164,13 @@ func LoadConfig() (Config, error) {
 		},
 		Google: GoogleConfig{
 			ClientID: os.Getenv("GOOGLE_CLIENT_ID"),
+		},
+		MinIO: MinIOConfig{
+			Endpoint:  os.Getenv("MINIO_ENDPOINT"),
+			AccessKey: os.Getenv("MINIO_ACCESS_KEY"),
+			SecretKey: os.Getenv("MINIO_SECRET_KEY"),
+			UseSSL:    useSSL,
+			Bucket:    os.Getenv("MINIO_BUCKET"),
 		},
 	}, nil
 }
