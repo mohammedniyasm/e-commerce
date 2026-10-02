@@ -5,6 +5,8 @@ import (
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
 	"errors"
+	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -34,4 +36,46 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*models
 		return nil, result.Error
 	}
 	return &user, nil
+}
+func (r *UserRepository) FindByID(ctx context.Context, ID uint) (*models.User, error) {
+	var user models.User
+	result := r.db.WithContext(ctx).First(&user, ID)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrUserNotFound
+		}
+		return nil, result.Error
+	}
+	return &user, nil
+}
+func (r *UserRepository) UpdateEmailVerifiedAt(ctx context.Context, userID uint, verifiedAt time.Time) error {
+	result := r.db.WithContext(ctx).Table("users").Where("id = ?", userID).Update("email_verified_at", verifiedAt)
+	return result.Error
+}
+func (r *UserRepository) IsBlocked(ctx context.Context, userID uint) (bool, error) {
+	var isBlocked bool
+	result := r.db.WithContext(ctx).Table("users").Select("is_blocked").Where("id = ?", userID).Scan(&isBlocked)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return isBlocked, nil
+}
+func (r *UserRepository) UpdatePassword(ctx context.Context, userID uint, hashedPassword string) error {
+	result := r.db.Table("users").WithContext(ctx).Where("id = ?", userID).Update("password", hashedPassword)
+	return result.Error
+}
+func (r *UserRepository) FindByGoogleID(ctx context.Context, googleID string) (*models.User, error){
+	var user models.User
+	err:=r.db.WithContext(ctx).Where("google_id = ?",googleID).First(&user).Error
+	if err != nil{
+		if errors.Is(err,gorm.ErrRecordNotFound){
+			return nil,domainerrors.ErrUserNotFound
+		}
+		return nil,err
+	}
+	return &user,nil
+}
+func (r *UserRepository) LinkGoogleID(ctx context.Context,userID uint,googleID string,) error {
+	result := r.db.WithContext(ctx).Table("users").Where("id = ?", userID).Update("google_id", googleID)
+	return result.Error
 }

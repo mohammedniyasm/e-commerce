@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>VÉRANO — Sign In</title>
+
+    <!-- Google Identity Services -->
+    <script
+        src="https://accounts.google.com/gsi/client"
+        async
+        defer>
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0b0b0b;
+            --card: #111111;
+            --card-light: #171717;
+            --text: #f5f3ef;
+            --muted: #99938a;
+            --line: #2a2825;
+            --accent: #d7c4a3;
+            --success: #8fd3a8;
+            --danger: #e58d8d;
+        }
+
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body {
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(215, 196, 163, 0.08),
+                    transparent 35%
+                ),
+                radial-gradient(
+                    circle at bottom right,
+                    rgba(255, 255, 255, 0.03),
+                    transparent 30%
+                ),
+                var(--bg);
+
+            color: var(--text);
+        }
+
+        .page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ================================
+           HEADER
+        ================================= */
+
+        header {
+            height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 48px;
+
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .brand {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 22px;
+            letter-spacing: 0.28em;
+            font-weight: 500;
+        }
+
+        .brand span {
+            color: var(--accent);
+        }
+
+        .header-label {
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        /* ================================
+           MAIN
+        ================================= */
+
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 20px;
+        }
+
+        .auth-wrapper {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .eyebrow {
+            text-align: center;
+            color: var(--accent);
+            font-size: 11px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            text-align: center;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(34px, 7vw, 48px);
+            font-weight: 400;
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            max-width: 340px;
+            margin: 16px auto 36px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        /* ================================
+           CARD
+        ================================= */
+
+        .card {
+            background:
+                linear-gradient(
+                    180deg,
+                    rgba(255,255,255,0.025),
+                    rgba(255,255,255,0.01)
+                ),
+                var(--card);
+
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 30px;
+
+            box-shadow:
+                0 30px 80px rgba(0, 0, 0, 0.35),
+                inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+
+        .google-container {
+            display: flex;
+            justify-content: center;
+            padding: 8px 0 14px;
+        }
+
+        #google-button {
+            min-height: 44px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #706b64;
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin: 20px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--line);
+        }
+
+        /* ================================
+           STATUS
+        ================================= */
+
+        .status {
+            border: 1px solid var(--line);
+            background: #0d0d0d;
+            border-radius: 12px;
+            padding: 15px 16px;
+
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+
+            white-space: pre-wrap;
+            word-break: break-word;
+
+            transition:
+                border-color 0.2s ease,
+                background 0.2s ease,
+                color 0.2s ease;
+        }
+
+        .status.success {
+            color: var(--success);
+            border-color: rgba(143, 211, 168, 0.2);
+            background: rgba(143, 211, 168, 0.04);
+        }
+
+        .status.error {
+            color: var(--danger);
+            border-color: rgba(229, 141, 141, 0.2);
+            background: rgba(229, 141, 141, 0.04);
+        }
+
+        /* ================================
+           ACTIONS
+        ================================= */
+
+        .actions {
+            margin-top: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .btn {
+            width: 100%;
+            min-height: 48px;
+
+            border: 1px solid var(--line);
+            border-radius: 10px;
+
+            padding: 12px 16px;
+
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+
+            cursor: pointer;
+
+            transition:
+                transform 0.2s ease,
+                background 0.2s ease,
+                border-color 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #171513;
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover {
+            background: #e3d3b8;
+        }
+
+        .btn-secondary {
+            background: #171717;
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: #1d1d1d;
+            border-color: #393632;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ================================
+           META
+        ================================= */
+
+        .meta {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .meta-box {
+            border: 1px solid var(--line);
+            background: #0d0d0d;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .meta-label {
+            color: #6f6a62;
+            font-size: 9px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .meta-value {
+            color: #c8c2b9;
+            font-size: 11px;
+            word-break: break-word;
+        }
+
+        /* ================================
+           FOOTER
+        ================================= */
+
+        footer {
+            padding: 24px;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        footer p {
+            color: #5f5b55;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+        }
+
+        /* ================================
+           LOADING
+        ================================= */
+
+        .loading {
+            text-align: center;
+            color: #6d6861;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        /* ================================
+           RESPONSIVE
+        ================================= */
+
+        @media (max-width: 600px) {
+            header {
+                padding: 0 20px;
+            }
+
+            .header-label {
+                display: none;
+            }
+
+            main {
+                padding: 40px 16px;
+            }
+
+            .card {
+                padding: 22px;
+                border-radius: 16px;
+            }
+
+            h1 {
+                font-size: 38px;
+            }
+
+            .meta {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <!-- ================================
+         HEADER
+    ================================= -->
+
+    <header>
+        <div class="brand">
+            VÉRANO<span>.</span>
+        </div>
+
+        <div class="header-label">
+            Atelier · Member Access
+        </div>
+    </header>
+
+
+    <!-- ================================
+         MAIN
+    ================================= -->
+
+    <main>
+
+        <div class="auth-wrapper">
+
+            <div class="eyebrow">
+                Private Access
+            </div>
+
+            <h1>
+                Welcome back.
+            </h1>
+
+            <p class="subtitle">
+                Sign in securely with your Google account
+                to continue to the VÉRANO experience.
+            </p>
+
+
+            <div class="card">
+
+                <div id="loading" class="loading">
+                    Initializing secure sign-in
+                </div>
+
+
+                <!-- Google Sign-In -->
+
+                <div class="google-container">
+                    <div id="google-button"></div>
+                </div>
+
+
+                <div class="divider">
+                    Secure authentication
+                </div>
+
+
+                <!-- Status -->
+
+                <div id="status" class="status">
+                    Waiting for Google authentication...
+                </div>
+
+
+                <!-- Actions -->
+
+                <div
+                    id="actions"
+                    class="actions hidden">
+
+                    <button
+                        class="btn btn-secondary"
+                        onclick="testProtectedEndpoint()">
+                        Test Protected API
+                    </button>
+
+                    <button
+                        class="btn btn-primary"
+                        onclick="logout()">
+                        Sign out
+                    </button>
+
+                </div>
+
+
+                <!-- Technical Information -->
+
+                <div class="meta">
+
+                    <div class="meta-box">
+                        <div class="meta-label">
+                            Frontend
+                        </div>
+
+                        <div class="meta-value">
+                            localhost:5173
+                        </div>
+                    </div>
+
+                    <div class="meta-box">
+                        <div class="meta-label">
+                            Backend
+                        </div>
+
+                        <div class="meta-value">
+                            localhost:8080
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- ================================
+         FOOTER
+    ================================= -->
+
+    <footer>
+        <p>
+            VÉRANO ATELIER · AUTHENTICATION TEST ENVIRONMENT
+        </p>
+    </footer>
+
+</div>
+
+
+<script>
+
+    /*
+     * ============================================================
+     * CONFIGURATION
+     * ============================================================
+     */
+
+    const GOOGLE_CLIENT_ID =
+        "521768361196-0kugk6rppmi966hjllqsd1horues5m2e.apps.googleusercontent.com";
+
+    const API_BASE_URL =
+        "http://localhost:8080/api/v1";
+
+
+    /*
+     * ============================================================
+     * STATE
+     * ============================================================
+     *
+     * Access token exists only in JavaScript memory.
+     *
+     * Refresh token is handled by the backend through
+     * an HttpOnly cookie.
+     */
+
+    let accessToken = null;
+
+
+    /*
+     * ============================================================
+     * ELEMENTS
+     * ============================================================
+     */
+
+    const statusElement =
+        document.getElementById("status");
+
+    const actionsElement =
+        document.getElementById("actions");
+
+    const loadingElement =
+        document.getElementById("loading");
+
+
+    /*
+     * ============================================================
+     * STATUS HELPER
+     * ============================================================
+     */
+
+    function setStatus(message, type = "") {
+
+        statusElement.textContent = message;
+
+        statusElement.className = "status";
+
+        if (type) {
+            statusElement.classList.add(type);
+        }
+    }
+
+
+    function showActions() {
+        actionsElement.classList.remove("hidden");
+    }
+
+
+    function hideActions() {
+        actionsElement.classList.add("hidden");
+    }
+
+
+    /*
+     * ============================================================
+     * GOOGLE CALLBACK
+     * ============================================================
+     */
+
+    async function handleGoogleCredential(response) {
+
+        if (!response || !response.credential) {
+
+            setStatus(
+                "Google did not return an ID token.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        setStatus(
+            "Google authentication successful. Verifying with backend..."
+        );
+
+
+        try {
+
+            const result = await fetch(
+                `${API_BASE_URL}/auth/google`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    credentials: "include",
+
+                    body: JSON.stringify({
+                        id_token: response.credential
+                    })
+                }
+            );
+
+
+            const data = await result.json();
+
+
+            if (!result.ok) {
+
+                setStatus(
+                    JSON.stringify(data, null, 2),
+                    "error"
+                );
+
+                hideActions();
+
+                return;
+            }
+
+
+            /*
+             * Backend:
+             *
+             * {
+             *     success: true,
+             *     message: "...",
+             *     data: {
+             *         access_token: "..."
+             *     }
+             * }
+             */
+
+            accessToken =
+                data?.data?.access_token ?? null;
+
+
+            if (!accessToken) {
+
+                setStatus(
+                    "Backend authentication succeeded, but no access token was returned.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            setStatus(
+                data.message || "Google login successful.",
+                "success"
+            );
+
+            showActions();
+
+        } catch (error) {
+
+            console.error(
+                "Google login error:",
+                error
+            );
+
+            setStatus(
+                "Could not connect to backend.\n\n" +
+                error.message,
+                "error"
+            );
+
+            hideActions();
+        }
+    }
+
+
+    /*
+     * ============================================================
+     * INITIALIZE GOOGLE
+     * ============================================================
+     */
+
+    function initializeGoogleLogin() {
+
+        if (
+            typeof google === "undefined" ||
+            !google.accounts ||
+            !google.accounts.id
+        ) {
+
+            loadingElement.textContent =
+                "Google service unavailable";
+
+            setStatus(
+                "Google Identity Services failed to load.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        google.accounts.id.initialize({
+
+            client_id:
+                GOOGLE_CLIENT_ID,
+
+            callback:
+                handleGoogleCredential
+
+        });
+
+
+        google.accounts.id.renderButton(
+
+            document.getElementById("google-button"),
+
+            {
+                type: "standard",
+                theme: "outline",
+                size: "large",
+                text: "signin_with",
+                shape: "rectangular",
+                width: 350
+            }
+
+        );
+
+
+        loadingElement.textContent = "";
+
+        setStatus(
+            "Ready. Sign in with Google."
+        );
+    }
+
+
+    /*
+     * ============================================================
+     * LOGOUT
+     * ============================================================
+     */
+
+    async function logout() {
+
+        if (!accessToken) {
+
+            setStatus(
+                "No active login session.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const result = await fetch(
+                `${API_BASE_URL}/auth/logout`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        Authorization:
+                            `Bearer ${accessToken}`
+                    },
+
+                    credentials: "include"
+                }
+            );
+
+
+            const data = await result.json();
+
+
+            if (!result.ok) {
+
+                setStatus(
+                    JSON.stringify(data, null, 2),
+                    "error"
+                );
+
+                return;
+            }
+
+
+            /*
+             * Clear access token from memory.
+             */
+
+            accessToken = null;
+
+            hideActions();
+
+            setStatus(
+                data.message || "Signed out successfully.",
+                "success"
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Logout error:",
+                error
+            );
+
+            setStatus(
+                "Logout request failed.\n\n" +
+                error.message,
+                "error"
+            );
+        }
+    }
+
+
+    /*
+     * ============================================================
+     * TEST PROTECTED ENDPOINT
+     * ============================================================
+     */
+
+    async function testProtectedEndpoint() {
+
+        if (!accessToken) {
+
+            setStatus(
+                "No access token available.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const result = await fetch(
+                `${API_BASE_URL}/auth/email/send-verification-otp`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+
+                        Authorization:
+                            `Bearer ${accessToken}`
+                    },
+
+                    credentials: "include",
+
+                    body: JSON.stringify({
+                        email:
+                            "niyasvpm777@gmail.com"
+                    })
+                }
+            );
+
+
+            const data =
+                await result.json();
+
+
+            if (!result.ok) {
+
+                setStatus(
+                    JSON.stringify(data, null, 2),
+                    "error"
+                );
+
+                return;
+            }
+
+
+            setStatus(
+                JSON.stringify(data, null, 2),
+                "success"
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Protected endpoint error:",
+                error
+            );
+
+            setStatus(
+                "Protected request failed.\n\n" +
+                error.message,
+                "error"
+            );
+        }
+    }
+
+
+    /*
+     * ============================================================
+     * START
+     * ============================================================
+     */
+
+    window.addEventListener(
+        "load",
+        initializeGoogleLogin
+    );
+
+</script>
+
+</body>
+</html>

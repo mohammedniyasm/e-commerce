@@ -4,6 +4,8 @@ import (
 	"ecommerce/config"
 	"ecommerce/internal/delivery/http/handler"
 	"ecommerce/internal/delivery/http/router"
+	authinfra "ecommerce/internal/infrastructure/auth"
+	"ecommerce/internal/infrastructure/email"
 	"ecommerce/internal/infrastructure/redis"
 	"ecommerce/internal/repository/postgres"
 	"ecommerce/internal/usecase/auth"
@@ -17,13 +19,20 @@ type Application struct {
 	Router *gin.Engine
 }
 
-func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.RedisConfig) *Application {
-	redisClient := redis.NewRedisClient(cfg, log)
+func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) *Application {
+	redisClient := redis.NewRedisClient(cfg.Redis, log)
+	rateLimiter := redis.NewRedisRateLimiter(redisClient)
+	accessTokenBlacklistStore := redis.NewAccessTokenBlacklistStore(redisClient)
+	refreshSessionStore := redis.NewRefreshSessionStore(redisClient, cfg.JWT.RefreshExpiry)
 	otpStore := redis.NewOTPStore(redisClient)
+	jwtService := authinfra.NewJWTService(cfg.JWT)
+	emailSender := email.NewSMTPEmailSender(cfg.Email)
+	googleTokenVerifier := authinfra.NewGoogleTokenVerifier(cfg.Google.ClientID)
 	userRepository := postgres.NewUserRepository(db)
-	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, log)
-	authHandler := handler.NewAuthHandler(authUseCase)
-	r := router.SetupRouter(log, authHandler)
+	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore, accessTokenBlacklistStore, emailSender, googleTokenVerifier, log)
+	authHandler := handler.NewAuthHandler(authUseCase, cfg.Cookie)
+
+	r := router.SetupRouter(log, authHandler, jwtService, userRepository, accessTokenBlacklistStore, rateLimiter)
 	return &Application{
 		Router: r,
 	}
