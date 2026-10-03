@@ -64,6 +64,11 @@ func (u *ProfileUseCase) UpdateProfile(ctx context.Context, userID uint, name st
 
 	user, err := u.userRepo.FindByID(ctx, userID)
 	if err != nil {
+		u.log.Error(
+			"failed to get user for profile update",
+			"user_id", userID,
+			"error", err,
+		)
 		return nil, err
 	}
 
@@ -108,6 +113,11 @@ func (u *ProfileUseCase) ChangePassword(ctx context.Context, userID uint, curren
 
 	user, err := u.userRepo.FindByID(ctx, userID)
 	if err != nil {
+		u.log.Error(
+			"failed to get user for password change",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 
@@ -169,6 +179,11 @@ func (u *ProfileUseCase) SendEmailChangeOTP(ctx context.Context, userID uint, ne
 	}
 	user, err := u.userRepo.FindByID(ctx, userID)
 	if err != nil {
+		u.log.Error(
+			"failed to get user for email change",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 	if strings.EqualFold(user.Email, newEmail) {
@@ -179,10 +194,20 @@ func (u *ProfileUseCase) SendEmailChangeOTP(ctx context.Context, userID uint, ne
 		return domainerrors.ErrEmailAlreadyExists
 	}
 	if err != nil && !errors.Is(err, domainerrors.ErrUserNotFound) {
+		u.log.Error(
+			"failed to check email availability",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 	otp, err := generateOTP()
 	if err != nil {
+		u.log.Error(
+			"failed to generate email change OTP",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 
@@ -194,6 +219,11 @@ func (u *ProfileUseCase) SendEmailChangeOTP(ctx context.Context, userID uint, ne
 		otp,
 		emailChangeOTPExpiry,
 	); err != nil {
+		u.log.Error(
+			"failed to store email change OTP",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 
@@ -205,20 +235,28 @@ func (u *ProfileUseCase) SendEmailChangeOTP(ctx context.Context, userID uint, ne
 		newEmail,
 		emailChangeOTPExpiry,
 	); err != nil {
+		u.log.Error(
+			"failed to store pending email",
+			"user_id", userID,
+			"error", err,
+		)
 		_ = u.otpStore.Delete(ctx, key)
 		return err
 	}
 	u.log.Info(
 		"email change OTP sending",
 		"user_id", userID,
-		"new_email", newEmail,
-		"old_email", user.Email,
 	)
 	if err := u.emailSender.SendVerificationOTP(
 		ctx,
 		newEmail,
 		otp,
 	); err != nil {
+		u.log.Error(
+			"failed to send email change OTP",
+			"user_id", userID,
+			"error", err,
+		)
 		_ = u.otpStore.Delete(ctx, key)
 		_ = u.otpStore.Delete(ctx, emailKey)
 		return err
@@ -239,6 +277,11 @@ func (u *ProfileUseCase) VerifyEmailChangeOTP(ctx context.Context, userID uint, 
 
 	storedOTP, err := u.otpStore.Get(ctx, otpKey)
 	if err != nil {
+		u.log.Error(
+			"failed to retrieve email change OTP",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 
@@ -248,6 +291,11 @@ func (u *ProfileUseCase) VerifyEmailChangeOTP(ctx context.Context, userID uint, 
 
 	pendingEmail, err := u.otpStore.Get(ctx, emailKey)
 	if err != nil {
+		u.log.Error(
+			"failed to retrieve pending email",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 
@@ -264,6 +312,11 @@ func (u *ProfileUseCase) VerifyEmailChangeOTP(ctx context.Context, userID uint, 
 		return domainerrors.ErrEmailAlreadyExists
 	}
 	if err != nil && !errors.Is(err, domainerrors.ErrUserNotFound) {
+		u.log.Error(
+			"failed to check pending email availability",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 	now := time.Now()
@@ -272,6 +325,11 @@ func (u *ProfileUseCase) VerifyEmailChangeOTP(ctx context.Context, userID uint, 
 		userID,
 		pendingEmail,
 	); err != nil {
+		u.log.Error(
+			"failed to update user email",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 	if err := u.userRepo.UpdateEmailVerifiedAt(
@@ -279,12 +337,27 @@ func (u *ProfileUseCase) VerifyEmailChangeOTP(ctx context.Context, userID uint, 
 		userID,
 		now,
 	); err != nil {
+		u.log.Error(
+			"failed to update user emailverifiedAt",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 	if err := u.otpStore.Delete(ctx, otpKey); err != nil {
+		u.log.Error(
+			"failed to delete email change OTP",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 	if err := u.otpStore.Delete(ctx, emailKey); err != nil {
+		u.log.Error(
+			"failed to delete pending email",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 	u.log.Info(
@@ -393,6 +466,12 @@ func (u *ProfileUseCase) DeleteProfileImage(ctx context.Context, userID uint) er
 		userID,
 		"",
 	); err != nil {
+		u.log.ErrorContext(
+			ctx,
+			"failed to clear profile image",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 
