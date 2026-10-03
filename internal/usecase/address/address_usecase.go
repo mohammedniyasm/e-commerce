@@ -62,6 +62,11 @@ func (u *AddressUseCase) AddAddress(ctx context.Context, userID uint, address *m
 
 	count, err := u.addressRepo.CountByUserID(ctx, userID)
 	if err != nil {
+		u.log.Error(
+			"failed to count user addresses",
+			"user_id", userID,
+			"error", err,
+		)
 		return nil, err
 	}
 	if count == 0 {
@@ -69,6 +74,11 @@ func (u *AddressUseCase) AddAddress(ctx context.Context, userID uint, address *m
 	}
 	if address.IsDefault && count > 0 {
 		if err := u.addressRepo.ClearDefaultByUserID(ctx, userID); err != nil {
+			u.log.Error(
+				"failed to clear default address",
+				"user_id", userID,
+				"error", err,
+			)
 			return nil, err
 		}
 	}
@@ -94,8 +104,23 @@ func (u *AddressUseCase) GetAddresses(ctx context.Context, userID uint) ([]model
 	if userID == 0 {
 		return nil, domainerrors.ErrInvalidUserID
 	}
+	addresses, err := u.addressRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		u.log.Error(
+			"failed to get user addresses",
+			"user_id", userID,
+			"error", err,
+		)
+		return nil, err
+	}
 
-	return u.addressRepo.GetByUserID(ctx, userID)
+	u.log.Info(
+		"user addresses retrieved",
+		"user_id", userID,
+		"address_count", len(addresses),
+	)
+
+	return addresses, nil
 }
 func (u *AddressUseCase) UpdateAddress(ctx context.Context, userID uint, addressID uint, address *models.Address) (*models.Address, error) {
 
@@ -137,6 +162,12 @@ func (u *AddressUseCase) UpdateAddress(ctx context.Context, userID uint, address
 		addressID,
 	)
 	if err != nil {
+		u.log.Error(
+			"failed to find address for update",
+			"user_id", userID,
+			"address_id", addressID,
+			"error", err,
+		)
 		return nil, err
 	}
 
@@ -145,6 +176,12 @@ func (u *AddressUseCase) UpdateAddress(ctx context.Context, userID uint, address
 			ctx,
 			userID,
 		); err != nil {
+			u.log.Error(
+				"failed to clear default address during update",
+				"user_id", userID,
+				"address_id", addressID,
+				"error", err,
+			)
 			return nil, err
 		}
 	}
@@ -158,6 +195,12 @@ func (u *AddressUseCase) UpdateAddress(ctx context.Context, userID uint, address
 		addressID,
 		address,
 	); err != nil {
+		u.log.Error(
+			"failed to update address",
+			"user_id", userID,
+			"address_id", addressID,
+			"error", err,
+		)
 		return nil, err
 	}
 
@@ -218,7 +261,7 @@ func (u *AddressUseCase) DeleteAddress(ctx context.Context, userID uint, address
 
 	return nil
 }
-func (u *AddressUseCase) SetDefaultAddress(ctx context.Context,userID uint,addressID uint) error {
+func (u *AddressUseCase) SetDefaultAddress(ctx context.Context, userID uint, addressID uint) error {
 	if userID == 0 || addressID == 0 {
 		return domainerrors.ErrInvalidUserID
 	}
@@ -228,6 +271,12 @@ func (u *AddressUseCase) SetDefaultAddress(ctx context.Context,userID uint,addre
 		userID,
 		addressID,
 	); err != nil {
+		u.log.Error(
+			"failed to set default address",
+			"user_id", userID,
+			"address_id", addressID,
+			"error", err,
+		)
 		return err
 	}
 

@@ -108,6 +108,10 @@ func (u *AdminUseCase) AddCustomer(ctx context.Context, name string, email strin
 	}
 	existingUser, err := u.userRepo.FindByEmail(ctx, email)
 	if err == nil && existingUser != nil {
+		u.log.Error(
+			"failed to check customer email",
+			"error", err,
+		)
 		return nil, domainerrors.ErrEmailAlreadyExists
 	}
 	if err != nil && !errors.Is(err, domainerrors.ErrUserNotFound) {
@@ -118,6 +122,10 @@ func (u *AdminUseCase) AddCustomer(ctx context.Context, name string, email strin
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
+		u.log.Error(
+			"failed to hash customer password",
+			"error", err,
+		)
 		return nil, err
 	}
 	hashed := string(hashedPassword)
@@ -153,6 +161,11 @@ func (u *AdminUseCase) GetCustomer(ctx context.Context, userID uint) (*models.Us
 
 	user, err := u.userRepo.FindByID(ctx, userID)
 	if err != nil {
+		u.log.Error(
+			"failed to get customer",
+			"user_id", userID,
+			"error", err,
+		)
 		return nil, err
 	}
 
@@ -183,6 +196,11 @@ func (u *AdminUseCase) UpdateCustomer(ctx context.Context, userID uint, name str
 	}
 	user, err := u.userRepo.FindByID(ctx, userID)
 	if err != nil {
+		u.log.Error(
+			"failed to find customer for update",
+			"user_id", userID,
+			"error", err,
+		)
 		return nil, err
 	}
 
@@ -198,6 +216,11 @@ func (u *AdminUseCase) UpdateCustomer(ctx context.Context, userID uint, name str
 		}
 
 		if err != nil && !errors.Is(err, domainerrors.ErrUserNotFound) {
+			u.log.Error(
+				"failed to check customer email during update",
+				"user_id", userID,
+				"error", err,
+			)
 			return nil, err
 		}
 	}
@@ -243,7 +266,7 @@ func (u *AdminUseCase) UpdateCustomer(ctx context.Context, userID uint, name str
 
 	return updatedUser, nil
 }
-func (u *AdminUseCase) DeleteCustomer(ctx context.Context,userID uint) error {
+func (u *AdminUseCase) DeleteCustomer(ctx context.Context, userID uint) error {
 
 	if userID == 0 {
 		return domainerrors.ErrUserNotFound
@@ -251,6 +274,11 @@ func (u *AdminUseCase) DeleteCustomer(ctx context.Context,userID uint) error {
 
 	user, err := u.userRepo.FindByID(ctx, userID)
 	if err != nil {
+		u.log.Error(
+			"failed to find customer for deletion",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
 	}
 
