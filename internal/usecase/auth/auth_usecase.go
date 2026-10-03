@@ -96,7 +96,13 @@ func (u *AuthUseCase) Register(ctx context.Context, user *models.User) (*models.
 		"user_email", user.Email)
 	return user, nil
 }
-func (u *AuthUseCase) Login(ctx context.Context, email string, password string) (string, string, error) {
+func (u *AuthUseCase) Login(ctx context.Context, email, password string) (string, string, error) {
+	return u.login(ctx, email, password, false)
+}
+func (u *AuthUseCase) AdminLogin(ctx context.Context, email, password string) (string, string, error) {
+	return u.login(ctx, email, password, true)
+}
+func (u *AuthUseCase) login(ctx context.Context, email string, password string, adminOnly bool) (string, string, error) {
 	if email == "" || password == "" {
 		return "", "", domainerrors.ErrInvalidCredentials
 	}
@@ -128,6 +134,14 @@ func (u *AuthUseCase) Login(ctx context.Context, email string, password string) 
 			"reason", "user is blocked",
 		)
 		return "", "", domainerrors.ErrUserBlocked
+	}
+	if adminOnly && user.Role != models.RoleAdmin {
+		u.log.Warn(
+			"admin login failed",
+			"user_id", user.ID,
+			"reason", "user is not admin",
+		)
+		return "", "", domainerrors.ErrInvalidCredentials
 	}
 	accessToken, err := u.jwtService.GenerateAccessToken(user.ID, string(user.Role))
 	if err != nil {
@@ -186,7 +200,7 @@ func (u *AuthUseCase) RefreshAccessToken(ctx context.Context, refreshToken strin
 	if err != nil {
 		return "", "", err
 	}
-	err = u.refreshSessionStore.Save(ctx,newJTI,user.ID,)
+	err = u.refreshSessionStore.Save(ctx, newJTI, user.ID)
 	if err != nil {
 		return "", "", err
 	}
