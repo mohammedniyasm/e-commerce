@@ -72,9 +72,6 @@ func RegisterRoutes(r *gin.Engine,
 		auth.POST("/reset-password", middleware.RateLimit(rateLimiter, 5, 600, "admin-reset-password"), authHandler.ResetPassword)
 
 		protected.POST("/logout", middleware.RateLimit(rateLimiter, 10, 60, "admin-logout"), authHandler.Logout)
-		// protected.POST("/email/send-verification-otp", middleware.RateLimit(rateLimiter, 3, 300, "admin-email-verification-send"), authHandler.SendVerificationOTP)
-		// protected.POST("/email/verify-email", middleware.RateLimit(rateLimiter, 5, 300, "admin-email-verification-verify"), authHandler.VerifyEmail)
-		// protected.POST("/email/resend-otp", middleware.RateLimit(rateLimiter, 3, 300, "admin-email-verification-resend"), authHandler.ResendVerificationOTP)
 	}
 	profile = v1.Group("/admin")
 	protected = profile.Group("")
