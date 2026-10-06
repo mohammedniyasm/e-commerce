@@ -18,6 +18,7 @@ func RegisterRoutes(r *gin.Engine,
 	addressHandler *handler.AddressHandler,
 	adminHandler *handler.AdminHandler,
 	categoryHandler *handler.CategoryHandler,
+	brandHandler *handler.BrandHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -121,5 +122,20 @@ func RegisterRoutes(r *gin.Engine,
 		admin.GET("/categories/deleted", categoryHandler.ListDeletedCategories)
 		admin.PATCH("/categories/:id/restore", categoryHandler.RestoreCategory)
 		admin.PATCH("/categories/:id/toggle", categoryHandler.ToggleCategoryActive)
+
+		//brands
+		admin.POST("/brands", brandHandler.CreateBrand)
+		admin.GET("/brands", brandHandler.ListBrands)
+		admin.GET("/brands/:id", brandHandler.GetBrand)
+		admin.PUT("/brands/:id", brandHandler.UpdateBrand)
+		admin.DELETE("/brands/:id", brandHandler.DeleteBrand)
+		
+		admin.PUT("/brands/:id/logo", brandHandler.UpdateBrandLogo)
+		admin.DELETE("/brands/:id/logo", brandHandler.DeleteBrandLogo)
+
+		//deleted brands
+		admin.GET("/brands/deleted", brandHandler.ListDeletedBrands)
+		admin.PATCH("/brands/:id/restore", brandHandler.RestoreBrand)
+		admin.PATCH("/brands/:id/toggle", brandHandler.ToggleBrandActive)
 	}
 }
