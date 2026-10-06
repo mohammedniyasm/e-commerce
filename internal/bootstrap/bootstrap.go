@@ -12,6 +12,7 @@ import (
 	"ecommerce/internal/usecase/address"
 	"ecommerce/internal/usecase/admin"
 	"ecommerce/internal/usecase/auth"
+	"ecommerce/internal/usecase/category"
 	"ecommerce/internal/usecase/profile"
 	"fmt"
 	"log/slog"
@@ -55,6 +56,11 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 
 	adminUseCase := admin.NewAdminUseCase(userRepository, log)
 	adminHandler := handler.NewAdminHandler(adminUseCase)
+
+	categoryRepository := postgres.NewCategoryRepository(db)
+	categoryUseCase := category.NewCategoryUseCase(categoryRepository, log)
+	categoryHandler := handler.NewCategoryHandler(categoryUseCase)
+
 	r := router.SetupRouter(log,
 		authHandler,
 		jwtService,
@@ -64,7 +70,9 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		profileHandler,
 		addressHandler,
 		adminHandler,
+		categoryHandler,
 	)
+
 	return &Application{
 		Router: r,
 	}, nil

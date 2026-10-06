@@ -18,6 +18,7 @@ func SetupRouter(log *slog.Logger,
 	profileHandler *handler.ProfileHandler,
 	addressHandler *handler.AddressHandler,
 	adminHandler *handler.AdminHandler,
+	categoryHandler *handler.CategoryHandler,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(
@@ -25,6 +26,16 @@ func SetupRouter(log *slog.Logger,
 		middleware.Logger(log),
 		middleware.CORS(),
 	)
-	RegisterRoutes(r, authHandler, jwtServices, userRepo, blacklist, rateLimiter, profileHandler, addressHandler,adminHandler)
+	RegisterRoutes(r,
+		authHandler,
+		jwtServices,
+		userRepo,
+		blacklist,
+		rateLimiter,
+		profileHandler,
+		addressHandler,
+		adminHandler,
+		categoryHandler,
+	)
 	return r
 }
