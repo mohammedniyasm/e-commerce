@@ -12,6 +12,11 @@ import (
 	"ecommerce/internal/usecase/address"
 	"ecommerce/internal/usecase/admin"
 	"ecommerce/internal/usecase/auth"
+	brand "ecommerce/internal/usecase/brands"
+	"ecommerce/internal/usecase/category"
+	"ecommerce/internal/usecase/productimage"
+	"ecommerce/internal/usecase/products"
+	"ecommerce/internal/usecase/productvariant"
 	"ecommerce/internal/usecase/profile"
 	"fmt"
 	"log/slog"
@@ -28,7 +33,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	redisClient := redis.NewRedisClient(cfg.Redis, log)
 	rateLimiter := redis.NewRedisRateLimiter(redisClient)
 
-	profileStorage, err := storage.NewMinIOStorage(storage.MinIOConfig(cfg.MinIO))
+	objectStorage, err := storage.NewMinIOStorage(storage.MinIOConfig(cfg.MinIO))
 	if err != nil {
 		return nil, fmt.Errorf("initialize MinIO storage: %w", err)
 	}
@@ -46,7 +51,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore, accessTokenBlacklistStore, emailSender, googleTokenVerifier, log)
 	authHandler := handler.NewAuthHandler(authUseCase, cfg.Cookie)
 
-	profileUsecase := profile.NewProfileUseCase(userRepository, otpStore, emailSender, profileStorage, log)
+	profileUsecase := profile.NewProfileUseCase(userRepository, otpStore, emailSender, objectStorage, log)
 	profileHandler := handler.NewProfileHandler(profileUsecase)
 
 	addressRepository := postgres.NewAddressRepository(db)
@@ -55,6 +60,28 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 
 	adminUseCase := admin.NewAdminUseCase(userRepository, log)
 	adminHandler := handler.NewAdminHandler(adminUseCase)
+
+	productRepository := postgres.NewProductRepository(db)
+
+	categoryRepository := postgres.NewCategoryRepository(db)
+	categoryUseCase := category.NewCategoryUseCase(categoryRepository, productRepository, log)
+	categoryHandler := handler.NewCategoryHandler(categoryUseCase)
+
+	brandRepository := postgres.NewBrandRepository(db)
+	brandUseCase := brand.NewBrandUseCase(brandRepository, productRepository, objectStorage, log)
+	brandHandler := handler.NewBrandHandler(brandUseCase)
+
+	productUseCase := products.NewProductUseCase(productRepository, categoryRepository, brandRepository, log)
+	productHandler := handler.NewProductHandler(productUseCase)
+
+	productVariantRepository := postgres.NewProductVariantRepository(db)
+	productVariantUseCase := productvariant.NewProductVariantUseCase(productVariantRepository, productRepository, log)
+	productVariantHandler := handler.NewProductVariantHandler(productVariantUseCase)
+
+	productImageRepository := postgres.NewProductImageRepository(db)
+	productImageUseCase := productimage.NewProductImageUseCase(productImageRepository, productRepository, productVariantRepository, objectStorage, log)
+	productImageHandler := handler.NewProductImageHandler(productImageUseCase)
+
 	r := router.SetupRouter(log,
 		authHandler,
 		jwtService,
@@ -64,7 +91,13 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		profileHandler,
 		addressHandler,
 		adminHandler,
+		categoryHandler,
+		brandHandler,
+		productHandler,
+		productVariantHandler,
+		productImageHandler,
 	)
+
 	return &Application{
 		Router: r,
 	}, nil

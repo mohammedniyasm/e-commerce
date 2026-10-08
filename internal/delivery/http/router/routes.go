@@ -17,6 +17,11 @@ func RegisterRoutes(r *gin.Engine,
 	profileHandler *handler.ProfileHandler,
 	addressHandler *handler.AddressHandler,
 	adminHandler *handler.AdminHandler,
+	categoryHandler *handler.CategoryHandler,
+	brandHandler *handler.BrandHandler,
+	productHandler *handler.ProductHandler,
+	variantHandler *handler.ProductVariantHandler,
+	productImageHandler *handler.ProductImageHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -26,6 +31,7 @@ func RegisterRoutes(r *gin.Engine,
 	protected := auth.Group("")
 	protected.Use(authMiddleware)
 	{
+		//user authentication
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", middleware.RateLimit(rateLimiter, 5, 60, "login"), authHandler.Login)
 		auth.POST("/google", middleware.RateLimit(rateLimiter, 5, 60, "google-login"), authHandler.GoogleLogin)
@@ -44,6 +50,7 @@ func RegisterRoutes(r *gin.Engine,
 	protected = profile.Group("")
 	protected.Use(authMiddleware)
 	{
+		//user profile
 		protected.GET("/profile", profileHandler.GetProfile)
 		protected.PUT("/profile", middleware.RateLimit(rateLimiter, 10, 60, "profile-update"), profileHandler.UpdateProfile)
 		protected.PUT("/profile/password", middleware.RateLimit(rateLimiter, 5, 300, "change-password"), profileHandler.ChangePassword)
@@ -52,6 +59,7 @@ func RegisterRoutes(r *gin.Engine,
 		protected.POST("/profile/image", middleware.RateLimit(rateLimiter, 5, 300, "profile-image-upload"), profileHandler.UploadProfileImage)
 		protected.DELETE("/profile/image", middleware.RateLimit(rateLimiter, 5, 300, "profile-image-delete"), profileHandler.DeleteProfileImage)
 
+		//user addresses
 		protected.GET("/addresses", addressHandler.GetAddresses)
 		protected.POST("/addresses", middleware.RateLimit(rateLimiter, 20, 60, "address-add"), addressHandler.AddAddress)
 		protected.PUT("/addresses/:id", middleware.RateLimit(rateLimiter, 20, 60, "address-update"), addressHandler.UpdateAddress)
@@ -63,6 +71,7 @@ func RegisterRoutes(r *gin.Engine,
 	adminOnly := middleware.AdminOnly()
 	protected.Use(authMiddleware, adminOnly)
 	{
+		//admin authentication
 		auth.POST("/login", middleware.RateLimit(rateLimiter, 5, 60, "admin-login"), authHandler.AdminLogin)
 		auth.POST("/google", middleware.RateLimit(rateLimiter, 5, 60, "admin-google-login"), authHandler.GoogleLogin)
 		auth.POST("/refresh-token", middleware.RateLimit(rateLimiter, 10, 60, "admin-refresh-token"), authHandler.RefreshToken)
@@ -77,6 +86,7 @@ func RegisterRoutes(r *gin.Engine,
 	protected = profile.Group("")
 	protected.Use(authMiddleware, adminOnly)
 	{
+		//admin profile
 		protected.GET("/profile", profileHandler.GetProfile)
 		protected.PUT("/profile", middleware.RateLimit(rateLimiter, 10, 60, "admin-profile-update"), profileHandler.UpdateProfile)
 		protected.PUT("/profile/password", middleware.RateLimit(rateLimiter, 5, 300, "admin-change-password"), profileHandler.ChangePassword)
@@ -85,6 +95,7 @@ func RegisterRoutes(r *gin.Engine,
 		protected.POST("/profile/image", middleware.RateLimit(rateLimiter, 5, 300, "admin-profile-image-upload"), profileHandler.UploadProfileImage)
 		protected.DELETE("/profile/image", middleware.RateLimit(rateLimiter, 5, 300, "admin-profile-image-delete"), profileHandler.DeleteProfileImage)
 
+		//admin address
 		protected.GET("/addresses", addressHandler.GetAddresses)
 		protected.POST("/addresses", middleware.RateLimit(rateLimiter, 20, 60, "admin-address-add"), addressHandler.AddAddress)
 		protected.PUT("/addresses/:id", middleware.RateLimit(rateLimiter, 20, 60, "admin-address-update"), addressHandler.UpdateAddress)
@@ -94,6 +105,7 @@ func RegisterRoutes(r *gin.Engine,
 	admin := v1.Group("/admin")
 	admin.Use(authMiddleware, adminOnly)
 	{
+		//user managment
 		admin.GET("/users", adminHandler.ListUsers)
 		admin.GET("/users/:id", adminHandler.GetCustomer)
 		admin.POST("/users", middleware.RateLimit(rateLimiter, 20, 60, "admin-user-add"), adminHandler.AddCustomer)
@@ -101,5 +113,61 @@ func RegisterRoutes(r *gin.Engine,
 		admin.PATCH("/users/:id/unblock", middleware.RateLimit(rateLimiter, 30, 60, "admin-user-unblock"), adminHandler.UnblockUser)
 		admin.PUT("/users/:id", middleware.RateLimit(rateLimiter, 30, 60, "admin-user-update"), adminHandler.UpdateCustomer)
 		admin.DELETE("/users/:id", middleware.RateLimit(rateLimiter, 10, 60, "admin-user-delete"), adminHandler.DeleteCustomer)
+
+		//categories
+		admin.POST("/categories", categoryHandler.CreateCategory)
+		admin.GET("/categories", categoryHandler.ListCategories)
+		admin.GET("/categories/:id", categoryHandler.GetCategory)
+		admin.PUT("/categories/:id", categoryHandler.UpdateCategory)
+		admin.DELETE("/categories/:id", categoryHandler.DeleteCategory)
+
+		//deleted categories
+		admin.GET("/categories/deleted", categoryHandler.ListDeletedCategories)
+		admin.PATCH("/categories/:id/restore", categoryHandler.RestoreCategory)
+		admin.PATCH("/categories/:id/toggle", categoryHandler.ToggleCategoryActive)
+
+		//brands
+		admin.POST("/brands", brandHandler.CreateBrand)
+		admin.GET("/brands", brandHandler.ListBrands)
+		admin.GET("/brands/:id", brandHandler.GetBrand)
+		admin.PUT("/brands/:id", brandHandler.UpdateBrand)
+		admin.DELETE("/brands/:id", brandHandler.DeleteBrand)
+
+		admin.PUT("/brands/:id/logo", brandHandler.UpdateBrandLogo)
+		admin.DELETE("/brands/:id/logo", brandHandler.DeleteBrandLogo)
+
+		//deleted brands
+		admin.GET("/brands/deleted", brandHandler.ListDeletedBrands)
+		admin.PATCH("/brands/:id/restore", brandHandler.RestoreBrand)
+		admin.PATCH("/brands/:id/toggle", brandHandler.ToggleBrandActive)
+
+		//products
+		admin.GET("/products/deleted", productHandler.ListDeletedProducts)
+		admin.GET("/products/slug/:slug", productHandler.GetProductBySlug)
+		admin.GET("/products/:id", productHandler.GetProduct)
+
+		admin.POST("/products", productHandler.CreateProduct)
+		admin.PUT("/products/:id", productHandler.UpdateProduct)
+		admin.DELETE("/products/:id", productHandler.DeleteProduct)
+
+		admin.PATCH("/products/:id/restore", productHandler.RestoreProduct)
+		admin.PATCH("/products/:id/active", productHandler.ToggleProductActive)
+		admin.PATCH("/products/:id/listed", productHandler.ToggleProductListed)
+
+		admin.GET("/products", productHandler.ListProducts)
+
+		//variants
+		admin.GET("/products/:id/variants", variantHandler.ListVariantsByProductID)
+		admin.POST("/products/:id/variants", variantHandler.CreateVariant)
+		admin.GET("/variants/:id", variantHandler.GetVariant)
+		admin.PUT("/variants/:id", variantHandler.UpdateVariant)
+		admin.DELETE("/variants/:id", variantHandler.DeleteVariant)
+
+		admin.GET("/products/:id/images", productImageHandler.ListProductImages)
+		admin.GET("/variants/:id/images", productImageHandler.ListVariantImages)
+		admin.GET("/product-images/:id", productImageHandler.GetProductImage)
+		admin.POST("/products/:id/images", productImageHandler.UploadProductImages)
+		admin.PUT("/product-images/:id", productImageHandler.UpdateProductImage)
+		admin.DELETE("/product-images/:id", productImageHandler.DeleteProductImage)
 	}
 }
