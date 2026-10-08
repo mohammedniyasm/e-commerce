@@ -14,6 +14,9 @@ import (
 	"ecommerce/internal/usecase/auth"
 	brand "ecommerce/internal/usecase/brands"
 	"ecommerce/internal/usecase/category"
+	"ecommerce/internal/usecase/productimage"
+	"ecommerce/internal/usecase/products"
+	"ecommerce/internal/usecase/productvariant"
 	"ecommerce/internal/usecase/profile"
 	"fmt"
 	"log/slog"
@@ -58,13 +61,26 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	adminUseCase := admin.NewAdminUseCase(userRepository, log)
 	adminHandler := handler.NewAdminHandler(adminUseCase)
 
+	productRepository := postgres.NewProductRepository(db)
+
 	categoryRepository := postgres.NewCategoryRepository(db)
-	categoryUseCase := category.NewCategoryUseCase(categoryRepository, log)
+	categoryUseCase := category.NewCategoryUseCase(categoryRepository, productRepository, log)
 	categoryHandler := handler.NewCategoryHandler(categoryUseCase)
 
 	brandRepository := postgres.NewBrandRepository(db)
-	brandUseCase := brand.NewBrandUseCase(brandRepository,objectStorage,log)
+	brandUseCase := brand.NewBrandUseCase(brandRepository, productRepository, objectStorage, log)
 	brandHandler := handler.NewBrandHandler(brandUseCase)
+
+	productUseCase := products.NewProductUseCase(productRepository, categoryRepository, brandRepository, log)
+	productHandler := handler.NewProductHandler(productUseCase)
+
+	productVariantRepository := postgres.NewProductVariantRepository(db)
+	productVariantUseCase := productvariant.NewProductVariantUseCase(productVariantRepository, productRepository, log)
+	productVariantHandler := handler.NewProductVariantHandler(productVariantUseCase)
+
+	productImageRepository := postgres.NewProductImageRepository(db)
+	productImageUseCase := productimage.NewProductImageUseCase(productImageRepository, productRepository, productVariantRepository, objectStorage, log)
+	productImageHandler := handler.NewProductImageHandler(productImageUseCase)
 
 	r := router.SetupRouter(log,
 		authHandler,
@@ -77,6 +93,9 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		adminHandler,
 		categoryHandler,
 		brandHandler,
+		productHandler,
+		productVariantHandler,
+		productImageHandler,
 	)
 
 	return &Application{

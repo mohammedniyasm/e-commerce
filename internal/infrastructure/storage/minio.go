@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -110,4 +112,33 @@ func (s *MinIOStorage) Delete(
 		objectKey,
 		minio.RemoveObjectOptions{},
 	)
+}
+func (s *MinIOStorage) DeleteByURL(
+	ctx context.Context,
+	imageURL string,
+) error {
+
+	parsedURL, err := url.Parse(imageURL)
+	if err != nil {
+		return err
+	}
+
+	// Expected URL:
+	// http://localhost:9000/ecommerce/products/1/images/abc123
+
+	path := strings.TrimPrefix(parsedURL.Path, "/")
+
+	prefix := s.bucket + "/"
+
+	if !strings.HasPrefix(path, prefix) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+		return fmt.Errorf("invalid storage URL")
+	}
+
+	objectKey := strings.TrimPrefix(path, prefix)
+
+	if objectKey == "" {
+		return fmt.Errorf("invalid object key")
+	}
+
+	return s.Delete(ctx, objectKey)
 }

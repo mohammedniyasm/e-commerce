@@ -34,4 +34,33 @@ var (
 	ErrRestoreBrandAlreadyExists = errors.New("brand already exists, can't restore brand")
 	ErrInvalidBrandLogo          = errors.New("invalid brand logo")
 	ErrInvalidBrandLogoSize      = errors.New("invalid brand logo size")
+
+	ErrInvalidProductID   = errors.New("invalid product id")
+	ErrInvalidProductName = errors.New("product name is required")
+	ErrInvalidProductSlug = errors.New("product slug is required")
+	ErrProductSlugExists  = errors.New("product slug already exists")
+
+	ErrCategoryInactive = errors.New("category is inactive")
+	ErrBrandInactive    = errors.New("brand is inactive")
+
+	ErrInvalidVariantID        = errors.New("invalid variant id")
+	ErrInvalidVariantSKU       = errors.New("variant SKU is required")
+	ErrVariantSKUAlreadyExists = errors.New("variant SKU already exists")
+	ErrVariantAlreadyExists    = errors.New("variant with the same size and color already exists")
+
+	ErrInvalidMRP                 = errors.New("MRP must be greater than zero")
+	ErrInvalidSellingPrice        = errors.New("selling price must be greater than zero")
+	ErrSellingPriceGreaterThanMRP = errors.New("selling price cannot be greater than MRP")
+	ErrInvalidStock               = errors.New("stock cannot be negative")
+
+	ErrInvalidProductImageID         = errors.New("invalid product image id")
+	ErrProductImagesRequired         = errors.New("product images are required")
+	ErrMinimumProductImages          = errors.New("product must have at least 3 images")
+	ErrInvalidProductImage           = errors.New("invalid product image")
+	ErrInvalidProductImageSize       = errors.New("product image size is invalid")
+	ErrInvalidDisplayOrder           = errors.New("invalid display order")
+	ErrVariantDoesNotBelongToProduct = errors.New("variant does not belong to product")
+
+	ErrCategoryHasActiveProducts = errors.New("category has active products")
+	ErrBrandHasActiveProducts = errors.New("brand has active products")
 )

@@ -19,6 +19,9 @@ func RegisterRoutes(r *gin.Engine,
 	adminHandler *handler.AdminHandler,
 	categoryHandler *handler.CategoryHandler,
 	brandHandler *handler.BrandHandler,
+	productHandler *handler.ProductHandler,
+	variantHandler *handler.ProductVariantHandler,
+	productImageHandler *handler.ProductImageHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -129,7 +132,7 @@ func RegisterRoutes(r *gin.Engine,
 		admin.GET("/brands/:id", brandHandler.GetBrand)
 		admin.PUT("/brands/:id", brandHandler.UpdateBrand)
 		admin.DELETE("/brands/:id", brandHandler.DeleteBrand)
-		
+
 		admin.PUT("/brands/:id/logo", brandHandler.UpdateBrandLogo)
 		admin.DELETE("/brands/:id/logo", brandHandler.DeleteBrandLogo)
 
@@ -137,5 +140,34 @@ func RegisterRoutes(r *gin.Engine,
 		admin.GET("/brands/deleted", brandHandler.ListDeletedBrands)
 		admin.PATCH("/brands/:id/restore", brandHandler.RestoreBrand)
 		admin.PATCH("/brands/:id/toggle", brandHandler.ToggleBrandActive)
+
+		//products
+		admin.GET("/products/deleted", productHandler.ListDeletedProducts)
+		admin.GET("/products/slug/:slug", productHandler.GetProductBySlug)
+		admin.GET("/products/:id", productHandler.GetProduct)
+
+		admin.POST("/products", productHandler.CreateProduct)
+		admin.PUT("/products/:id", productHandler.UpdateProduct)
+		admin.DELETE("/products/:id", productHandler.DeleteProduct)
+
+		admin.PATCH("/products/:id/restore", productHandler.RestoreProduct)
+		admin.PATCH("/products/:id/active", productHandler.ToggleProductActive)
+		admin.PATCH("/products/:id/listed", productHandler.ToggleProductListed)
+
+		admin.GET("/products", productHandler.ListProducts)
+
+		//variants
+		admin.GET("/products/:id/variants", variantHandler.ListVariantsByProductID)
+		admin.POST("/products/:id/variants", variantHandler.CreateVariant)
+		admin.GET("/variants/:id", variantHandler.GetVariant)
+		admin.PUT("/variants/:id", variantHandler.UpdateVariant)
+		admin.DELETE("/variants/:id", variantHandler.DeleteVariant)
+
+		admin.GET("/products/:id/images", productImageHandler.ListProductImages)
+		admin.GET("/variants/:id/images", productImageHandler.ListVariantImages)
+		admin.GET("/product-images/:id", productImageHandler.GetProductImage)
+		admin.POST("/products/:id/images", productImageHandler.UploadProductImages)
+		admin.PUT("/product-images/:id", productImageHandler.UpdateProductImage)
+		admin.DELETE("/product-images/:id", productImageHandler.DeleteProductImage)
 	}
 }

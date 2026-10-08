@@ -20,6 +20,9 @@ func SetupRouter(log *slog.Logger,
 	adminHandler *handler.AdminHandler,
 	categoryHandler *handler.CategoryHandler,
 	brandHandler *handler.BrandHandler,
+	productHandler *handler.ProductHandler,
+	productVariantHandler *handler.ProductVariantHandler,
+	productImageHandler *handler.ProductImageHandler,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(
@@ -38,6 +41,9 @@ func SetupRouter(log *slog.Logger,
 		adminHandler,
 		categoryHandler,
 		brandHandler,
+		productHandler,
+		productVariantHandler,
+		productImageHandler,
 	)
 	return r
 }

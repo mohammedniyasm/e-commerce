@@ -14,17 +14,20 @@ import (
 
 type BrandUseCase struct {
 	brandRepo     interfaces.BrandRepository
+	productRepo   interfaces.ProductRepository
 	objectStorage interfaces.ObjectStorage
 	log           *slog.Logger
 }
 
 func NewBrandUseCase(
 	brandRepo interfaces.BrandRepository,
+	productRepo interfaces.ProductRepository,
 	objectStorage interfaces.ObjectStorage,
 	log *slog.Logger,
 ) *BrandUseCase {
 	return &BrandUseCase{
 		brandRepo:     brandRepo,
+		productRepo:   productRepo,
 		objectStorage: objectStorage,
 		log:           log,
 	}
@@ -119,6 +122,22 @@ func (u *BrandUseCase) DeleteBrand(ctx context.Context, id int64) error {
 	_, err := u.brandRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
+	}
+	count, err := u.productRepo.CountActiveByBrandID(
+		ctx,
+		id,
+	)
+	if err != nil {
+		u.log.Error(
+			"failed to check brand products",
+			"brand_id", id,
+			"error", err,
+		)
+		return err
+	}
+
+	if count > 0 {
+		return domainerrors.ErrBrandHasActiveProducts
 	}
 	if err := u.brandRepo.SoftDelete(ctx, id); err != nil {
 		u.log.Error(

@@ -265,7 +265,13 @@ func (h *BrandHandler) DeleteBrand(c *gin.Context) {
 			})
 			return
 		}
-
+		if errors.Is(err, domainerrors.ErrBrandHasActiveProducts) {
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "brand cannot be deleted because it has active products",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to delete brand",

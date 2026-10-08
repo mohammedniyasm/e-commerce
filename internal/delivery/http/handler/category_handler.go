@@ -193,7 +193,13 @@ func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
 			})
 			return
 		}
-
+		if errors.Is(err, domainerrors.ErrCategoryHasActiveProducts) {
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "category cannot be deleted because it has active products",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to delete category",

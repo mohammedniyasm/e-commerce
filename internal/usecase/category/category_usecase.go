@@ -12,15 +12,18 @@ import (
 
 type CategoryUseCase struct {
 	categoryRepo interfaces.CategoryRepository
+	productRepo  interfaces.ProductRepository
 	log          *slog.Logger
 }
 
 func NewCategoryUseCase(
 	categoryRepo interfaces.CategoryRepository,
+	productRepo interfaces.ProductRepository,
 	log *slog.Logger,
 ) *CategoryUseCase {
 	return &CategoryUseCase{
 		categoryRepo: categoryRepo,
+		productRepo:  productRepo,
 		log:          log,
 	}
 }
@@ -112,6 +115,22 @@ func (u *CategoryUseCase) DeleteCategory(ctx context.Context, id int64) error {
 	_, err := u.categoryRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
+	}
+	count, err := u.productRepo.CountActiveByCategoryID(
+		ctx,
+		id,
+	)
+	if err != nil {
+		u.log.Error(
+			"failed to check category products",
+			"category_id", id,
+			"error", err,
+		)
+		return err
+	}
+
+	if count > 0 {
+		return domainerrors.ErrCategoryHasActiveProducts
 	}
 	if err := u.categoryRepo.SoftDelete(ctx, id); err != nil {
 		u.log.Error(
