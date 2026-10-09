@@ -22,6 +22,12 @@ type ProductRepository interface {
 	List(ctx context.Context, search string, limit int, page int, isActive *bool, isListed *bool, categoryID *int64, brandID *int64) ([]models.Product, int64, error)
 	ListDeleted(ctx context.Context, search string, limit int, page int) ([]models.Product, int64, error)
 
-	CountActiveByCategoryID(ctx context.Context,categoryID int64) (int64, error)
-	CountActiveByBrandID(ctx context.Context,brandID int64) (int64, error)
+	CountActiveByCategoryID(ctx context.Context, categoryID int64) (int64, error)
+	CountActiveByBrandID(ctx context.Context, brandID int64) (int64, error)
+
+	//for user
+	ListStoreProducts(ctx context.Context, search string, categoryID *int64, brandID *int64, minPrice *float64, maxPrice *float64, sort string, page int, limit int) ([]models.Product, int64, error)
+	GetStoreProductByID(ctx context.Context, id int64) (*models.Product, error)
+	GetStoreProductBySlug(ctx context.Context, slug string) (*models.Product, error)
+	GetRelatedProducts(ctx context.Context, productID int64, limit int) ([]models.Product, error)
 }

@@ -22,10 +22,17 @@ func RegisterRoutes(r *gin.Engine,
 	productHandler *handler.ProductHandler,
 	variantHandler *handler.ProductVariantHandler,
 	productImageHandler *handler.ProductImageHandler,
+	storeProductHandler *handler.StoreProductHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
 	v1.GET("/health", handler.Health)
+	{
+		v1.GET("/products", storeProductHandler.ListStoreProducts)
+		v1.GET("/products/id/:id", storeProductHandler.GetStoreProductByID)
+		v1.GET("/products/slug/:slug", storeProductHandler.GetStoreProductBySlug)
+		v1.GET("/products/id/:id/recommendations", storeProductHandler.GetRelatedProducts)
+	}
 	authMiddleware := middleware.AuthMiddleware(jwtService, userRepo, blacklist)
 	auth := v1.Group("/auth")
 	protected := auth.Group("")
