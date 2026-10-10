@@ -5,8 +5,10 @@ import (
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
 	"errors"
+	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ProductRepository struct {
@@ -270,7 +272,7 @@ func (r *ProductRepository) CountActiveByCategoryID(ctx context.Context, categor
 
 	return count, err
 }
-func (r *ProductRepository) CountActiveByBrandID(ctx context.Context,brandID int64) (int64, error) {
+func (r *ProductRepository) CountActiveByBrandID(ctx context.Context, brandID int64) (int64, error) {
 	var count int64
 
 	err := r.db.WithContext(ctx).
@@ -283,4 +285,322 @@ func (r *ProductRepository) CountActiveByBrandID(ctx context.Context,brandID int
 		Error
 
 	return count, err
+}
+func (r *ProductRepository) ListStoreProducts(
+	ctx context.Context,
+	search string,
+	categoryID *int64,
+	brandID *int64,
+	minPrice *float64,
+	maxPrice *float64,
+	sort string,
+	page int,
+	limit int,
+) ([]models.Product, int64, error) {
+
+	baseQuery := r.db.WithContext(ctx).
+		Model(&models.Product{}).
+		Joins(
+			"JOIN product_variants pv ON pv.product_id = products.id AND pv.is_active = ?",
+			true,
+		).
+		Where(
+			"products.is_active = ? AND products.is_listed = ? AND products.deleted_at IS NULL",
+			true,
+			true,
+		)
+
+	if search != "" {
+		searchPattern := "%" + search + "%"
+		baseQuery = baseQuery.Where(
+			"products.name ILIKE ? OR products.slug ILIKE ?",
+			searchPattern,
+			searchPattern,
+		)
+	}
+
+	// Category filter.
+	if categoryID != nil {
+		baseQuery = baseQuery.Where(
+			"products.category_id = ?",
+			*categoryID,
+		)
+	}
+
+	// Brand filter.
+	if brandID != nil {
+		baseQuery = baseQuery.Where(
+			"products.brand_id = ?",
+			*brandID,
+		)
+	}
+	if minPrice != nil || maxPrice != nil {
+
+		priceQuery := `
+			EXISTS (
+				SELECT 1
+				FROM product_variants pv_filter
+				WHERE pv_filter.product_id = products.id
+				AND pv_filter.is_active = true
+				
+		`
+
+		args := make([]interface{}, 0, 2)
+
+		if minPrice != nil {
+			priceQuery += " AND pv_filter.selling_price >= ?"
+			args = append(args, *minPrice)
+		}
+
+		if maxPrice != nil {
+			priceQuery += " AND pv_filter.selling_price <= ?"
+			args = append(args, *maxPrice)
+		}
+
+		priceQuery += ")"
+
+		baseQuery = baseQuery.Where(priceQuery, args...)
+	}
+
+	// Count unique products.
+	var total int64
+
+	countQuery := baseQuery.Session(&gorm.Session{})
+
+	if err := countQuery.
+		Select("COUNT(DISTINCT products.id)").
+		Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Product query.
+	dataQuery := baseQuery.
+		Select("products.*").
+		Group("products.id")
+
+	// Sorting.
+	switch sort {
+
+	case "price_asc":
+		dataQuery = dataQuery.Order(
+			"MIN(pv.selling_price) ASC, products.created_at DESC",
+		)
+
+	case "price_desc":
+		dataQuery = dataQuery.Order(
+			"MIN(pv.selling_price) DESC, products.created_at DESC",
+		)
+
+	case "name_asc":
+		dataQuery = dataQuery.Order(
+			"products.name ASC, products.created_at DESC",
+		)
+
+	case "name_desc":
+		dataQuery = dataQuery.Order(
+			"products.name DESC, products.created_at DESC",
+		)
+
+	default:
+		dataQuery = dataQuery.Order(
+			"products.created_at DESC",
+		)
+	}
+
+	offset := (page - 1) * limit
+
+	var products []models.Product
+
+	err := dataQuery.
+		Offset(offset).
+		Limit(limit).
+		Preload("Category").
+		Preload("Brand").
+		Preload(
+			"Variants",
+			"is_active = ?",
+			true,
+		).
+		Preload(
+			"Images",
+			"is_primary = ?",
+			true,
+		).
+		Find(&products).
+		Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return products, total, nil
+}
+func (r *ProductRepository) GetStoreProductByID(ctx context.Context, id int64) (*models.Product, error) {
+
+	if id <= 0 {
+		return nil, domainerrors.ErrInvalidProductID
+	}
+
+	return r.getStoreProduct(
+		ctx,
+		"products.id = ?",
+		id,
+	)
+}
+func (r *ProductRepository) GetStoreProductBySlug(ctx context.Context, slug string) (*models.Product, error) {
+
+	slug = strings.TrimSpace(slug)
+
+	if slug == "" {
+		return nil, domainerrors.ErrInvalidProductSlug
+	}
+
+	return r.getStoreProduct(
+		ctx,
+		"products.slug = ?",
+		slug,
+	)
+}
+func (r *ProductRepository) getStoreProduct(ctx context.Context, condition string, value interface{}) (*models.Product, error) {
+
+	var product models.Product
+
+	err := r.db.WithContext(ctx).
+		Model(&models.Product{}).
+		Where(condition, value).
+		Where(
+			"products.is_active = ? AND products.is_listed = ? AND products.deleted_at IS NULL",
+			true,
+			true,
+		).
+		Where(`
+			EXISTS (
+				SELECT 1
+				FROM product_variants pv
+				WHERE pv.product_id = products.id
+				AND pv.is_active = true
+			)
+		`).
+		Preload("Category").
+		Preload("Brand").
+		Preload(
+			"Variants",
+			"is_active = ?",
+			true,
+		).
+		Preload(
+			"Images",
+			func(db *gorm.DB) *gorm.DB {
+				return db.Order("display_order ASC, id ASC")
+			},
+		).
+		Preload(
+			"Variants.Images",
+			func(db *gorm.DB) *gorm.DB {
+				return db.Order("display_order ASC, id ASC")
+			},
+		).
+		First(&product).
+		Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrRecordNotFound
+		}
+
+		return nil, err
+	}
+
+	return &product, nil
+}
+func (r *ProductRepository) GetRelatedProducts(ctx context.Context,productID int64,limit int) ([]models.Product, error) {
+	var source models.Product
+	err := r.db.WithContext(ctx).
+		Select("id", "category_id", "brand_id").
+		Where("id = ?", productID).
+		Where("is_active = ?", true).
+		Where("is_listed = ?", true).
+		First(&source).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrRecordNotFound
+		}
+
+		return nil, err
+	}
+
+	// Prevent an unbounded query.
+	if limit <= 0 {
+		limit = 8
+	}
+
+	if limit > 20 {
+		limit = 20
+	}
+
+	var products []models.Product
+
+	err = r.db.WithContext(ctx).
+		Model(&models.Product{}).
+
+		// Do not recommend the product currently being viewed.
+		Where("products.id <> ?", productID).
+
+		// Recommend only active and listed products.
+		Where("products.is_active = ?", true).
+		Where("products.is_listed = ?", true).
+
+		// Match either the category or the brand.
+		Where(
+			"(products.category_id = ? OR products.brand_id = ?)",
+			source.CategoryID,
+			source.BrandID,
+		).
+
+		// A recommended product must have at least one active variant.
+		Where(`
+            EXISTS (
+                SELECT 1
+                FROM product_variants AS pv
+                WHERE pv.product_id = products.id
+                  AND pv.is_active = ?
+            )
+        `, true).
+
+		// Load the data needed to display recommended products.
+		Preload("Category").
+		Preload("Brand").
+		Preload("Variants", "is_active = ?", true).
+		Preload(
+			"Images",
+			"variant_id IS NULL AND is_primary = ?",
+			true,
+		).
+		Order(clause.Expr{
+			SQL: `
+                CASE
+                    WHEN products.category_id = ? THEN 0
+                    ELSE 1
+                END,
+                CASE
+                    WHEN products.brand_id = ? THEN 0
+                    ELSE 1
+                END
+            `,
+			Vars: []interface{}{
+				source.CategoryID,
+				source.BrandID,
+			},
+			WithoutParentheses: true,
+		}).
+		Order("products.created_at DESC").
+		Limit(limit).
+		Find(&products).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return products, nil
 }

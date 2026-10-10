@@ -82,6 +82,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	productImageUseCase := productimage.NewProductImageUseCase(productImageRepository, productRepository, productVariantRepository, objectStorage, log)
 	productImageHandler := handler.NewProductImageHandler(productImageUseCase)
 
+	storeProductHandler := handler.NewStoreProductHandler(productUseCase)
 	r := router.SetupRouter(log,
 		authHandler,
 		jwtService,
@@ -96,6 +97,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		productHandler,
 		productVariantHandler,
 		productImageHandler,
+		storeProductHandler,
 	)
 
 	return &Application{

@@ -62,5 +62,10 @@ var (
 	ErrVariantDoesNotBelongToProduct = errors.New("variant does not belong to product")
 
 	ErrCategoryHasActiveProducts = errors.New("category has active products")
-	ErrBrandHasActiveProducts = errors.New("brand has active products")
+	ErrBrandHasActiveProducts    = errors.New("brand has active products")
+
+	ErrInvalidProductSort  = errors.New("invalid product sort")
+	ErrInvalidPriceRange   = errors.New("invalid price range")
+	ErrInvalidProductPage  = errors.New("invalid product page")
+	ErrInvalidProductLimit = errors.New("invalid product limit")
 )

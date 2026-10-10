@@ -6,6 +6,7 @@ import (
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/usecase/interfaces"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -37,6 +38,18 @@ const (
 	defaultPage  = 1
 	defaultLimit = 10
 	maxLimit     = 100
+)
+const (
+	sortDefault   = ""
+	sortPriceAsc  = "price_asc"
+	sortPriceDesc = "price_desc"
+	sortNameAsc   = "name_asc"
+	sortNameDesc  = "name_desc"
+)
+const (
+	defaultStorePage  = 1
+	defaultStoreLimit = 12
+	maxStoreLimit     = 100
 )
 
 func slugify(value string) string {
@@ -251,7 +264,7 @@ func (u *ProductUseCase) DeleteProduct(ctx context.Context, id uint) error {
 
 	return nil
 }
-func (u *ProductUseCase) ListProducts(ctx context.Context, search string, page int, limit int, isActive *bool, isListed *bool,categoryID *int64,brandID *int64) ([]models.Product, int64, error) {
+func (u *ProductUseCase) ListProducts(ctx context.Context, search string, page int, limit int, isActive *bool, isListed *bool, categoryID *int64, brandID *int64) ([]models.Product, int64, error) {
 
 	search = strings.TrimSpace(search)
 
@@ -417,4 +430,193 @@ func (u *ProductUseCase) ToggleProductListed(ctx context.Context, id uint) error
 		"new_status", !product.IsListed,
 	)
 	return nil
+}
+func (u *ProductUseCase) ListStoreProducts(
+	ctx context.Context,
+	search string,
+	categoryID *int64,
+	brandID *int64,
+	minPrice *float64,
+	maxPrice *float64,
+	sort string,
+	page int,
+	limit int,
+) ([]models.Product, int64, error) {
+
+	search = strings.TrimSpace(search)
+	sort = strings.TrimSpace(sort)
+
+	if page < 1 {
+		page = defaultStorePage
+	}
+
+	if limit < 1 {
+		limit = defaultStoreLimit
+	}
+
+	if limit > maxStoreLimit {
+		limit = maxStoreLimit
+	}
+
+	if categoryID != nil && *categoryID <= 0 {
+		return nil, 0, domainerrors.ErrInvalidCategoryID
+	}
+
+	if brandID != nil && *brandID <= 0 {
+		return nil, 0, domainerrors.ErrInvalidBrandID
+	}
+
+	if minPrice != nil && *minPrice < 0 {
+		return nil, 0, domainerrors.ErrInvalidPriceRange
+	}
+
+	if maxPrice != nil && *maxPrice < 0 {
+		return nil, 0, domainerrors.ErrInvalidPriceRange
+	}
+
+	if minPrice != nil &&
+		maxPrice != nil &&
+		*minPrice > *maxPrice {
+
+		return nil, 0, domainerrors.ErrInvalidPriceRange
+	}
+
+	switch sort {
+	case sortDefault,
+		sortPriceAsc,
+		sortPriceDesc,
+		sortNameAsc,
+		sortNameDesc:
+
+	default:
+		return nil, 0, domainerrors.ErrInvalidProductSort
+	}
+
+	products, total, err := u.productRepo.ListStoreProducts(
+		ctx,
+		search,
+		categoryID,
+		brandID,
+		minPrice,
+		maxPrice,
+		sort,
+		page,
+		limit,
+	)
+
+	if err != nil {
+		u.log.Error(
+			"failed to list store products",
+			"search", search,
+			"category_id", categoryID,
+			"brand_id", brandID,
+			"min_price", minPrice,
+			"max_price", maxPrice,
+			"sort", sort,
+			"page", page,
+			"limit", limit,
+			"error", err,
+		)
+
+		return nil, 0, err
+	}
+
+	u.log.Info(
+		"store products listed",
+		"search", search,
+		"category_id", categoryID,
+		"brand_id", brandID,
+		"min_price", minPrice,
+		"max_price", maxPrice,
+		"sort", sort,
+		"page", page,
+		"limit", limit,
+		"total", total,
+	)
+
+	return products, total, nil
+}
+func (u *ProductUseCase) GetStoreProductByID(ctx context.Context, id int64) (*models.Product, error) {
+	if id <= 0 {
+		return nil, domainerrors.ErrInvalidProductID
+	}
+
+	product, err := u.productRepo.GetStoreProductByID(
+		ctx,
+		id,
+	)
+	if err != nil {
+		u.log.Error(
+			"failed to fetch store product",
+			"product_id", id,
+			"error", err,
+		)
+		return nil, err
+	}
+
+	u.log.Info(
+		"store product fetched",
+		"product_id", product.ID,
+		"slug", product.Slug,
+	)
+
+	return product, nil
+}
+func (u *ProductUseCase) GetStoreProductBySlug(ctx context.Context, slug string) (*models.Product, error) {
+
+	slug = strings.TrimSpace(slug)
+
+	if slug == "" {
+		return nil, domainerrors.ErrInvalidProductSlug
+	}
+
+	product, err := u.productRepo.GetStoreProductBySlug(
+		ctx,
+		slug,
+	)
+	if err != nil {
+		u.log.Error(
+			"failed to fetch store product by slug",
+			"slug", slug,
+			"error", err,
+		)
+		return nil, err
+	}
+
+	u.log.Info(
+		"store product fetched by slug",
+		"product_id", product.ID,
+		"slug", product.Slug,
+	)
+
+	return product, nil
+}
+func (u *ProductUseCase) GetRelatedProducts(ctx context.Context,productID int64,limit int) ([]models.Product, error) {
+
+	if productID <= 0 {
+		return nil, domainerrors.ErrInvalidProductID
+	}
+
+	if limit <= 0 {
+		limit = 8
+	}
+
+	if limit > 20 {
+		limit = 20
+	}
+
+	products, err := u.productRepo.GetRelatedProducts(
+		ctx,
+		productID,
+		limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to get related products for product %d: %w",
+			productID,
+			err,
+		)
+	}
+
+	return products, nil
 }
