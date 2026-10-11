@@ -18,4 +18,5 @@ type BrandRepository interface {
 	ToggleActive(ctx context.Context, id int64) error
 	ListDeleted(ctx context.Context, search string, page int, limit int) ([]models.Brand, int64, error)
 	GetDeletedByID(ctx context.Context, id int64) (*models.Brand, error)
+	ListStoreBrands(ctx context.Context) ([]models.Brand, error)
 }

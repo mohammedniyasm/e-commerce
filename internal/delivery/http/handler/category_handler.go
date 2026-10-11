@@ -414,3 +414,23 @@ func (h *CategoryHandler) ToggleCategoryActive(c *gin.Context) {
 		Message: "category status updated successfully",
 	})
 }
+func (h *CategoryHandler) ListStoreCategories(c *gin.Context) {
+	categories, err := h.categoryUseCase.ListStoreCategories(
+		c.Request.Context(),
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "failed to fetch categories",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "categories fetched successfully",
+		Data:    response.ToStoreCategoriesResponse(categories),
+	})
+}

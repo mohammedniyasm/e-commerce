@@ -156,3 +156,22 @@ func (r *BrandRepository) ToggleActive(ctx context.Context, id int64) error {
 	}
 	return err
 }
+func (r *BrandRepository) ListStoreBrands(ctx context.Context) ([]models.Brand, error) {
+	var brands []models.Brand
+
+	err := r.db.WithContext(ctx).
+		Where("is_active = ?", true).
+		Where("deleted_at IS NULL").
+		Order("name ASC").
+		Find(&brands).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	if brands == nil {
+		brands = []models.Brand{}
+	}
+
+	return brands, nil
+}

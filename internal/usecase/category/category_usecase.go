@@ -6,6 +6,7 @@ import (
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/usecase/interfaces"
+	"fmt"
 	"log/slog"
 	"strings"
 )
@@ -250,4 +251,11 @@ func (u *CategoryUseCase) ToggleCategoryActive(ctx context.Context, id int64) er
 		"new_status", !category.IsActive,
 	)
 	return nil
+}
+func (u *CategoryUseCase) ListStoreCategories(ctx context.Context) ([]models.Category, error) {
+	categories, err := u.categoryRepo.ListStoreCategories(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list store categories: %w", err)
+	}
+	return categories, nil
 }

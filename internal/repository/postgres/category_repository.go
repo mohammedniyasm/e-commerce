@@ -45,7 +45,7 @@ func (r *CategoryRepository) GetByName(ctx context.Context, name string) (*model
 	}
 	return category, nil
 }
-func (r *CategoryRepository) GetByExactName(ctx context.Context,name string) (*models.Category, error) {
+func (r *CategoryRepository) GetByExactName(ctx context.Context, name string) (*models.Category, error) {
 	var category models.Category
 	err := r.db.WithContext(ctx).
 		Where(
@@ -149,4 +149,18 @@ func (r *CategoryRepository) ToggleActive(ctx context.Context, id int64) error {
 		return err
 	}
 	return err
+}
+func (r *CategoryRepository) ListStoreCategories(ctx context.Context) ([]models.Category, error) {
+	var categories []models.Category
+
+	err := r.db.WithContext(ctx).
+		Where("is_active = ?", true).
+		Where("deleted_at IS NULL").
+		Order("name ASC").
+		Find(&categories).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return categories, nil
 }

@@ -338,3 +338,11 @@ func (u *BrandUseCase) DeleteBrandLogo(ctx context.Context, id int64) error {
 	)
 	return nil
 }
+func (u *BrandUseCase) ListStoreBrands(ctx context.Context) ([]models.Brand, error) {
+	brands, err := u.brandRepo.ListStoreBrands(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list store brands: %w", err)
+	}
+
+	return brands, nil
+}

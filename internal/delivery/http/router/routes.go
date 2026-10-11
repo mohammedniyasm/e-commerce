@@ -23,15 +23,19 @@ func RegisterRoutes(r *gin.Engine,
 	variantHandler *handler.ProductVariantHandler,
 	productImageHandler *handler.ProductImageHandler,
 	storeProductHandler *handler.StoreProductHandler,
+	cartHandler *handler.CartHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
 	v1.GET("/health", handler.Health)
 	{
 		v1.GET("/products", storeProductHandler.ListStoreProducts)
+		v1.GET("/categories", categoryHandler.ListStoreCategories)
+		v1.GET("/brands", brandHandler.ListStoreBrands)
 		v1.GET("/products/id/:id", storeProductHandler.GetStoreProductByID)
 		v1.GET("/products/slug/:slug", storeProductHandler.GetStoreProductBySlug)
 		v1.GET("/products/id/:id/recommendations", storeProductHandler.GetRelatedProducts)
+		v1.POST("/guest-cart/validate",middleware.RateLimit(rateLimiter, 30, 60, "guest-cart-validate"),cartHandler.ValidateGuestCart)
 	}
 	authMiddleware := middleware.AuthMiddleware(jwtService, userRepo, blacklist)
 	auth := v1.Group("/auth")
@@ -72,6 +76,13 @@ func RegisterRoutes(r *gin.Engine,
 		protected.PUT("/addresses/:id", middleware.RateLimit(rateLimiter, 20, 60, "address-update"), addressHandler.UpdateAddress)
 		protected.DELETE("/addresses/:id", middleware.RateLimit(rateLimiter, 20, 60, "address-delete"), addressHandler.DeleteAddress)
 		protected.PATCH("/addresses/:id/default", middleware.RateLimit(rateLimiter, 20, 60, "address-default"), addressHandler.SetDefaultAddress)
+
+		protected.GET("/cart", cartHandler.GetCart)
+		protected.POST("/cart/items", cartHandler.AddItem)
+		protected.PATCH("/cart/items/:id", cartHandler.UpdateQuantity)
+		protected.DELETE("/cart/items/:id", cartHandler.RemoveItem)
+		protected.DELETE("/cart", cartHandler.ClearCart)
+		protected.POST("/cart/merge", cartHandler.MergeCart)
 	}
 	auth = v1.Group("/admin/auth")
 	protected = auth.Group("")

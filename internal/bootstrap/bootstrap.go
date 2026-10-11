@@ -13,6 +13,7 @@ import (
 	"ecommerce/internal/usecase/admin"
 	"ecommerce/internal/usecase/auth"
 	brand "ecommerce/internal/usecase/brands"
+	"ecommerce/internal/usecase/cart"
 	"ecommerce/internal/usecase/category"
 	"ecommerce/internal/usecase/productimage"
 	"ecommerce/internal/usecase/products"
@@ -82,6 +83,10 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	productImageUseCase := productimage.NewProductImageUseCase(productImageRepository, productRepository, productVariantRepository, objectStorage, log)
 	productImageHandler := handler.NewProductImageHandler(productImageUseCase)
 
+	cartRepository := postgres.NewCartRepository(db)
+	cartUseCase := cart.NewCartUseCase(cartRepository,productVariantRepository,log)
+	cartHandler := handler.NewCartHandler(cartUseCase)
+
 	storeProductHandler := handler.NewStoreProductHandler(productUseCase)
 	r := router.SetupRouter(log,
 		authHandler,
@@ -98,6 +103,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		productVariantHandler,
 		productImageHandler,
 		storeProductHandler,
+		cartHandler,
 	)
 
 	return &Application{

@@ -35,3 +35,32 @@ func ToBrandResponse(brand *models.Brand) BrandResponse {
 		UpdatedAt:   brand.UpdatedAt,
 	}
 }
+
+type StoreBrandResponse struct {
+	ID      uint    `json:"id"`
+	Name    string  `json:"name"`
+	LogoURL *string `json:"logo_url,omitempty"`
+}
+
+func ToStoreBrandResponse(
+	brand models.Brand,
+) StoreBrandResponse {
+	return StoreBrandResponse{
+		ID:      brand.ID,
+		Name:    brand.Name,
+		LogoURL: brand.Logo,
+	}
+}
+
+func ToStoreBrandsResponse(brands []models.Brand) []StoreBrandResponse {
+	responses := make([]StoreBrandResponse, 0, len(brands))
+
+	for _, brand := range brands {
+		responses = append(
+			responses,
+			ToStoreBrandResponse(brand),
+		)
+	}
+
+	return responses
+}

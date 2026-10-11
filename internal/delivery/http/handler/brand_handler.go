@@ -609,3 +609,23 @@ func (h *BrandHandler) UpdateBrandLogo(c *gin.Context) {
 		Data:    response.ToBrandResponse(brand),
 	})
 }
+func (h *BrandHandler) ListStoreBrands(c *gin.Context) {
+	brands, err := h.brandUseCase.ListStoreBrands(
+		c.Request.Context(),
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "failed to fetch brands",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "brands fetched successfully",
+		Data:    response.ToStoreBrandsResponse(brands),
+	})
+}

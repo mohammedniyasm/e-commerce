@@ -17,4 +17,5 @@ type CategoryRepository interface {
 	ToggleActive(ctx context.Context, id int64) error
 	ListDeleted(ctx context.Context, search string, page int, limit int) ([]models.Category, int64, error)
 	GetDeletedByID(ctx context.Context, id int64) (*models.Category, error)
+	ListStoreCategories(ctx context.Context) ([]models.Category, error)
 }

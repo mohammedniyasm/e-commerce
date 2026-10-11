@@ -18,4 +18,5 @@ type BrandUseCase interface {
 	ToggleBrandActive(ctx context.Context, id int64) error
 	UploadBrandLogo(ctx context.Context, id int64, file io.Reader, size int64, contentType string) (*models.Brand, error)
 	DeleteBrandLogo(ctx context.Context, id int64) error
+	ListStoreBrands(ctx context.Context) ([]models.Brand, error)
 }
