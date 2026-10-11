@@ -20,16 +20,17 @@ func NewProductVariantRepository(db *gorm.DB) *ProductVariantRepository {
 	}
 }
 
-func (r *ProductVariantRepository) Create(ctx context.Context,variant *models.ProductVariant) error {
+func (r *ProductVariantRepository) Create(ctx context.Context, variant *models.ProductVariant) error {
 	return r.db.WithContext(ctx).
 		Create(variant).
 		Error
 }
-func (r *ProductVariantRepository) GetByID(ctx context.Context,id int64) (*models.ProductVariant, error) {
+func (r *ProductVariantRepository) GetByID(ctx context.Context, id int64) (*models.ProductVariant, error) {
 
 	var variant models.ProductVariant
 
 	err := r.db.WithContext(ctx).
+		Preload("Product").
 		Where("id = ?", id).
 		First(&variant).
 		Error
@@ -44,7 +45,7 @@ func (r *ProductVariantRepository) GetByID(ctx context.Context,id int64) (*model
 
 	return &variant, nil
 }
-func (r *ProductVariantRepository) GetBySKU(ctx context.Context,sku string) (*models.ProductVariant, error) {
+func (r *ProductVariantRepository) GetBySKU(ctx context.Context, sku string) (*models.ProductVariant, error) {
 
 	var variant models.ProductVariant
 
@@ -63,7 +64,7 @@ func (r *ProductVariantRepository) GetBySKU(ctx context.Context,sku string) (*mo
 
 	return &variant, nil
 }
-func (r *ProductVariantRepository) GetByProductAndAttributes(ctx context.Context,productID int64,size *string,color *string) (*models.ProductVariant, error) {
+func (r *ProductVariantRepository) GetByProductAndAttributes(ctx context.Context, productID int64, size *string, color *string) (*models.ProductVariant, error) {
 	var variant models.ProductVariant
 	query := r.db.WithContext(ctx).
 		Where("product_id = ?", productID)
@@ -86,7 +87,7 @@ func (r *ProductVariantRepository) GetByProductAndAttributes(ctx context.Context
 	}
 	return &variant, nil
 }
-func (r *ProductVariantRepository) Update(ctx context.Context,variant *models.ProductVariant) error {
+func (r *ProductVariantRepository) Update(ctx context.Context, variant *models.ProductVariant) error {
 
 	return r.db.WithContext(ctx).
 		Model(&models.ProductVariant{}).
@@ -102,12 +103,12 @@ func (r *ProductVariantRepository) Update(ctx context.Context,variant *models.Pr
 		}).
 		Error
 }
-func (r *ProductVariantRepository) Delete(ctx context.Context,id int64) error {
+func (r *ProductVariantRepository) Delete(ctx context.Context, id int64) error {
 	return r.db.WithContext(ctx).
 		Delete(&models.ProductVariant{}, id).
 		Error
 }
-func (r *ProductVariantRepository) ListByProductID(ctx context.Context,productID int64) ([]models.ProductVariant, error) {
+func (r *ProductVariantRepository) ListByProductID(ctx context.Context, productID int64) ([]models.ProductVariant, error) {
 	var variants []models.ProductVariant
 	err := r.db.WithContext(ctx).
 		Where("product_id = ?", productID).

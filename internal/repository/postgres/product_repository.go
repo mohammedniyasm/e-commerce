@@ -530,7 +530,6 @@ func (r *ProductRepository) GetRelatedProducts(ctx context.Context,productID int
 		return nil, err
 	}
 
-	// Prevent an unbounded query.
 	if limit <= 0 {
 		limit = 8
 	}
@@ -544,14 +543,12 @@ func (r *ProductRepository) GetRelatedProducts(ctx context.Context,productID int
 	err = r.db.WithContext(ctx).
 		Model(&models.Product{}).
 
-		// Do not recommend the product currently being viewed.
 		Where("products.id <> ?", productID).
 
 		// Recommend only active and listed products.
 		Where("products.is_active = ?", true).
 		Where("products.is_listed = ?", true).
 
-		// Match either the category or the brand.
 		Where(
 			"(products.category_id = ? OR products.brand_id = ?)",
 			source.CategoryID,

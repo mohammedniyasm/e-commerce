@@ -23,6 +23,7 @@ func RegisterRoutes(r *gin.Engine,
 	variantHandler *handler.ProductVariantHandler,
 	productImageHandler *handler.ProductImageHandler,
 	storeProductHandler *handler.StoreProductHandler,
+	cartHandler *handler.CartHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -72,6 +73,12 @@ func RegisterRoutes(r *gin.Engine,
 		protected.PUT("/addresses/:id", middleware.RateLimit(rateLimiter, 20, 60, "address-update"), addressHandler.UpdateAddress)
 		protected.DELETE("/addresses/:id", middleware.RateLimit(rateLimiter, 20, 60, "address-delete"), addressHandler.DeleteAddress)
 		protected.PATCH("/addresses/:id/default", middleware.RateLimit(rateLimiter, 20, 60, "address-default"), addressHandler.SetDefaultAddress)
+
+		protected.GET("/cart", cartHandler.GetCart)
+		protected.POST("/cart/items", cartHandler.AddItem)
+		protected.PATCH("/cart/items/:id", cartHandler.UpdateQuantity)
+		protected.DELETE("/cart/items/:id", cartHandler.RemoveItem)
+		protected.DELETE("/cart", cartHandler.ClearCart)
 	}
 	auth = v1.Group("/admin/auth")
 	protected = auth.Group("")

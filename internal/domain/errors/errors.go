@@ -68,4 +68,10 @@ var (
 	ErrInvalidPriceRange   = errors.New("invalid price range")
 	ErrInvalidProductPage  = errors.New("invalid product page")
 	ErrInvalidProductLimit = errors.New("invalid product limit")
+
+	// ErrInvalidUserID=
+	ErrInvalidQuantity       = errors.New("invalid quantity")
+	ErrInsufficientStock     = errors.New("insufficient stock")
+	ErrProductNotAvailable   = errors.New("product not available")
+	ErrCartItemAlreadyExists = errors.New("product already exists")
 )
