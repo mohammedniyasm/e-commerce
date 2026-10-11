@@ -33,3 +33,32 @@ func ToCategoryResponse(category *models.Category) CategoryResponse {
 		UpdatedAt:   category.UpdatedAt,
 	}
 }
+
+type StoreCategoryResponse struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+}
+
+func ToStoreCategoryResponse(
+	category models.Category,
+) StoreCategoryResponse {
+	return StoreCategoryResponse{
+		ID:   uint(category.ID),
+		Name: category.Name,
+	}
+}
+
+func ToStoreCategoriesResponse(
+	categories []models.Category,
+) []StoreCategoryResponse {
+	responses := make([]StoreCategoryResponse, 0, len(categories))
+
+	for _, category := range categories {
+		responses = append(
+			responses,
+			ToStoreCategoryResponse(category),
+		)
+	}
+
+	return responses
+}

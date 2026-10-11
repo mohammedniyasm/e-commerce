@@ -13,4 +13,5 @@ type ProductVariantRepository interface {
 	Update(ctx context.Context, variant *models.ProductVariant) error
 	Delete(ctx context.Context, id int64) error
 	ListByProductID(ctx context.Context, productID int64) ([]models.ProductVariant, error)
+	GetByIDs(ctx context.Context, ids []int64) ([]models.ProductVariant, error)
 }

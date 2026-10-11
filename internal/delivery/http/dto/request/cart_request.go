@@ -8,3 +8,6 @@ type AddCartItemRequest struct {
 type UpdateCartItemQuantityRequest struct {
 	Quantity int `json:"quantity" binding:"required,min=1"`
 }
+type MergeCartItemRequest struct {
+	Items []AddCartItemRequest `json:"items" binding:"required,min=1,max=100,dive"`
+}

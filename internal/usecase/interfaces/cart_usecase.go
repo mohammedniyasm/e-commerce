@@ -6,6 +6,18 @@ import (
 	"ecommerce/internal/domain/models"
 )
 
+type GuestCartItemInput struct {
+	VariantID int64
+	Quantity  int
+}
+type GuestCartItemResult struct {
+	VariantID          int64
+	RequestedQuantity  int
+	AvailableStock     int
+	CurrentPrice       float64
+	IsAvailable        bool
+	AvailabilityReason string
+}
 type CartUseCase interface {
 	GetCart(
 		ctx context.Context,
@@ -36,4 +48,6 @@ type CartUseCase interface {
 		ctx context.Context,
 		userID int64,
 	) (*models.Cart, error)
+	ValidateGuestCart(ctx context.Context, items []GuestCartItemInput) ([]GuestCartItemResult, error)
+	MergeGuestCart(ctx context.Context,userID int64,items []GuestCartItemInput) (*models.Cart, error)
 }

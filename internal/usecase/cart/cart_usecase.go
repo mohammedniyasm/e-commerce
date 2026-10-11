@@ -220,7 +220,7 @@ func (u *CartUseCase) RemoveItem(ctx context.Context, userID int64, itemID int64
 	)
 	return u.GetCart(ctx, userID)
 }
-func (u *CartUseCase) ClearCart(ctx context.Context,userID int64) (*models.Cart, error) {
+func (u *CartUseCase) ClearCart(ctx context.Context, userID int64) (*models.Cart, error) {
 	if userID <= 0 {
 		return nil, domainerrors.ErrInvalidUserID
 	}
@@ -242,5 +242,164 @@ func (u *CartUseCase) ClearCart(ctx context.Context,userID int64) (*models.Cart,
 		"user_id", userID,
 	)
 
+	return u.GetCart(ctx, userID)
+}
+func (u *CartUseCase) ValidateGuestCart(ctx context.Context, items []interfaces.GuestCartItemInput) ([]interfaces.GuestCartItemResult, error) {
+	results := make(
+		[]interfaces.GuestCartItemResult,
+		0,
+		len(items),
+	)
+	if len(items) == 0 {
+		return results, nil
+	}
+	variantIDs := make([]int64, 0, len(items))
+	for _, item := range items {
+		if item.VariantID <= 0 {
+			return nil, domainerrors.ErrInvalidVariantID
+		}
+		if item.Quantity <= 0 {
+			return nil, domainerrors.ErrInvalidQuantity
+		}
+		variantIDs = append(variantIDs, item.VariantID)
+	}
+	variants, err := u.variantRepo.GetByIDs(
+		ctx,
+		variantIDs,
+	)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to retrieve variants for guest cart validation: %w",
+			err,
+		)
+	}
+	variantMap := make(map[int64]models.ProductVariant, len(variants))
+	for _, variant := range variants {
+		variantMap[int64(variant.ID)] = variant
+	}
+	for _, item := range items {
+		result := interfaces.GuestCartItemResult{
+			VariantID:         item.VariantID,
+			RequestedQuantity: item.Quantity,
+			IsAvailable:       false,
+		}
+		variant, exists := variantMap[item.VariantID]
+		if !exists {
+			result.AvailabilityReason = "variant_not_found"
+			results = append(results, result)
+			continue
+		}
+
+		result.AvailableStock = variant.Stock
+		result.CurrentPrice = variant.SellingPrice
+
+		switch {
+		case variant.Product.ID == 0 ||
+			!variant.Product.IsActive ||
+			!variant.Product.IsListed ||
+			variant.Product.DeletedAt != nil:
+
+			result.AvailabilityReason = "product_unavailable"
+
+		case !variant.IsActive:
+
+			result.AvailabilityReason = "variant_inactive"
+
+		case variant.Stock <= 0:
+
+			result.AvailabilityReason = "out_of_stock"
+
+		case item.Quantity > variant.Stock:
+
+			result.AvailabilityReason = "insufficient_stock"
+
+		default:
+
+			result.IsAvailable = true
+			result.AvailabilityReason = ""
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+func (u *CartUseCase) MergeGuestCart(ctx context.Context,userID int64,items []interfaces.GuestCartItemInput) (*models.Cart, error) {
+	if userID <= 0 {
+		return nil, domainerrors.ErrInvalidUserID
+	}
+	if len(items) == 0 {
+		return u.GetCart(ctx, userID)
+	}
+	for _, item := range items {
+		if item.VariantID <= 0 {
+			return nil, domainerrors.ErrInvalidVariantID
+		}
+		if item.Quantity <= 0 {
+			return nil, domainerrors.ErrInvalidQuantity
+		}
+	}
+	cart, err := u.getOrCreateCart(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	cartID := int64(cart.ID)
+	err = u.cartRepo.WithTransaction(
+		ctx,
+		func(txRepo interfaces.CartRepository) error {
+			for _, item := range items {
+				variant, err := u.variantRepo.GetByID(
+					ctx,
+					item.VariantID,
+				)
+				if err != nil {
+					return fmt.Errorf("get product variant: %w", err)
+				}
+				existingItem, err := txRepo.GetCartItemByVariantID(
+					ctx,
+					cartID,
+					item.VariantID,
+				)
+				if err == nil {
+					newQuantity := existingItem.Quantity + item.Quantity
+					if err := validateVariant(variant, newQuantity); err != nil {
+						return err
+					}
+					if err := txRepo.UpdateCartItemQuantity(
+						ctx,
+						cartID,
+						int64(existingItem.ID),
+						newQuantity,
+					); err != nil {
+						return fmt.Errorf("update cart item: %w", err)
+					}
+					continue
+				}
+				if !errors.Is(err, domainerrors.ErrRecordNotFound) {
+					return fmt.Errorf("get existing cart item: %w", err)
+				}
+				if err := validateVariant(variant, item.Quantity); err != nil {
+					return err
+				}
+				newItem := &models.CartItem{
+					CartID:    cart.ID,
+					VariantID: uint(item.VariantID),
+					Quantity:  item.Quantity,
+				}
+				if err := txRepo.CreateCartItem(ctx, newItem); err != nil {
+					return fmt.Errorf("create cart item: %w", err)
+				}
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("merge guest cart: %w", err)
+	}
+	u.log.Info(
+		"guest cart merged successfully",
+		"user_id", userID,
+		"item_count", len(items),
+	)
 	return u.GetCart(ctx, userID)
 }

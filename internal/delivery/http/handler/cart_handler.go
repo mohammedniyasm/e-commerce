@@ -369,3 +369,140 @@ func (h *CartHandler) ClearCart(c *gin.Context) {
 		Data:    response.ToCartResponse(cart),
 	})
 }
+func (h *CartHandler) ValidateGuestCart(c *gin.Context) {
+	var req request.ValidateGuestCartRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid guest cart request",
+			Error:   err.Error(),
+		})
+		return
+	}
+	items := make([]interfaces.GuestCartItemInput, 0, len(req.Items))
+	for _, item := range req.Items {
+		items = append(items, interfaces.GuestCartItemInput{
+			VariantID: item.VariantID,
+			Quantity:  item.Quantity,
+		})
+	}
+	results, err := h.cartUseCase.ValidateGuestCart(
+		c.Request.Context(),
+		items,
+	)
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrInvalidVariantID) {
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid variant id",
+			})
+			return
+		}
+		if errors.Is(err, domainerrors.ErrInvalidQuantity) {
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "quantity must be greater than zero",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "failed to validate guest cart",
+			Error:   err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "guest cart validated successfully",
+		Data:    response.ToGuestCartValidationResponses(results),
+	})
+}
+func (h *CartHandler) MergeCart(c *gin.Context) {
+	userID, ok := getCartUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "authentication required",
+			Error:   "unauthorized",
+		})
+		return
+	}
+	var req request.MergeCartItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+			Error:   err.Error(),
+		})
+		return
+	}
+	items := make([]interfaces.GuestCartItemInput, 0, len(req.Items))
+	for _, item := range req.Items {
+		items = append(items, interfaces.GuestCartItemInput{
+			VariantID: item.VariantID,
+			Quantity:  item.Quantity,
+		})
+	}
+	cart, err := h.cartUseCase.MergeGuestCart(
+		c.Request.Context(),
+		userID,
+		items,
+	)
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrInvalidUserID) {
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid user id",
+			})
+			return
+		}
+		if errors.Is(err, domainerrors.ErrInvalidVariantID) {
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid variant id",
+			})
+			return
+		}
+		if errors.Is(err, domainerrors.ErrInvalidQuantity) {
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid quantity",
+			})
+			return
+		}
+		if errors.Is(err, domainerrors.ErrRecordNotFound) {
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "one or more guest cart items no longer exist",
+			})
+			return
+		}
+		if errors.Is(err, domainerrors.ErrProductNotAvailable) {
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "one or more guest cart items are unavailable",
+			})
+			return
+		}
+		if errors.Is(err, domainerrors.ErrInsufficientStock) {
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "insufficient stock for one or more items",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "failed to merge guest cart",
+			Error:   err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "guest cart merged successfully",
+		Data:    response.ToCartResponse(cart),
+	})
+}

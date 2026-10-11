@@ -120,3 +120,25 @@ func (r *ProductVariantRepository) ListByProductID(ctx context.Context, productI
 	}
 	return variants, nil
 }
+func (r *ProductVariantRepository) GetByIDs(ctx context.Context,ids []int64) ([]models.ProductVariant, error) {
+	var variants []models.ProductVariant
+
+	if len(ids) == 0 {
+		return []models.ProductVariant{}, nil
+	}
+
+	err := r.db.WithContext(ctx).
+		Preload("Product").
+		Where("id IN ?", ids).
+		Find(&variants).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	if variants == nil {
+		variants = []models.ProductVariant{}
+	}
+
+	return variants, nil
+}
