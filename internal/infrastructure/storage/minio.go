@@ -102,10 +102,7 @@ func (s *MinIOStorage) Upload(ctx context.Context, objectKey string, reader io.R
 	return url, nil
 }
 
-func (s *MinIOStorage) Delete(
-	ctx context.Context,
-	objectKey string,
-) error {
+func (s *MinIOStorage) Delete(ctx context.Context, objectKey string) error {
 	return s.client.RemoveObject(
 		ctx,
 		s.bucket,
@@ -113,10 +110,7 @@ func (s *MinIOStorage) Delete(
 		minio.RemoveObjectOptions{},
 	)
 }
-func (s *MinIOStorage) DeleteByURL(
-	ctx context.Context,
-	imageURL string,
-) error {
+func (s *MinIOStorage) DeleteByURL(ctx context.Context, imageURL string) error {
 
 	parsedURL, err := url.Parse(imageURL)
 	if err != nil {
@@ -130,7 +124,7 @@ func (s *MinIOStorage) DeleteByURL(
 
 	prefix := s.bucket + "/"
 
-	if !strings.HasPrefix(path, prefix) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+	if !strings.HasPrefix(path, prefix) {
 		return fmt.Errorf("invalid storage URL")
 	}
 

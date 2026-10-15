@@ -16,6 +16,6 @@ type ProductImage struct {
 	CreatedAt time.Time `gorm:"not null"`
 	UpdatedAt time.Time `gorm:"not null"`
 
-	Product Product `gorm:"foreignKey:ProductID"`
+	Product Product         `gorm:"foreignKey:ProductID"`
 	Variant *ProductVariant `gorm:"foreignKey:VariantID"`
 }

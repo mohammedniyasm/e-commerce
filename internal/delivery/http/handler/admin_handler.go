@@ -29,7 +29,7 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid query parameters",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -38,7 +38,7 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch users",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -107,7 +107,7 @@ func (h *AdminHandler) BlockUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to block user",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -140,7 +140,7 @@ func (h *AdminHandler) UnblockUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to unblock user",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -157,7 +157,7 @@ func (h *AdminHandler) AddCustomer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -181,7 +181,7 @@ func (h *AdminHandler) AddCustomer(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to create customer",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -227,7 +227,7 @@ func (h *AdminHandler) GetCustomer(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch customer",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -262,7 +262,7 @@ func (h *AdminHandler) UpdateCustomer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -294,7 +294,7 @@ func (h *AdminHandler) UpdateCustomer(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to update customer",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -343,7 +343,7 @@ func (h *AdminHandler) DeleteCustomer(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to delete customer",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}

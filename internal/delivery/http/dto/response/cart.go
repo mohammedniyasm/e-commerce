@@ -34,7 +34,7 @@ type CartItemResponse struct {
 	ImageURL           *string `json:"image_url,omitempty"`
 }
 
-func getCartItemImage(item models.CartItem) *string { 
+func getCartItemImage(item models.CartItem) *string {
 	for _, image := range item.Variant.Images {
 		if image.IsPrimary {
 			url := image.ImageURL
@@ -63,7 +63,11 @@ func ToCartItemResponse(item models.CartItem) CartItemResponse {
 	if product.ID == 0 ||
 		!product.IsActive ||
 		!product.IsListed ||
-		product.DeletedAt!=nil {
+		product.DeletedAt != nil ||
+		!product.Category.IsActive ||
+		!product.Brand.IsActive ||
+		product.Category.DeletedAt != nil ||
+		product.Brand.DeletedAt != nil {
 
 		isAvailable = false
 		availabilityReason = "product_unavailable"

@@ -9,5 +9,5 @@ type GoogleUserInfo struct {
 	Picture   string
 }
 type GoogleTokenVerifier interface {
-	Verify(ctx context.Context,idToken string)(*GoogleUserInfo,error)
+	Verify(ctx context.Context, idToken string) (*GoogleUserInfo, error)
 }

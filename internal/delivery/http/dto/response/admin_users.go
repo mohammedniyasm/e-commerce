@@ -22,4 +22,3 @@ type AdminUserListResponse struct {
 	Total      int64               `json:"total"`
 	TotalPages int                 `json:"total_pages"`
 }
-

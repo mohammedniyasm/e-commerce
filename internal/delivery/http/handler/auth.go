@@ -108,7 +108,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		c.JSON(401, response.APIResponse{
 			Success: false,
 			Message: "login failed",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -127,7 +127,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		c.JSON(400, response.APIResponse{
 			Success: false,
 			Message: "refresh token cookie required",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -137,7 +137,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		c.JSON(401, response.APIResponse{
 			Success: false,
 			Message: "refresh token failed",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -156,7 +156,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		c.JSON(400, response.APIResponse{
 			Success: false,
 			Message: "refresh token cookie required",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -180,7 +180,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		c.JSON(401, response.APIResponse{
 			Success: false,
 			Message: "logout failed",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -212,7 +212,7 @@ func (h *AuthHandler) SendVerificationOTP(c *gin.Context) {
 		c.JSON(500, response.APIResponse{
 			Success: false,
 			Message: "failed to send verification OTP",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -227,7 +227,7 @@ func (h *AuthHandler) ResendVerificationOTP(c *gin.Context) {
 		c.JSON(400, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   domainerrors.ErrInvalidCredentials.Error(),
+			// Error:   domainerrors.ErrInvalidCredentials.Error(),
 		})
 		return
 	}
@@ -243,7 +243,7 @@ func (h *AuthHandler) ResendVerificationOTP(c *gin.Context) {
 		c.JSON(500, response.APIResponse{
 			Success: false,
 			Message: "failed to resend verification OTP",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -258,7 +258,7 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -297,7 +297,7 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 		c.JSON(401, response.APIResponse{
 			Success: false,
 			Message: "email verification failed",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -313,7 +313,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		c.JSON(400, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -322,7 +322,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		c.JSON(500, response.APIResponse{
 			Success: false,
 			Message: "failed to process password reset request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -337,7 +337,7 @@ func (h *AuthHandler) VerifyForgotPassword(c *gin.Context) {
 		c.JSON(400, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -346,7 +346,7 @@ func (h *AuthHandler) VerifyForgotPassword(c *gin.Context) {
 		c.JSON(401, response.APIResponse{
 			Success: false,
 			Message: "invalid or expired OTP",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -362,7 +362,7 @@ func (h *AuthHandler) ResendForgotPasswordOTP(c *gin.Context) {
 		c.JSON(400, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -374,7 +374,7 @@ func (h *AuthHandler) ResendForgotPasswordOTP(c *gin.Context) {
 		c.JSON(500, response.APIResponse{
 			Success: false,
 			Message: "failed to process password reset request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -389,7 +389,7 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		c.JSON(400, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -398,7 +398,7 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		c.JSON(401, response.APIResponse{
 			Success: false,
 			Message: "password reset session required",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -411,7 +411,7 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		c.JSON(401, response.APIResponse{
 			Success: false,
 			Message: "password reset failed",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -430,7 +430,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -446,7 +446,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "google authentication failed",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -465,7 +465,7 @@ func (h *AuthHandler) AdminLogin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -497,7 +497,7 @@ func (h *AuthHandler) AdminLogin(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "admin login failed",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}

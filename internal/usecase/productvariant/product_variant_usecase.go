@@ -14,17 +14,20 @@ import (
 type ProductVariantUseCase struct {
 	variantRepo interfaces.ProductVariantRepository
 	productRepo interfaces.ProductRepository
+	priceChange interfaces.RateLimiter
 	log         *slog.Logger
 }
 
 func NewProductVariantUseCase(
 	variantRepo interfaces.ProductVariantRepository,
 	productRepo interfaces.ProductRepository,
+	priceChange interfaces.RateLimiter,
 	log *slog.Logger,
 ) *ProductVariantUseCase {
 	return &ProductVariantUseCase{
 		variantRepo: variantRepo,
 		productRepo: productRepo,
+		priceChange: priceChange,
 		log:         log,
 	}
 }
@@ -210,12 +213,42 @@ func (u *ProductVariantUseCase) UpdateVariant(ctx context.Context, id int64, siz
 	if sku != "" {
 		variant.SKU = sku
 	}
-	variant.MRP = mrp
-	variant.SellingPrice = sellingPrice
+	// if variant.MRP != mrp || variant.SellingPrice != sellingPrice {
+	// 	key := fmt.Sprintf("variant_id:%d", id)
+	// 	allow, err := u.priceChange.AllowChange(ctx, key, 3, 3600)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if !allow {
+	// 		variant.Stock = stock
+	// 		if isActive != nil {
+	// 			variant.IsActive = *isActive
+	// 		}
+	// 		if err := u.variantRepo.Update(ctx, variant); err != nil {
+	// 			u.log.Error(
+	// 				"failed to update product variant",
+	// 				"variant_id", id,
+	// 				"error", err,
+	// 			)
+	// 			return nil, err
+	// 		}
+	// 		u.log.Info(
+	// 			"product variant updated",
+	// 			"variant_id", id,
+	// 			"sku", variant.SKU,
+	// 		)
+
+	// 		return variant, nil
+	// 	}
+	// 	variant.MRP = mrp
+	// 	variant.SellingPrice = sellingPrice
+	// }
 	// if stock != nil{
 	// }
+	variant.MRP = mrp
+	variant.SellingPrice = sellingPrice
 	variant.Stock = stock
-	if isActive != nil{
+	if isActive != nil {
 		variant.IsActive = *isActive
 	}
 	if err := u.variantRepo.Update(ctx, variant); err != nil {
@@ -226,7 +259,6 @@ func (u *ProductVariantUseCase) UpdateVariant(ctx context.Context, id int64, siz
 		)
 		return nil, err
 	}
-
 	u.log.Info(
 		"product variant updated",
 		"variant_id", id,

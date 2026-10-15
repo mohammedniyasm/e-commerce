@@ -5,23 +5,23 @@ import (
 	"testing"
 	"time"
 )
-func TestJWTService_ValidateRefreshToken_Expired(t *testing.T){
-		config := config.JWTConfig{
+
+func TestJWTService_ValidateRefreshToken_Expired(t *testing.T) {
+	config := config.JWTConfig{
 		AccessSecret:  "test-access-secret",
 		RefreshSecret: "test-refresh-secret",
 		AccessExpiry:  -1 * time.Minute,
 		RefreshExpiry: -time.Hour,
 	}
 	service := NewJWTService(config)
-	token,_,err:=service.GenerateRefreshToken(1)
-	if err!=nil{
-		t.Fatalf("failed to generate refresh token: %s",err)
+	token, _, err := service.GenerateRefreshToken(1)
+	if err != nil {
+		t.Fatalf("failed to generate refresh token: %s", err)
 	}
-	_,_,err=service.ValidateRefreshToken(token)
-	if err == nil{
+	_, _, err = service.ValidateRefreshToken(token)
+	if err == nil {
 		t.Fatalf("expected error for expired refresh token")
 	}
-
 
 }
 func TestJWTService_GenerateAndValidateRefreshToken(t *testing.T) {

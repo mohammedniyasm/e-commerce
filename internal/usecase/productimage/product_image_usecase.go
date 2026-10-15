@@ -41,25 +41,19 @@ const (
 )
 
 func (u *ProductImageUseCase) validateProduct(ctx context.Context, productID int64) error {
-
 	if productID <= 0 {
 		return domainerrors.ErrInvalidProductID
 	}
-
 	_, err := u.productRepo.GetByID(ctx, uint(productID))
-
 	return err
 }
 func (u *ProductImageUseCase) validateVariant(ctx context.Context, productID int64, variantID *int64) error {
-
 	if variantID == nil {
 		return nil
 	}
-
 	if *variantID <= 0 {
 		return domainerrors.ErrInvalidVariantID
 	}
-
 	variant, err := u.variantRepo.GetByID(
 		ctx,
 		*variantID,
@@ -67,7 +61,6 @@ func (u *ProductImageUseCase) validateVariant(ctx context.Context, productID int
 	if err != nil {
 		return err
 	}
-
 	if int64(variant.ProductID) != productID {
 		return domainerrors.ErrVariantDoesNotBelongToProduct
 	}
@@ -265,16 +258,13 @@ func (u *ProductImageUseCase) ListVariantImages(ctx context.Context, variantID i
 	)
 }
 func (u *ProductImageUseCase) UpdateProductImage(ctx context.Context, id int64, variantID *int64, displayOrder *int, isPrimary *bool) (*models.ProductImage, error) {
-
 	if id <= 0 {
 		return nil, domainerrors.ErrInvalidProductImageID
 	}
-
 	image, err := u.imageRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-
 	if variantID != nil {
 		if *variantID <= 0 {
 			return nil, domainerrors.ErrInvalidVariantID
@@ -293,12 +283,11 @@ func (u *ProductImageUseCase) UpdateProductImage(ctx context.Context, id int64, 
 		if *displayOrder < 0 {
 			return nil, domainerrors.ErrInvalidDisplayOrder
 		}
-		u.imageRepo.UpdateDisplayOrder(ctx,id,*displayOrder)
+		u.imageRepo.UpdateDisplayOrder(ctx, id, *displayOrder)
 		image.DisplayOrder = *displayOrder
 	}
 	if isPrimary != nil {
 		if *isPrimary {
-
 			if err := u.imageRepo.ClearPrimaryByProductID(
 				ctx,
 				int64(image.ProductID),
@@ -309,7 +298,6 @@ func (u *ProductImageUseCase) UpdateProductImage(ctx context.Context, id int64, 
 		}
 		image.IsPrimary = *isPrimary
 	}
-
 	if err := u.imageRepo.Update(
 		ctx,
 		image,
@@ -321,38 +309,31 @@ func (u *ProductImageUseCase) UpdateProductImage(ctx context.Context, id int64, 
 		)
 		return nil, err
 	}
-
 	u.log.Info(
 		"product image updated",
 		"image_id", id,
 		"product_id", image.ProductID,
 		"variant_id", image.VariantID,
 	)
-
 	return image, nil
 }
 func (u *ProductImageUseCase) DeleteProductImage(ctx context.Context, id int64) error {
-
 	if id <= 0 {
 		return domainerrors.ErrInvalidProductImageID
 	}
-
 	image, err := u.imageRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
-
 	count, err := u.imageRepo.CountByProductID(
 		ctx, int64(image.ProductID),
 	)
 	if err != nil {
 		return err
 	}
-
 	if count <= minProductImages {
 		return domainerrors.ErrMinimumProductImages
 	}
-
 	if err := u.objectStorage.DeleteByURL(
 		ctx,
 		image.ImageURL,
@@ -364,7 +345,6 @@ func (u *ProductImageUseCase) DeleteProductImage(ctx context.Context, id int64) 
 		)
 		return err
 	}
-
 	if err := u.imageRepo.Delete(ctx, id); err != nil {
 		u.log.Error(
 			"failed to delete product image record",
@@ -373,11 +353,9 @@ func (u *ProductImageUseCase) DeleteProductImage(ctx context.Context, id int64) 
 		)
 		return err
 	}
-
 	u.log.Info(
 		"product image deleted",
 		"image_id", id,
 	)
-
 	return nil
 }

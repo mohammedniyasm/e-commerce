@@ -93,7 +93,11 @@ func validateVariant(variant *models.ProductVariant, quantity int) error {
 	if variant.Product.ID == 0 ||
 		!variant.Product.IsActive ||
 		!variant.Product.IsListed ||
-		variant.Product.DeletedAt != nil {
+		variant.Product.DeletedAt != nil ||
+		!variant.Product.Category.IsActive ||
+		variant.Product.Category.DeletedAt != nil ||
+		!variant.Product.Brand.IsActive ||
+		variant.Product.Brand.DeletedAt != nil {
 		return domainerrors.ErrProductNotAvailable
 	}
 
@@ -254,14 +258,12 @@ func (u *CartUseCase) UpdateQuantity(ctx context.Context, userID int64, itemID i
 		)
 		return nil, fmt.Errorf("update cart item quantity: %w", err)
 	}
-
 	u.log.Info("cart item quantity updated",
 		"user_id", userID,
 		"cart_id", cart.ID,
 		"item_id", itemID,
 		"quantity", quantity,
 	)
-
 	return u.GetCart(ctx, userID)
 }
 func (u *CartUseCase) RemoveItem(ctx context.Context, userID int64, itemID int64) (*models.Cart, error) {
@@ -377,7 +379,6 @@ func (u *CartUseCase) ValidateGuestCart(ctx context.Context, items []interfaces.
 			RequestedQuantity: item.Quantity,
 			IsAvailable:       false,
 		}
-
 		variant, exists := variantMap[item.VariantID]
 		if !exists {
 			result.AvailabilityReason = "variant_not_found"
@@ -392,7 +393,11 @@ func (u *CartUseCase) ValidateGuestCart(ctx context.Context, items []interfaces.
 		case variant.Product.ID == 0 ||
 			!variant.Product.IsActive ||
 			!variant.Product.IsListed ||
-			variant.Product.DeletedAt != nil:
+			variant.Product.DeletedAt != nil ||
+			!variant.Product.Category.IsActive ||
+			!variant.Product.Brand.IsActive ||
+			variant.Product.Category.DeletedAt != nil ||
+			variant.Product.Brand.DeletedAt != nil:
 			result.AvailabilityReason = "product_unavailable"
 
 		case !variant.IsActive:
@@ -428,7 +433,7 @@ func countAvailableGuestItems(items []interfaces.GuestCartItemResult) int {
 	}
 	return count
 }
-func (u *CartUseCase) MergeGuestCart(ctx context.Context,userID int64,items []interfaces.GuestCartItemInput) (*models.Cart, error) {
+func (u *CartUseCase) MergeGuestCart(ctx context.Context, userID int64, items []interfaces.GuestCartItemInput) (*models.Cart, error) {
 	if userID <= 0 {
 		return nil, domainerrors.ErrInvalidUserID
 	}
@@ -466,11 +471,9 @@ func (u *CartUseCase) MergeGuestCart(ctx context.Context,userID int64,items []in
 				if err != nil {
 					return fmt.Errorf("get product variant: %w", err)
 				}
-
 				existingItem, err := txRepo.GetCartItemByVariantID(
 					ctx, cartID, item.VariantID,
 				)
-
 				if err == nil {
 					newQuantity := existingItem.Quantity + item.Quantity
 

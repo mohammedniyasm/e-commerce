@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware(jwtService interfaces.JWTService, userRepo interfaces.UserRepository,blacklist interfaces.AccessTokenBlacklist) gin.HandlerFunc {
+func AuthMiddleware(jwtService interfaces.JWTService, userRepo interfaces.UserRepository, blacklist interfaces.AccessTokenBlacklist) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -35,20 +35,20 @@ func AuthMiddleware(jwtService interfaces.JWTService, userRepo interfaces.UserRe
 			})
 			return
 		}
-		blacklisted,err:=blacklist.IsBlacklisted(c.Request.Context(),claims.JTI)
-		if err != nil{
-			c.AbortWithStatusJSON(401,response.APIResponse{
+		blacklisted, err := blacklist.IsBlacklisted(c.Request.Context(), claims.JTI)
+		if err != nil {
+			c.AbortWithStatusJSON(401, response.APIResponse{
 				Success: false,
 				Message: "failed to verify access token",
 			})
-			return 
+			return
 		}
-		if blacklisted{
-			c.AbortWithStatusJSON(401,response.APIResponse{
+		if blacklisted {
+			c.AbortWithStatusJSON(401, response.APIResponse{
 				Success: false,
 				Message: "access token has been revoked",
 			})
-			return 
+			return
 		}
 		userID, err := strconv.ParseUint(claims.UserID, 10, 64)
 		if err != nil {
@@ -75,7 +75,7 @@ func AuthMiddleware(jwtService interfaces.JWTService, userRepo interfaces.UserRe
 		}
 		c.Set(UserIdKey, claims.UserID)
 		c.Set(UserRoleKey, claims.Role)
-		c.Set(AccessClaimsKey,claims)
+		c.Set(AccessClaimsKey, claims)
 		c.Next()
 	}
 }

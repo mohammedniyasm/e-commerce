@@ -30,7 +30,7 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -57,7 +57,7 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to create category",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -95,7 +95,7 @@ func (h *CategoryHandler) GetCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch category",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -123,7 +123,7 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -159,7 +159,7 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to update category",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -203,7 +203,7 @@ func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to delete category",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -219,7 +219,7 @@ func (h *CategoryHandler) ListCategories(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid query parameters",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -234,7 +234,7 @@ func (h *CategoryHandler) ListCategories(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch categories",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -278,8 +278,8 @@ func (h *CategoryHandler) ListDeletedCategories(c *gin.Context) {
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
-			Message: "invalid query parameters",
-			Error:   err.Error(),
+			Message: "invalid request",
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -294,7 +294,7 @@ func (h *CategoryHandler) ListDeletedCategories(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch deleted categories",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -367,7 +367,7 @@ func (h *CategoryHandler) RestoreCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to restore category",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -404,7 +404,7 @@ func (h *CategoryHandler) ToggleCategoryActive(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to toggle category status",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -423,7 +423,7 @@ func (h *CategoryHandler) ListStoreCategories(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch categories",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}

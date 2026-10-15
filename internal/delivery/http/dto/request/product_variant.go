@@ -16,5 +16,5 @@ type UpdateProductVariantRequest struct {
 	MRP          float64 `json:"mrp" binding:"required"`
 	SellingPrice float64 `json:"selling_price" binding:"required"`
 	Stock        int     `json:"stock"`
-	IsActive     *bool    `json:"is_active"`
+	IsActive     *bool   `json:"is_active"`
 }

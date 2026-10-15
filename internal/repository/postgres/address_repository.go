@@ -96,7 +96,7 @@ func (r *AddressRepository) Delete(ctx context.Context, userID uint, addressID u
 		Delete(&models.Address{})
 	return result.Error
 }
-func (r *AddressRepository) SetDefault(ctx context.Context,userID uint,addressID uint) error {
+func (r *AddressRepository) SetDefault(ctx context.Context, userID uint, addressID uint) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var address models.Address
 		if err := tx.

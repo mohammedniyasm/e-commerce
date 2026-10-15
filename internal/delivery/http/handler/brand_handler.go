@@ -33,7 +33,7 @@ func (h *BrandHandler) CreateBrand(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -62,7 +62,7 @@ func (h *BrandHandler) CreateBrand(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to create brand",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -89,7 +89,7 @@ func (h *BrandHandler) CreateBrand(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "brand created but logo upload failed",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 			return
 		}
@@ -128,7 +128,7 @@ func (h *BrandHandler) GetBrand(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch brand",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -156,7 +156,7 @@ func (h *BrandHandler) UpdateBrand(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -202,7 +202,7 @@ func (h *BrandHandler) UpdateBrand(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to update brand",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -230,7 +230,7 @@ func (h *BrandHandler) UpdateBrand(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "brand updated but logo upload failed",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 			return
 		}
@@ -275,7 +275,7 @@ func (h *BrandHandler) DeleteBrand(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to delete brand",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -293,7 +293,7 @@ func (h *BrandHandler) ListBrands(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid query parameters",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -308,7 +308,7 @@ func (h *BrandHandler) ListBrands(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch brands",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -363,7 +363,7 @@ func (h *BrandHandler) ListDeletedBrands(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid query parameters",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -378,7 +378,7 @@ func (h *BrandHandler) ListDeletedBrands(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch deleted brands",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -460,7 +460,7 @@ func (h *BrandHandler) RestoreBrand(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to restore brand",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -498,7 +498,7 @@ func (h *BrandHandler) ToggleBrandActive(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to toggle brand status",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -536,7 +536,7 @@ func (h *BrandHandler) DeleteBrandLogo(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to delete brand logo",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -560,7 +560,7 @@ func (h *BrandHandler) UpdateBrandLogo(c *gin.Context) {
 		c.JSON(404, response.APIResponse{
 			Success: false,
 			Message: "brand logo is required",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -599,7 +599,7 @@ func (h *BrandHandler) UpdateBrandLogo(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to update brand logo",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -618,7 +618,7 @@ func (h *BrandHandler) ListStoreBrands(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch brands",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}

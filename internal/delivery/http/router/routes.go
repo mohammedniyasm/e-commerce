@@ -34,8 +34,8 @@ func RegisterRoutes(r *gin.Engine,
 		v1.GET("/brands", brandHandler.ListStoreBrands)
 		v1.GET("/products/id/:id", storeProductHandler.GetStoreProductByID)
 		v1.GET("/products/slug/:slug", storeProductHandler.GetStoreProductBySlug)
-		v1.GET("/products/id/:id/recommendations", storeProductHandler.GetRelatedProducts)
-		v1.POST("/guest-cart/validate",middleware.RateLimit(rateLimiter, 30, 60, "guest-cart-validate"),cartHandler.ValidateGuestCart)
+		v1.GET("/products/:id/recommendations", storeProductHandler.GetRelatedProducts)
+		v1.POST("/guest-cart/validate", middleware.RateLimit(rateLimiter, 30, 60, "guest-cart-validate"), cartHandler.ValidateGuestCart)
 	}
 	authMiddleware := middleware.AuthMiddleware(jwtService, userRepo, blacklist)
 	auth := v1.Group("/auth")

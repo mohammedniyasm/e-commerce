@@ -49,5 +49,5 @@ type CartUseCase interface {
 		userID int64,
 	) (*models.Cart, error)
 	ValidateGuestCart(ctx context.Context, items []GuestCartItemInput) ([]GuestCartItemResult, error)
-	MergeGuestCart(ctx context.Context,userID int64,items []GuestCartItemInput) (*models.Cart, error)
+	MergeGuestCart(ctx context.Context, userID int64, items []GuestCartItemInput) (*models.Cart, error)
 }

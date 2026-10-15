@@ -6,6 +6,6 @@ type UploadProductImagesRequest struct {
 
 type UpdateProductImageRequest struct {
 	VariantID    *int64 `json:"variant_id"`
-	DisplayOrder *int    `json:"display_order"`
-	IsPrimary    *bool   `json:"is_primary"`
+	DisplayOrder *int   `json:"display_order"`
+	IsPrimary    *bool  `json:"is_primary"`
 }

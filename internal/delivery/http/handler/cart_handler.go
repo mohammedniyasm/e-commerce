@@ -59,7 +59,7 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "authentication required",
-			Error:   "unauthorized",
+			// Error:   "unauthorized",
 		})
 		return
 	}
@@ -85,7 +85,7 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch cart",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -101,7 +101,7 @@ func (h *CartHandler) AddItem(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "authentication required",
-			Error:   "unauthorized",
+			// Error:   "unauthorized",
 		})
 		return
 	}
@@ -110,7 +110,7 @@ func (h *CartHandler) AddItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -173,7 +173,7 @@ func (h *CartHandler) AddItem(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to add item to cart",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -189,7 +189,7 @@ func (h *CartHandler) UpdateQuantity(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "authentication required",
-			Error:   "unauthorized",
+			// Error:   "unauthorized",
 		})
 		return
 	}
@@ -206,7 +206,7 @@ func (h *CartHandler) UpdateQuantity(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -255,7 +255,7 @@ func (h *CartHandler) UpdateQuantity(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to update cart item quantity",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -271,7 +271,7 @@ func (h *CartHandler) RemoveItem(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "authentication required",
-			Error:   "unauthorized",
+			// Error:   "unauthorized",
 		})
 		return
 	}
@@ -311,7 +311,7 @@ func (h *CartHandler) RemoveItem(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to remove cart item",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -328,7 +328,7 @@ func (h *CartHandler) ClearCart(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "authentication required",
-			Error:   "unauthorized",
+			// Error:   "unauthorized",
 		})
 		return
 	}
@@ -358,7 +358,7 @@ func (h *CartHandler) ClearCart(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to clear cart",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -376,7 +376,7 @@ func (h *CartHandler) ValidateGuestCart(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid guest cart request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -409,7 +409,7 @@ func (h *CartHandler) ValidateGuestCart(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to validate guest cart",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -425,7 +425,7 @@ func (h *CartHandler) MergeCart(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "authentication required",
-			Error:   "unauthorized",
+			// Error:   "unauthorized",
 		})
 		return
 	}
@@ -434,7 +434,7 @@ func (h *CartHandler) MergeCart(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -496,7 +496,7 @@ func (h *CartHandler) MergeCart(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to merge guest cart",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}

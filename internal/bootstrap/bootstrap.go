@@ -76,7 +76,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	productHandler := handler.NewProductHandler(productUseCase)
 
 	productVariantRepository := postgres.NewProductVariantRepository(db)
-	productVariantUseCase := productvariant.NewProductVariantUseCase(productVariantRepository, productRepository, log)
+	productVariantUseCase := productvariant.NewProductVariantUseCase(productVariantRepository, productRepository, rateLimiter, log)
 	productVariantHandler := handler.NewProductVariantHandler(productVariantUseCase)
 
 	productImageRepository := postgres.NewProductImageRepository(db)
@@ -84,7 +84,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	productImageHandler := handler.NewProductImageHandler(productImageUseCase)
 
 	cartRepository := postgres.NewCartRepository(db)
-	cartUseCase := cart.NewCartUseCase(cartRepository,productVariantRepository,log)
+	cartUseCase := cart.NewCartUseCase(cartRepository, productVariantRepository, log)
 	cartHandler := handler.NewCartHandler(cartUseCase)
 
 	storeProductHandler := handler.NewStoreProductHandler(productUseCase)

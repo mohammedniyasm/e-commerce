@@ -35,7 +35,7 @@ func (h *AddressHandler) AddAddress(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -63,7 +63,7 @@ func (h *AddressHandler) AddAddress(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "invalid user identity",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -91,28 +91,28 @@ func (h *AddressHandler) AddAddress(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid address name",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 
 		case errors.Is(err, domainerrors.ErrInvalidPhone):
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid address phone",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 
 		case errors.Is(err, domainerrors.ErrInvalidAddress):
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid address",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 
 		default:
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "failed to create address",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		}
 		return
@@ -161,7 +161,7 @@ func (h *AddressHandler) GetAddresses(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "invalid user identity",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -174,7 +174,7 @@ func (h *AddressHandler) GetAddresses(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to retrieve addresses",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -211,7 +211,7 @@ func (h *AddressHandler) UpdateAddress(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -239,7 +239,7 @@ func (h *AddressHandler) UpdateAddress(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "invalid user identity",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -281,28 +281,28 @@ func (h *AddressHandler) UpdateAddress(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid address name",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 
 		case errors.Is(err, domainerrors.ErrInvalidPhone):
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid address phone",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 
 		case errors.Is(err, domainerrors.ErrInvalidAddress):
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid address",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 
 		default:
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "failed to update address",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		}
 		return
@@ -351,7 +351,7 @@ func (h *AddressHandler) DeleteAddress(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "invalid user identity",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -374,7 +374,7 @@ func (h *AddressHandler) DeleteAddress(c *gin.Context) {
 		c.JSON(http.StatusNotFound, response.APIResponse{
 			Success: false,
 			Message: "address not found",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -438,7 +438,7 @@ func (h *AddressHandler) SetDefaultAddress(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to set default address",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}

@@ -26,11 +26,20 @@ end
 
 return current
 `)
-func (r *RedisRateLimiter) Allow(ctx context.Context,key string,limit int,windowSeconds int)(bool,error){
-	redisKey:=fmt.Sprintf("rate_limit:%s",key)
-	result,err:=rateLimitScript.Run(ctx,r.client,[]string{redisKey},windowSeconds).Int64()
-	if err != nil{
-		return false,err
+
+func (r *RedisRateLimiter) Allow(ctx context.Context, key string, limit int, windowSeconds int) (bool, error) {
+	redisKey := fmt.Sprintf("rate_limit:%s", key)
+	result, err := rateLimitScript.Run(ctx, r.client, []string{redisKey}, windowSeconds).Int64()
+	if err != nil {
+		return false, err
 	}
-	return result <= int64(limit),nil
+	return result <= int64(limit), nil
+}
+func (r *RedisRateLimiter) AllowChange(ctx context.Context, key string, limit int, windowSeconds int) (bool, error) {
+	redisKey := fmt.Sprintf("price_change:%s", key)
+	result, err := rateLimitScript.Run(ctx, r.client, []string{redisKey}, windowSeconds).Int64()
+	if err != nil {
+		return false, err
+	}
+	return result <= int64(limit), nil
 }

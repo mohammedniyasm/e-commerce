@@ -29,6 +29,6 @@ func (s *SMTPEmailSender) SendVerificationOTP(ctx context.Context, to string, ot
 		"Your email verification OTP is: %s\r\n"+
 		"This OTP will expire in 5 minutes.\r\n", s.config.From, to, otp,
 	)
-	address:=fmt.Sprintf("%s:%d",s.config.SMTPHost,s.config.SMTPPort)
-	return smtp.SendMail(address,auth,s.config.From,[]string{to},[]byte(message))
+	address := fmt.Sprintf("%s:%d", s.config.SMTPHost, s.config.SMTPPort)
+	return smtp.SendMail(address, auth, s.config.From, []string{to}, []byte(message))
 }

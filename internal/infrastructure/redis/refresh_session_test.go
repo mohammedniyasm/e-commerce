@@ -28,7 +28,7 @@ func TestRefreshSessionStore_SaveAndGet(t *testing.T) {
 	// if err != nil {
 	// 	t.Fatalf("failed to read directly from redis: %v", err)
 	// }
-	
+
 	// t.Logf("stored value: %s", value)
 	gotUserID, err := store.Get(ctx, jti)
 	if err != nil {

@@ -57,7 +57,7 @@ type StoreProductDetailResponse struct {
 }
 
 func ToStoreProductDetailResponse(product *models.Product) StoreProductDetailResponse {
-	productImages := make([]StoreProductDetailImage,0,len(product.Images))
+	productImages := make([]StoreProductDetailImage, 0, len(product.Images))
 	for _, image := range product.Images {
 		productImages = append(
 			productImages,
@@ -70,7 +70,7 @@ func ToStoreProductDetailResponse(product *models.Product) StoreProductDetailRes
 		)
 	}
 
-	variants := make([]StoreProductVariantDetail,0,len(product.Variants))
+	variants := make([]StoreProductVariantDetail, 0, len(product.Variants))
 
 	var minPrice float64
 	var maxPrice float64
@@ -95,7 +95,7 @@ func ToStoreProductDetailResponse(product *models.Product) StoreProductDetailRes
 		if variantInStock {
 			productInStock = true
 		}
-		variantImages := make([]StoreProductDetailImage,0,len(variant.Images))
+		variantImages := make([]StoreProductDetailImage, 0, len(variant.Images))
 
 		for _, image := range variant.Images {
 			variantImages = append(

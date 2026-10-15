@@ -22,14 +22,10 @@ func NewJWTService(config config.JWTConfig) *JWTService {
 }
 
 type AccessClaims struct {
-	// UserId string `json:"sub"`
-	Role      string `json:"role"`
-	// JTI       string `json:"jti"`
-	// ExpiresAt time.Time
+	Role string `json:"role"`
 	jwt.RegisteredClaims
 }
 type RefreshClaims struct {
-	// UserId string `json:"sub"`
 	jwt.RegisteredClaims
 }
 
@@ -37,7 +33,6 @@ func (s *JWTService) GenerateAccessToken(userID uint, role string) (string, erro
 	now := time.Now()
 	jti := uuid.NewString()
 	claims := AccessClaims{
-		// Subject: strconv.FormatUint(uint64(userID), 10),
 		Role: role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   strconv.FormatUint(uint64(userID), 10),
@@ -47,7 +42,6 @@ func (s *JWTService) GenerateAccessToken(userID uint, role string) (string, erro
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
 	return token.SignedString([]byte(s.config.AccessSecret))
 }
 func (s *JWTService) GenerateRefreshToken(userID uint) (string, string, error) {

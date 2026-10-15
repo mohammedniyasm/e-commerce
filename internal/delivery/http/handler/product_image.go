@@ -94,7 +94,7 @@ func (h *ProductImageHandler) handleProductImageError(c *gin.Context, err error,
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: message,
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 	}
 }
@@ -134,7 +134,7 @@ func (h *ProductImageHandler) UploadProductImages(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid multipart form",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -317,7 +317,7 @@ func (h *ProductImageHandler) UpdateProductImage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}

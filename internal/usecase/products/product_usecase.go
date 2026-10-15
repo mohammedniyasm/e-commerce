@@ -591,7 +591,7 @@ func (u *ProductUseCase) GetStoreProductBySlug(ctx context.Context, slug string)
 
 	return product, nil
 }
-func (u *ProductUseCase) GetRelatedProducts(ctx context.Context,productID int64,limit int) ([]models.Product, error) {
+func (u *ProductUseCase) GetRelatedProducts(ctx context.Context, productID int64, limit int) ([]models.Product, error) {
 
 	if productID <= 0 {
 		return nil, domainerrors.ErrInvalidProductID

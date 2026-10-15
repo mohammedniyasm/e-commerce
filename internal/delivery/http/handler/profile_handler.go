@@ -53,7 +53,7 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 		c.JSON(500, response.APIResponse{
 			Success: false,
 			Message: "failed to retrieve profile",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -77,7 +77,7 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -105,7 +105,7 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "invalid user identity",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -122,25 +122,25 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid name",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		case errors.Is(err, domainerrors.ErrInvalidPhone):
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid phone number",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		case errors.Is(err, domainerrors.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, response.APIResponse{
 				Success: false,
 				Message: "user not found",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		default:
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "failed to update profile",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		}
 		return
@@ -166,7 +166,7 @@ func (h *ProfileHandler) ChangePassword(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -216,14 +216,14 @@ func (h *ProfileHandler) ChangePassword(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "new password does not meet password requirements",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 
 		default:
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "failed to change password",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		}
 		return
@@ -241,7 +241,7 @@ func (h *ProfileHandler) SendEmailChangeOTP(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -296,7 +296,7 @@ func (h *ProfileHandler) SendEmailChangeOTP(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "failed to send email verification OTP",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		}
 		return
@@ -314,7 +314,7 @@ func (h *ProfileHandler) VerifyEmailChangeOTP(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -369,7 +369,7 @@ func (h *ProfileHandler) VerifyEmailChangeOTP(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "failed to verify email change",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		}
 		return
@@ -412,7 +412,7 @@ func (h *ProfileHandler) UploadProfileImage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "profile image is required",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -422,7 +422,7 @@ func (h *ProfileHandler) UploadProfileImage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "failed to open profile image",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -442,7 +442,7 @@ func (h *ProfileHandler) UploadProfileImage(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid profile image",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 			return
 		}
@@ -450,7 +450,7 @@ func (h *ProfileHandler) UploadProfileImage(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: "failed to upload profile image",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -498,7 +498,7 @@ func (h *ProfileHandler) DeleteProfileImage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "failed to delete profile image",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}

@@ -48,6 +48,7 @@ func (s *RefreshSessionStore) Delete(ctx context.Context, jti string) error {
 
 	return s.client.Del(ctx, key).Err()
 }
+
 var consumeRefreshSessionScript = redis.NewScript(`
 local value = redis.call("GET", KEYS[1])
 if not value then
@@ -56,10 +57,11 @@ end
 redis.call("DEL", KEYS[1])
 return value
 `)
-func (r *RefreshSessionStore) Consume(ctx context.Context,jti string) (uint, bool, error) {
+
+func (r *RefreshSessionStore) Consume(ctx context.Context, jti string) (uint, bool, error) {
 	key := "refresh_session:" + jti
 
-	value, err := consumeRefreshSessionScript.Run(ctx,r.client,[]string{key}).Text()
+	value, err := consumeRefreshSessionScript.Run(ctx, r.client, []string{key}).Text()
 	if err != nil {
 		return 0, false, err
 	}

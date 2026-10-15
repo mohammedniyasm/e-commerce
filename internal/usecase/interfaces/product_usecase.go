@@ -30,5 +30,5 @@ type ProductUseCase interface {
 
 	GetStoreProductByID(ctx context.Context, id int64) (*models.Product, error)
 	GetStoreProductBySlug(ctx context.Context, slug string) (*models.Product, error)
-	GetRelatedProducts(ctx context.Context,productID int64,limit int) ([]models.Product, error)
+	GetRelatedProducts(ctx context.Context, productID int64, limit int) ([]models.Product, error)
 }

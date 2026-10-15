@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -33,7 +32,7 @@ func (h *StoreProductHandler) ListStoreProducts(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid query parameters",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -95,7 +94,7 @@ func (h *StoreProductHandler) ListStoreProducts(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "failed to fetch products",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 			return
 		}
@@ -166,7 +165,7 @@ func (h *StoreProductHandler) GetStoreProductByID(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "failed to fetch product details",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		}
 		return
@@ -203,7 +202,7 @@ func (h *StoreProductHandler) GetStoreProductBySlug(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
 				Message: "failed to fetch product details",
-				Error:   err.Error(),
+				// Error:   err.Error(),
 			})
 		}
 		return
@@ -233,7 +232,7 @@ func (h *StoreProductHandler) GetRelatedProducts(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"message": "invalid query parameters",
-			"error":   err.Error(),
+			// "error":   err.Error(),
 		})
 		return
 	}
@@ -248,21 +247,14 @@ func (h *StoreProductHandler) GetRelatedProducts(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"message": "product not found",
-				"error":   "product does not exist or is unavailable",
+				// "error":   "product does not exist or is unavailable",
 			})
 			return
 		}
-
-		slog.Default().Error(
-			"failed to retrieve related products",
-			"product_id", productID,
-			"error", err,
-		)
-
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"message": "failed to retrieve related products",
-			"error":   "internal server error",
+			// "error":   "internal server error",
 		})
 		return
 	}

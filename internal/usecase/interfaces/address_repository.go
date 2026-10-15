@@ -15,5 +15,5 @@ type AddressRepository interface {
 	Update(ctx context.Context, userID uint, addressID uint, address *models.Address) error
 	Delete(ctx context.Context, userID uint, addressID uint) error
 	FindAnotherAddress(ctx context.Context, userID uint, excludeID uint) (*models.Address, error)
-	SetDefault(ctx context.Context,userID uint,addressID uint) error
+	SetDefault(ctx context.Context, userID uint, addressID uint) error
 }

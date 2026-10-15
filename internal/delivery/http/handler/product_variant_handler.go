@@ -26,7 +26,7 @@ func NewProductVariantHandler(
 }
 
 func (h *ProductVariantHandler) CreateVariant(c *gin.Context) {
-	productID, err := strconv.ParseInt(c.Param("id"),10,64)
+	productID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || productID <= 0 {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
@@ -39,7 +39,7 @@ func (h *ProductVariantHandler) CreateVariant(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -101,7 +101,7 @@ func (h *ProductVariantHandler) UpdateVariant(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}
@@ -149,7 +149,7 @@ func (h *ProductVariantHandler) DeleteVariant(c *gin.Context) {
 	})
 }
 func (h *ProductVariantHandler) ListVariantsByProductID(c *gin.Context) {
-	productID, err := strconv.ParseInt(c.Param("id"),10,64)
+	productID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || productID <= 0 {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
@@ -186,7 +186,7 @@ func (h *ProductVariantHandler) ListVariantsByProductID(c *gin.Context) {
 		Data:    variantResponses,
 	})
 }
-func (h *ProductVariantHandler) handleVariantError(c *gin.Context,err error,message string) {
+func (h *ProductVariantHandler) handleVariantError(c *gin.Context, err error, message string) {
 
 	switch {
 	case errors.Is(err, domainerrors.ErrInvalidVariantID):
@@ -253,7 +253,7 @@ func (h *ProductVariantHandler) handleVariantError(c *gin.Context,err error,mess
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
 			Message: message,
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 	}
 }

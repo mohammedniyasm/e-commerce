@@ -304,6 +304,8 @@ func (r *ProductRepository) ListStoreProducts(
 			"JOIN product_variants pv ON pv.product_id = products.id AND pv.is_active = ?",
 			true,
 		).
+		Joins("JOIN categories c on c.id=products.category_id AND c.is_active = ? AND c.deleted_at IS NULL", true).
+		Joins("JOIN brands b on b.id= products.brand_id AND b.is_active = ? AND b.deleted_at IS NULL", true).
 		Where(
 			"products.is_active = ? AND products.is_listed = ? AND products.deleted_at IS NULL",
 			true,
@@ -468,6 +470,8 @@ func (r *ProductRepository) getStoreProduct(ctx context.Context, condition strin
 	err := r.db.WithContext(ctx).
 		Model(&models.Product{}).
 		Where(condition, value).
+		Joins("JOIN categories c on c.id=products.category_id AND c.is_active = ? AND c.deleted_at IS NULL", true).
+		Joins("JOIN brands b on b.id= products.brand_id AND b.is_active = ? AND b.deleted_at IS NULL", true).
 		Where(
 			"products.is_active = ? AND products.is_listed = ? AND products.deleted_at IS NULL",
 			true,
@@ -513,7 +517,7 @@ func (r *ProductRepository) getStoreProduct(ctx context.Context, condition strin
 
 	return &product, nil
 }
-func (r *ProductRepository) GetRelatedProducts(ctx context.Context,productID int64,limit int) ([]models.Product, error) {
+func (r *ProductRepository) GetRelatedProducts(ctx context.Context, productID int64, limit int) ([]models.Product, error) {
 	var source models.Product
 	err := r.db.WithContext(ctx).
 		Select("id", "category_id", "brand_id").
@@ -542,13 +546,13 @@ func (r *ProductRepository) GetRelatedProducts(ctx context.Context,productID int
 
 	err = r.db.WithContext(ctx).
 		Model(&models.Product{}).
-
 		Where("products.id <> ?", productID).
 
 		// Recommend only active and listed products.
 		Where("products.is_active = ?", true).
 		Where("products.is_listed = ?", true).
-
+		Joins("JOIN categories c on c.id=products.category_id AND c.is_active = ? AND c.deleted_at IS NULL", true).
+		Joins("JOIN brands b on b.id= products.brand_id AND b.is_active = ? AND b.deleted_at IS NULL", true).
 		Where(
 			"(products.category_id = ? OR products.brand_id = ?)",
 			source.CategoryID,

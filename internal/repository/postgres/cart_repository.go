@@ -51,7 +51,7 @@ func (r *cartRepository) GetCartItems(ctx context.Context, cartID int64) ([]mode
 		Preload("Variant.Images").
 		Preload(
 			"Variant.Product.Images",
-			"variant_id IS NULL AND is_primary = ?",
+			"is_primary = ?",
 			true,
 		).
 		Order("cart_items.created_at ASC").
@@ -143,7 +143,7 @@ func (r *cartRepository) ClearCart(ctx context.Context, cartID int64) error {
 
 	return nil
 }
-func (r *cartRepository) WithTransaction(ctx context.Context,fn func(txRepo interfaces.CartRepository) error) error {
+func (r *cartRepository) WithTransaction(ctx context.Context, fn func(txRepo interfaces.CartRepository) error) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		txRepo := &cartRepository{
 			db: tx,
