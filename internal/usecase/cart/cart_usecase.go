@@ -145,11 +145,11 @@ func (u *CartUseCase) AddItem(ctx context.Context, userID int64, variantID int64
 
 	cartID := int64(cart.ID)
 
-	_, err = u.cartRepo.GetCartItemByVariantID(
+	cartItem, err := u.cartRepo.GetCartItemByVariantID(
 		ctx, cartID, variantID,
 	)
 	if err == nil {
-		return nil, domainerrors.ErrCartItemAlreadyExists
+		return u.UpdateQuantity(ctx, userID, int64(cartItem.ID), quantity)
 	}
 	if !errors.Is(err, domainerrors.ErrRecordNotFound) {
 		u.log.Error("failed to check existing cart item",
@@ -174,7 +174,7 @@ func (u *CartUseCase) AddItem(ctx context.Context, userID int64, variantID int64
 			)
 
 		if lookupErr == nil && existingItem != nil {
-			return nil, domainerrors.ErrCartItemAlreadyExists
+			return u.UpdateQuantity(ctx, userID, int64(existingItem.ID), quantity)
 		}
 
 		u.log.Error("failed to create cart item",

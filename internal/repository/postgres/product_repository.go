@@ -36,7 +36,7 @@ func (r *ProductRepository) Update(ctx context.Context, product *models.Product)
 }
 func (r *ProductRepository) GetByID(ctx context.Context, id uint) (*models.Product, error) {
 	var product models.Product
-	err := r.db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id).First(&product).Error
+	err := r.db.WithContext(ctx).Preload("Category").Preload("Brand").Where("id = ? AND deleted_at IS NULL", id).First(&product).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domainerrors.ErrRecordNotFound

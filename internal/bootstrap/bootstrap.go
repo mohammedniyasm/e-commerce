@@ -19,6 +19,7 @@ import (
 	"ecommerce/internal/usecase/products"
 	"ecommerce/internal/usecase/productvariant"
 	"ecommerce/internal/usecase/profile"
+	"ecommerce/internal/usecase/wishlist"
 	"fmt"
 	"log/slog"
 
@@ -87,6 +88,10 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	cartUseCase := cart.NewCartUseCase(cartRepository, productVariantRepository, log)
 	cartHandler := handler.NewCartHandler(cartUseCase)
 
+	wishlistRepository := postgres.NewWishlistRepository(db)
+	wishlistUseCase := wishlist.NewWishlistUseCase(wishlistRepository, productRepository, log)
+	wishlistHandler := handler.NewWishlistHandler(wishlistUseCase)
+
 	storeProductHandler := handler.NewStoreProductHandler(productUseCase)
 	r := router.SetupRouter(log,
 		authHandler,
@@ -104,6 +109,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		productImageHandler,
 		storeProductHandler,
 		cartHandler,
+		wishlistHandler,
 	)
 
 	return &Application{
