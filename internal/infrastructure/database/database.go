@@ -21,12 +21,12 @@ func Connect(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	sqlDB,err:= db.DB()
-	if err!= nil{
-		return nil,err
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
 	}
-	if err:=sqlDB.Ping();err!=nil{
-		return nil,err
+	if err := sqlDB.Ping(); err != nil {
+		return nil, err
 	}
 	return db, nil
 }
