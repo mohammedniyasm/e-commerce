@@ -74,4 +74,7 @@ var (
 	ErrInsufficientStock     = errors.New("insufficient stock")
 	ErrProductNotAvailable   = errors.New("product not available")
 	ErrCartItemAlreadyExists = errors.New("product already exists")
+
+	ErrWishlistItemAlreadyExists = errors.New("product already exists")
+	ErrProductNotFound           = errors.New("product not found")
 )

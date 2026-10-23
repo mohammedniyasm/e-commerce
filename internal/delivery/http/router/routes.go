@@ -24,6 +24,7 @@ func RegisterRoutes(r *gin.Engine,
 	productImageHandler *handler.ProductImageHandler,
 	storeProductHandler *handler.StoreProductHandler,
 	cartHandler *handler.CartHandler,
+	wishlistHandler *handler.WishlistHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -83,6 +84,12 @@ func RegisterRoutes(r *gin.Engine,
 		protected.DELETE("/cart/items/:id", cartHandler.RemoveItem)
 		protected.DELETE("/cart", cartHandler.ClearCart)
 		protected.POST("/cart/merge", cartHandler.MergeCart)
+
+		protected.GET("/wishlist", wishlistHandler.GetWishlist)
+		protected.POST("/wishlist/items", wishlistHandler.AddProduct)
+		protected.DELETE("/wishlist/items/:id", wishlistHandler.RemoveItem)
+		protected.DELETE("/wishlist", wishlistHandler.ClearWishlist)
+		protected.POST("/wishlist/merge", wishlistHandler.MergeGuestWishlist)
 	}
 	auth = v1.Group("/admin/auth")
 	protected = auth.Group("")
