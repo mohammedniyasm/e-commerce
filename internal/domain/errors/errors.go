@@ -69,7 +69,15 @@ var (
 	ErrInvalidProductPage  = errors.New("invalid product page")
 	ErrInvalidProductLimit = errors.New("invalid product limit")
 
-	// ErrInvalidUserID=
+	ErrInvalidShipment           = errors.New("invalid shipment")
+	ErrInvalidShipmentID         = errors.New("invalid shipment ID")
+	ErrInvalidOrderID            = errors.New("invalid order ID")
+	ErrInvalidShippingStatus     = errors.New("invalid shipping status")
+	ErrInvalidShippingTransition = errors.New("invalid shipping status transition")
+	ErrInvalidOrderNumber        = errors.New("invalid order number")
+	ErrInvalidOrderStatus        = errors.New("invalid order status")
+	ErrInvalidOrderTransition    = errors.New("invalid order status transition")
+
 	ErrInvalidQuantity       = errors.New("invalid quantity")
 	ErrInsufficientStock     = errors.New("insufficient stock")
 	ErrProductNotAvailable   = errors.New("product not available")
@@ -77,4 +85,18 @@ var (
 
 	ErrWishlistItemAlreadyExists = errors.New("product already exists")
 	ErrProductNotFound           = errors.New("product not found")
+	ErrInvalidInput              = errors.New("invalid input")
+
+	// Coupon errors
+	ErrInvalidCouponID          = errors.New("invalid coupon ID")
+	ErrInvalidCouponCode        = errors.New("invalid coupon code")
+	ErrInvalidCoupon            = errors.New("invalid coupon")
+	ErrCouponAlreadyExists      = errors.New("coupon code already exists")
+	ErrCouponNotActive          = errors.New("coupon is not active")
+	ErrCouponNotStarted         = errors.New("coupon is not yet valid")
+	ErrCouponExpired            = errors.New("coupon has expired")
+	ErrCouponMinimumOrderAmount = errors.New("minimum order amount not met")
+	ErrCouponUsageLimitReached  = errors.New("coupon usage limit reached")
+	ErrCouponDiscountInvalid    = errors.New("invalid coupon discount")
+	ErrOrderNeedToConfirm       = errors.New("order needs to be confirm")
 )

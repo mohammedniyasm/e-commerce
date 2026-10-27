@@ -25,6 +25,11 @@ func RegisterRoutes(r *gin.Engine,
 	storeProductHandler *handler.StoreProductHandler,
 	cartHandler *handler.CartHandler,
 	wishlistHandler *handler.WishlistHandler,
+	notificationHandler *handler.NotificationHandler,
+	couponHandler *handler.CouponHandler,
+	orderHandler *handler.OrderHandler,
+	shipmentHandler *handler.ShipmentHandler,
+	returnRequestHandler *handler.ReturnRequestHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -78,6 +83,7 @@ func RegisterRoutes(r *gin.Engine,
 		protected.DELETE("/addresses/:id", middleware.RateLimit(rateLimiter, 20, 60, "address-delete"), addressHandler.DeleteAddress)
 		protected.PATCH("/addresses/:id/default", middleware.RateLimit(rateLimiter, 20, 60, "address-default"), addressHandler.SetDefaultAddress)
 
+		//cart
 		protected.GET("/cart", cartHandler.GetCart)
 		protected.POST("/cart/items", cartHandler.AddItem)
 		protected.PATCH("/cart/items/:id", cartHandler.UpdateQuantity)
@@ -85,11 +91,29 @@ func RegisterRoutes(r *gin.Engine,
 		protected.DELETE("/cart", cartHandler.ClearCart)
 		protected.POST("/cart/merge", cartHandler.MergeCart)
 
+		//wishlist
 		protected.GET("/wishlist", wishlistHandler.GetWishlist)
 		protected.POST("/wishlist/items", wishlistHandler.AddProduct)
 		protected.DELETE("/wishlist/items/:id", wishlistHandler.RemoveItem)
 		protected.DELETE("/wishlist", wishlistHandler.ClearWishlist)
 		protected.POST("/wishlist/merge", wishlistHandler.MergeGuestWishlist)
+
+		//coupon
+		protected.POST("/coupon/validate", couponHandler.ValidateCoupon)
+
+		protected.POST("/orders", orderHandler.PlaceOrder)
+		protected.GET("/orders", orderHandler.ListMyOrders)
+		protected.GET("/orders/:order_id", orderHandler.GetOrderByID)
+		protected.GET("/orders/number/:order_number", orderHandler.GetOrderByNumber)
+		protected.GET("/orders/:order_id/invoice", orderHandler.DownloadInvoice)
+		protected.PATCH("/orders/:order_id/cancel", orderHandler.CancelOrder)
+		protected.PATCH("/orders/:order_id/address", orderHandler.UpdateOrderAddress)
+		protected.GET("/orders/:order_id/shipment", shipmentHandler.GetCustomerShipment)
+		protected.GET("/orders/:order_id/shipment/history", shipmentHandler.GetCustomerTrackingHistory)
+
+		protected.POST("/return-requests", returnRequestHandler.Create)
+		protected.GET("/return-requests", returnRequestHandler.ListByUserID)
+		protected.GET("/return-requests/:id", returnRequestHandler.GetByID)
 	}
 	auth = v1.Group("/admin/auth")
 	protected = auth.Group("")
@@ -194,5 +218,35 @@ func RegisterRoutes(r *gin.Engine,
 		admin.POST("/products/:id/images", productImageHandler.UploadProductImages)
 		admin.PUT("/product-images/:id", productImageHandler.UpdateProductImage)
 		admin.DELETE("/product-images/:id", productImageHandler.DeleteProductImage)
+
+		//notifications
+		admin.GET("/notifications", notificationHandler.ListNotifications)
+		admin.GET("/notifications/unread-count", notificationHandler.GetUnreadCount)
+		admin.PATCH("/notifications/:id", notificationHandler.MarkAsRead)
+		admin.PATCH("/notifications/read-all", notificationHandler.MarkAllAsRead)
+
+		//coupons
+		admin.GET("/coupons", couponHandler.ListCoupons)
+		admin.POST("/coupons", couponHandler.CreateCoupon)
+		admin.GET("/coupons/:id", couponHandler.GetCoupon)
+		admin.PUT("/coupons/:id", couponHandler.UpdateCoupon)
+		admin.DELETE("/coupons/:id", couponHandler.DeleteCoupon)
+		admin.PATCH("/coupons/:id/toggle", couponHandler.ToggleCouponActive)
+		admin.GET("/coupons/:id/usages", couponHandler.ListCouponUsagesByCouponID)
+		admin.GET("/coupons/:id/user-usages", couponHandler.ListUserCouponUsages)
+		admin.PATCH("/orders/:order_id/payment-status", orderHandler.UpdateCODPaymentStatus)
+
+		admin.GET("/orders", orderHandler.ListOrders)
+		admin.PATCH("/orders/:order_id/status", orderHandler.UpdateOrderStatus)
+		admin.GET("/orders/:order_id/shipment", shipmentHandler.GetShipmentByOrderID)
+
+		admin.POST("/shipments", shipmentHandler.CreateShipment)
+		admin.GET("/shipments/:shipment_id", shipmentHandler.GetShipmentByID)
+		admin.PATCH("/shipments/:shipment_id", shipmentHandler.UpdateShipment)
+		admin.PATCH("/shipments/:shipment_id/status", shipmentHandler.UpdateShippingStatus)
+		admin.GET("/shipments/:shipment_id/history", shipmentHandler.GetTrackingHistory)
+
+		admin.GET("/return-requests", returnRequestHandler.List)
+		admin.PATCH("return-requests/:id/status", returnRequestHandler.UpdateStatus)
 	}
 }
