@@ -14,4 +14,6 @@ type ProductVariantRepository interface {
 	Delete(ctx context.Context, id int64) error
 	ListByProductID(ctx context.Context, productID int64) ([]models.ProductVariant, error)
 	GetByIDs(ctx context.Context, ids []int64) ([]models.ProductVariant, error)
+	DecreaseStock(ctx context.Context, variantID int64, quantity int) error
+	IncreaseStock(ctx context.Context, variantID int64, quantity int) error
 }

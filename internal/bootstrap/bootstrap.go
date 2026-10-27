@@ -5,7 +5,9 @@ import (
 	"ecommerce/internal/delivery/http/handler"
 	"ecommerce/internal/delivery/http/router"
 	authinfra "ecommerce/internal/infrastructure/auth"
+	"ecommerce/internal/infrastructure/database"
 	"ecommerce/internal/infrastructure/email"
+	"ecommerce/internal/infrastructure/invoice"
 	"ecommerce/internal/infrastructure/redis"
 	"ecommerce/internal/infrastructure/storage"
 	"ecommerce/internal/repository/postgres"
@@ -15,20 +17,29 @@ import (
 	brand "ecommerce/internal/usecase/brands"
 	"ecommerce/internal/usecase/cart"
 	"ecommerce/internal/usecase/category"
+	couponuseCase "ecommerce/internal/usecase/coupons"
+	"ecommerce/internal/usecase/notification"
+	"ecommerce/internal/usecase/order"
 	"ecommerce/internal/usecase/productimage"
 	"ecommerce/internal/usecase/products"
 	"ecommerce/internal/usecase/productvariant"
 	"ecommerce/internal/usecase/profile"
+	return_request "ecommerce/internal/usecase/returnrequest"
+	"ecommerce/internal/usecase/shipment"
 	"ecommerce/internal/usecase/wishlist"
+	"ecommerce/internal/worker"
+	"ecommerce/internal/worker/coupon"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type Application struct {
-	Router *gin.Engine
+	Router        *gin.Engine
+	WorkerManager *worker.Manager
 }
 
 func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Application, error) {
@@ -92,6 +103,36 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	wishlistUseCase := wishlist.NewWishlistUseCase(wishlistRepository, productRepository, log)
 	wishlistHandler := handler.NewWishlistHandler(wishlistUseCase)
 
+	pdfGen := invoice.NewPDFGenerator("Drape")
+	orderItemRepository := postgres.NewOrderItemRepository(db)
+	orderRepository := postgres.NewOrderRepository(db)
+	unitOfWork := database.NewGormUnitOfWork(db)
+	orderUsecase := order.NewOrderUseCase(orderRepository, unitOfWork, pdfGen, log)
+	orderHandler := handler.NewOrderHandler(orderUsecase, log)
+
+	notificationRepo := postgres.NewNotificationRepository(db)
+	notificationUseCase := notification.NewNotificationUseCase(notificationRepo, unitOfWork, log)
+	notificationHandler := handler.NewNotificationHandler(notificationUseCase, log)
+
+	workerManager := worker.NewManager(log)
+
+	couponRepository := postgres.NewCouponRepository(db)
+	couponUsageRepository := postgres.NewCouponUsageRepository(db)
+	couponUsage := couponuseCase.NewCouponUseCase(couponRepository, orderRepository, couponUsageRepository, log)
+	couponHandler := handler.NewCouponHandler(couponUsage, log)
+
+	couponWorker := coupon.NewWorker(couponRepository, notificationRepo, couponUsageRepository, notificationUseCase, time.Minute, log)
+
+	shipmentRepository := postgres.NewShipmentRepository(db)
+	shipmentUseCase := shipment.NewShipmentUseCase(shipmentRepository, orderRepository, unitOfWork, log)
+	shipmentHandler := handler.NewShipmentHandler(shipmentUseCase, log)
+
+	returnRequestRepository := postgres.NewReturnRequestRepository(db)
+	returnRequestUseCase := return_request.NewReturnRequestUseCase(returnRequestRepository, orderRepository, orderItemRepository, productVariantRepository, unitOfWork, log)
+	returnRequestHandler := handler.NewReturnRequestHandler(returnRequestUseCase)
+
+	workerManager.Register(couponWorker)
+
 	storeProductHandler := handler.NewStoreProductHandler(productUseCase)
 	r := router.SetupRouter(log,
 		authHandler,
@@ -110,9 +151,15 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		storeProductHandler,
 		cartHandler,
 		wishlistHandler,
+		notificationHandler,
+		couponHandler,
+		orderHandler,
+		shipmentHandler,
+		returnRequestHandler,
 	)
 
 	return &Application{
-		Router: r,
+		Router:        r,
+		WorkerManager: workerManager,
 	}, nil
 }

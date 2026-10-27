@@ -151,3 +151,45 @@ func (r *cartRepository) WithTransaction(ctx context.Context, fn func(txRepo int
 		return fn(txRepo)
 	})
 }
+func (r *cartRepository) GetCartItemsByIDs(ctx context.Context, cartID int64, itemIDs []uint) ([]models.CartItem, error) {
+	if len(itemIDs) == 0 {
+		return []models.CartItem{}, nil
+	}
+	var items []models.CartItem
+	err := r.db.WithContext(ctx).
+		Where("cart_id = ?", cartID).
+		Where("id IN ?", itemIDs).
+		Preload("Variant").
+		Preload("Variant.Product").
+		Preload("Variant.Product.Category").
+		Preload("Variant.Product.Brand").
+		Preload("Variant.Images").
+		Preload("Variant.Product.Images").
+		Order("cart_items.created_at ASC").
+		Order("cart_items.id ASC").
+		Find(&items).Error
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+func (r *cartRepository) RemoveCartItems(ctx context.Context, cartID int64, itemIDs []uint) error {
+	if len(itemIDs) == 0 {
+		return nil
+	}
+
+	result := r.db.WithContext(ctx).
+		Where("cart_id = ?", cartID).
+		Where("id IN ?", itemIDs).
+		Delete(&models.CartItem{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected != int64(len(itemIDs)) {
+		return domainerrors.ErrRecordNotFound
+	}
+
+	return nil
+}

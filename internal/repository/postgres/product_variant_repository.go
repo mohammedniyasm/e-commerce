@@ -142,3 +142,28 @@ func (r *ProductVariantRepository) GetByIDs(ctx context.Context, ids []int64) ([
 
 	return variants, nil
 }
+func (r *ProductVariantRepository) DecreaseStock(ctx context.Context, variantID int64, quantity int) error {
+	result := r.db.WithContext(ctx).
+		Model(&models.ProductVariant{}).
+		Where("id = ?", variantID).
+		Where("stock >= ?", quantity).
+		Update("stock", gorm.Expr("stock - ?", quantity))
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return domainerrors.ErrInsufficientStock
+	}
+	return nil
+}
+func (r *ProductVariantRepository) IncreaseStock(ctx context.Context, variantID int64, quantity int) error {
+	if variantID <= 0 || quantity <= 0 {
+		return domainerrors.ErrInvalidInput
+	}
+
+	return r.db.WithContext(ctx).
+		Model(&models.ProductVariant{}).
+		Where("id = ?", variantID).
+		Update("stock", gorm.Expr("stock + ?", quantity)).
+		Error
+}

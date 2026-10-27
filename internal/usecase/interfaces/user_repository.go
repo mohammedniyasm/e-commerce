@@ -15,7 +15,7 @@ type UserRepository interface {
 	FindByGoogleID(ctx context.Context, googleID string) (*models.User, error)
 
 	ListUsers(ctx context.Context, search string, offset int, limit int) ([]models.User, int64, error)
-
+	ListAdminIDs(ctx context.Context) ([]uint, error)
 	UpdateEmailVerifiedAt(ctx context.Context, userID uint, verifiedAt time.Time) error
 	UpdateProfileImage(ctx context.Context, userID uint, profileImage string) error
 	UpdatePassword(ctx context.Context, userID uint, hashedPassword string) error
