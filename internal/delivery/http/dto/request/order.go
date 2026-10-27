@@ -37,5 +37,5 @@ type ListCustomerOrdersRequest struct {
 	Sort  *string `form:"sort"`
 }
 type UpdateCODPaymentStatusRequest struct {
-	Status string `json:"status" binding:"required,oneof=paid"`
+	Status string `json:"status" binding:"required,oneof=paid failed"`
 }

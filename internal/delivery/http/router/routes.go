@@ -234,10 +234,12 @@ func RegisterRoutes(r *gin.Engine,
 		admin.PATCH("/coupons/:id/toggle", couponHandler.ToggleCouponActive)
 		admin.GET("/coupons/:id/usages", couponHandler.ListCouponUsagesByCouponID)
 		admin.GET("/coupons/:id/user-usages", couponHandler.ListUserCouponUsages)
+
 		admin.PATCH("/orders/:order_id/payment-status", orderHandler.UpdateCODPaymentStatus)
 
 		admin.GET("/orders", orderHandler.ListOrders)
 		admin.PATCH("/orders/:order_id/status", orderHandler.UpdateOrderStatus)
+		admin.GET("/orders/:order_id", orderHandler.GetOrderByID)
 		admin.GET("/orders/:order_id/shipment", shipmentHandler.GetShipmentByOrderID)
 
 		admin.POST("/shipments", shipmentHandler.CreateShipment)
@@ -247,6 +249,7 @@ func RegisterRoutes(r *gin.Engine,
 		admin.GET("/shipments/:shipment_id/history", shipmentHandler.GetTrackingHistory)
 
 		admin.GET("/return-requests", returnRequestHandler.List)
+		admin.GET("/return-requests/:id", returnRequestHandler.GetByID)
 		admin.PATCH("return-requests/:id/status", returnRequestHandler.UpdateStatus)
 	}
 }

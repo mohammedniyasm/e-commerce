@@ -82,7 +82,7 @@ func (r *CouponUsageRepository) ListByUserID(ctx context.Context, userID uint, l
 	var total int64
 	query := r.db.WithContext(ctx).
 		Model(&models.CouponUsage{}).
-		Where("user_id = ? AND status = ?", userID)
+		Where("user_id = ? AND status = ?", userID, true)
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}

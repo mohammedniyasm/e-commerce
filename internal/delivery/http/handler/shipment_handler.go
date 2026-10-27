@@ -288,15 +288,7 @@ func (h *ShipmentHandler) GetCustomerShipment(c *gin.Context) {
 		})
 		return
 	}
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, response.APIResponse{
-			Success: false,
-			Message: "Authentication required",
-		})
-		return
-	}
-	authenticatedUserID, ok := userID.(uint)
+	authenticatedUserID, ok := getCartUserID(c)
 	if !ok || authenticatedUserID == 0 {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
@@ -306,7 +298,7 @@ func (h *ShipmentHandler) GetCustomerShipment(c *gin.Context) {
 	}
 	shipment, err := h.shipmentUseCase.GetCustomerShipment(
 		c.Request.Context(),
-		authenticatedUserID,
+		uint(authenticatedUserID),
 		orderID,
 	)
 	if err != nil {
@@ -346,15 +338,7 @@ func (h *ShipmentHandler) GetCustomerTrackingHistory(c *gin.Context) {
 		})
 		return
 	}
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, response.APIResponse{
-			Success: false,
-			Message: "Authentication required",
-		})
-		return
-	}
-	authenticatedUserID, ok := userID.(uint)
+	authenticatedUserID, ok := getCartUserID(c)
 	if !ok || authenticatedUserID == 0 {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
@@ -364,7 +348,7 @@ func (h *ShipmentHandler) GetCustomerTrackingHistory(c *gin.Context) {
 	}
 	history, err := h.shipmentUseCase.GetCustomerTrackingHistory(
 		c.Request.Context(),
-		authenticatedUserID,
+		uint(authenticatedUserID),
 		orderID,
 	)
 	if err != nil {
@@ -380,7 +364,7 @@ func (h *ShipmentHandler) GetCustomerTrackingHistory(c *gin.Context) {
 	}
 	shipment, err := h.shipmentUseCase.GetCustomerShipment(
 		c.Request.Context(),
-		authenticatedUserID,
+		uint(authenticatedUserID),
 		orderID,
 	)
 	if err != nil {

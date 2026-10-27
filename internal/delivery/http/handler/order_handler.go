@@ -35,20 +35,28 @@ func getAuthenticatedUserID(c *gin.Context) (uint, bool) {
 		return 0, false
 	}
 	switch id := value.(type) {
-	case uint:
-		if id > 0 {
-			return id, true
-		}
+	case int64:
+		return uint(id), id > 0
+
 	case int:
-		if id > 0 {
-			return uint(id), true
+		return uint(id), id > 0
+
+	case uint:
+		if id == 0 {
+			return 0, false
 		}
-	case uint64:
-		if id > 0 {
-			return uint(id), true
+		return id, true
+
+	case string:
+		parsedID, err := strconv.ParseInt(id, 10, 64)
+		if err != nil || parsedID <= 0 {
+			return 0, false
 		}
+		return uint(parsedID), true
+
+	default:
+		return 0, false
 	}
-	return 0, false
 }
 func parseOrderID(c *gin.Context) (uuid.UUID, error) {
 	return uuid.Parse(c.Param("order_id"))

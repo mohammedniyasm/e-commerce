@@ -112,7 +112,7 @@ func (h *CouponHandler) UpdateCoupon(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "Invalid coupon request",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}

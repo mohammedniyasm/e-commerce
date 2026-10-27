@@ -18,3 +18,7 @@ type CouponUsage struct {
 	Coupon Coupon `gorm:"foreignKey:CouponID"`
 	Order  Order  `gorm:"foreignKey:OrderID"`
 }
+
+func (CouponUsage) TableName() string {
+	return "coupon_usage"
+}

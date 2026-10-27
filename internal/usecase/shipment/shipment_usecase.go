@@ -72,7 +72,7 @@ func (u *ShipmentUseCase) CreateShipment(ctx context.Context, shipment *models.S
 	if err != nil {
 		return err
 	}
-	if order.OrderStatus == "confirmed" {
+	if order.OrderStatus == "confirmed" || order.OrderStatus == "processing" {
 		shipment.ShippingStatus = "pending"
 		if err := u.shipmentRepo.Create(ctx, shipment); err != nil {
 			return err
@@ -159,8 +159,6 @@ func (u *ShipmentUseCase) UpdateShippingStatus(ctx context.Context, shipmentID u
 		case "returned":
 			notificationType = "shipment_returned"
 			notificationMessage = "A shipment has been returned."
-		default:
-			return nil
 		}
 		if orderStatus != "" {
 			note := "Order status automatically updated to " +
@@ -169,43 +167,46 @@ func (u *ShipmentUseCase) UpdateShippingStatus(ctx context.Context, shipmentID u
 				return err
 			}
 		}
-		adminIDs, err := repos.User.ListAdminIDs(ctx)
-		if err != nil {
-			return err
-		}
-		if len(adminIDs) == 0 {
-			return nil
-		}
-		eventData := map[string]interface{}{
-			"shipment_id": shipment.ID,
-			"order_id":    shipment.OrderID,
-			"status":      status,
-		}
-		data, err := json.Marshal(eventData)
-		if err != nil {
-			return err
-		}
-		notification := &models.Notification{
-			Type:      notificationType,
-			Message:   notificationMessage,
-			EventData: (*json.RawMessage)(&data),
-		}
-		if err := repos.Notification.Create(ctx, notification); err != nil {
-			return err
-		}
-		recipients := make([]models.NotificationRecipient, 0, len(adminIDs))
+		if notificationType != "" && notificationMessage != "" {
+			adminIDs, err := repos.User.ListAdminIDs(ctx)
+			if err != nil {
+				return err
+			}
+			if len(adminIDs) == 0 {
+				return nil
+			}
+			eventData := map[string]interface{}{
+				"shipment_id": shipment.ID,
+				"order_id":    shipment.OrderID,
+				"status":      status,
+			}
+			data, err := json.Marshal(eventData)
+			if err != nil {
+				return err
+			}
+			notification := &models.Notification{
+				Type:      notificationType,
+				Message:   notificationMessage,
+				Priority:  "medium",
+				EventData: (*json.RawMessage)(&data),
+			}
+			if err := repos.Notification.Create(ctx, notification); err != nil {
+				return err
+			}
+			recipients := make([]models.NotificationRecipient, 0, len(adminIDs))
 
-		for _, adminID := range adminIDs {
-			recipients = append(
-				recipients,
-				models.NotificationRecipient{
-					NotificationID: notification.ID,
-					AdminID:        adminID,
-				},
-			)
-		}
-		if err := repos.Notification.CreateRecipients(ctx, recipients); err != nil {
-			return err
+			for _, adminID := range adminIDs {
+				recipients = append(
+					recipients,
+					models.NotificationRecipient{
+						NotificationID: notification.ID,
+						AdminID:        adminID,
+					},
+				)
+			}
+			if err := repos.Notification.CreateRecipients(ctx, recipients); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
