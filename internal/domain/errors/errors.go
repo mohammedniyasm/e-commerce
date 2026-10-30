@@ -99,4 +99,6 @@ var (
 	ErrCouponUsageLimitReached  = errors.New("coupon usage limit reached")
 	ErrCouponDiscountInvalid    = errors.New("invalid coupon discount")
 	ErrOrderNeedToConfirm       = errors.New("order needs to be confirm")
+
+	ErrDuplicateRecord = errors.New("error duplicate records")
 )

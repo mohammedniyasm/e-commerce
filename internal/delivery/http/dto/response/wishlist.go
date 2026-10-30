@@ -5,27 +5,39 @@ import (
 	"time"
 )
 
-type WishlistItemResponse struct {
+type WishlistResponse struct {
+	ID        uint      `json:"id"`
+	Name      string    `json:"name"`
+	ItemCount int64     `json:"item_count"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+type WishlistProductResponse struct {
 	ID                 uint      `json:"id"`
 	ProductID          uint      `json:"product_id"`
 	ProductName        string    `json:"product_name"`
 	ProductSlug        string    `json:"product_slug"`
-	ShortDescription   *string   `json:"short_description,omitempty"`
-	CategoryName       string    `json:"category_name"`
-	BrandName          string    `json:"brand_name"`
-	ImageURL           *string   `json:"image_url,omitempty"`
+	ShortDescription   string    `json:"short_description"`
+	Description        string    `json:"description"`
+	ImageURL           string    `json:"image_url"`
 	IsAvailable        bool      `json:"is_available"`
 	AvailabilityReason string    `json:"availability_reason,omitempty"`
 	AddedAt            time.Time `json:"added_at"`
 }
-
-type WishlistResponse struct {
-	ID        uint                   `json:"id"`
-	Items     []WishlistItemResponse `json:"items"`
-	ItemCount int                    `json:"item_count"`
+type WishlistDetailsResponse struct {
+	ID        uint                      `json:"id"`
+	Name      string                    `json:"name"`
+	Items     []WishlistProductResponse `json:"items"`
+	CreatedAt time.Time                 `json:"created_at"`
+	UpdatedAt time.Time                 `json:"updated_at"`
+}
+type MergeWishlistItemsResponse struct {
+	Wishlist WishlistDetailsResponse `json:"wishlist"`
+	Accepted uint                    `json:"accepted"`
+	Skipped  uint                    `json:"skipped"`
 }
 
-func ToWishlistItemResponse(item *models.WishlistItem) WishlistItemResponse {
+func ToWishlistProductResponse(item *models.WishlistItem) WishlistProductResponse {
 	product := item.Product
 	isAvailable := true
 	availabilityReason := ""
@@ -34,9 +46,9 @@ func ToWishlistItemResponse(item *models.WishlistItem) WishlistItemResponse {
 		product.Brand.DeletedAt != nil ||
 		!product.IsActive ||
 		!product.IsListed ||
-		product.ID == 0 ||
-		product.Category.ID == 0 ||
-		product.Brand.ID == 0 ||
+		product.ID <= 0 ||
+		product.Category.ID <= 0 ||
+		product.Brand.ID <= 0 ||
 		!product.Category.IsActive ||
 		!product.Brand.IsActive {
 		isAvailable = false
@@ -46,39 +58,57 @@ func ToWishlistItemResponse(item *models.WishlistItem) WishlistItemResponse {
 	if product.ID == 0 {
 		productName = "Unavailable product"
 	}
-	var imageURL *string
-	for _, image := range product.Images {
-		if image.IsPrimary {
-			imageURL = &image.ImageURL
+	var shortDescription, description, image string
+	if product.ShortDescription != nil {
+		shortDescription = *product.ShortDescription
+	}
+	if product.Description != nil {
+		description = *product.Description
+	}
+	for _, img := range product.Images {
+		if img.IsPrimary {
+			image = img.ImageURL
 			break
 		}
 	}
-	return WishlistItemResponse{
+	return WishlistProductResponse{
 		ID:                 item.ID,
 		ProductID:          item.ProductID,
 		ProductName:        productName,
 		ProductSlug:        product.Slug,
-		ShortDescription:   product.ShortDescription,
-		CategoryName:       product.Category.Name,
-		BrandName:          product.Brand.Name,
-		ImageURL:           imageURL,
+		ShortDescription:   shortDescription,
+		Description:        description,
+		ImageURL:           image,
 		IsAvailable:        isAvailable,
 		AvailabilityReason: availabilityReason,
 		AddedAt:            item.CreatedAt,
 	}
 }
-func ToWishlistResponse(wishlist *models.Wishlist) WishlistResponse {
-	result := WishlistResponse{
-		Items: make([]WishlistItemResponse, 0),
+func ToWishlistDetailsResponse(wishlist *models.Wishlist) WishlistDetailsResponse {
+	result := WishlistDetailsResponse{
+		Items: make([]WishlistProductResponse, 0),
 	}
 	if wishlist == nil {
 		return result
 	}
 	result.ID = wishlist.ID
-	result.Items = make([]WishlistItemResponse, 0, len(wishlist.Items))
+	result.Name = wishlist.Name
+	result.CreatedAt = wishlist.CreatedAt
+	result.UpdatedAt = wishlist.UpdatedAt
 	for _, item := range wishlist.Items {
-		result.Items = append(result.Items, ToWishlistItemResponse(&item))
+		result.Items = append(
+			result.Items,
+			ToWishlistProductResponse(&item),
+		)
 	}
-	result.ItemCount = len(result.Items)
 	return result
+}
+func ToWishlistResponse(wishlist *models.Wishlist) WishlistResponse {
+	return WishlistResponse{
+		ID:        wishlist.ID,
+		Name:      wishlist.Name,
+		ItemCount: wishlist.ItemCount,
+		CreatedAt: wishlist.CreatedAt,
+		UpdatedAt: wishlist.UpdatedAt,
+	}
 }

@@ -24,71 +24,66 @@ func NewWishlistHandler(
 		wishlistUseCase: wishlistUseCase,
 	}
 }
-
-func (h *WishlistHandler) GetWishlist(c *gin.Context) {
+func (h *WishlistHandler) CreateWishlist(c *gin.Context) {
 	userID, ok := getCartUserID(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "authentication required",
-			// Error:   "unauthorized",
 		})
 		return
 	}
-
-	wishlist, err := h.wishlistUseCase.GetWishlist(
-		c.Request.Context(),
-		userID,
-	)
-
-	if err != nil {
-		if errors.Is(err, domainerrors.ErrInvalidUserID) {
-			c.JSON(http.StatusBadRequest, response.APIResponse{
-				Success: false,
-				Message: "invalid user id",
-			})
-			return
-		}
-
-		c.JSON(http.StatusInternalServerError, response.APIResponse{
-			Success: false,
-			Message: "failed to fetch wishlist",
-			// Error:   err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, response.APIResponse{
-		Success: true,
-		Message: "wishlist fetched successfully",
-		Data:    response.ToWishlistResponse(wishlist),
-	})
-}
-func (h *WishlistHandler) AddProduct(c *gin.Context) {
-	userID, ok := getCartUserID(c)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, response.APIResponse{
-			Success: false,
-			Message: "authentication required",
-			// Error:   "unauthorized",
-		})
-		return
-	}
-
-	var req request.AddWishlistProductRequest
-
+	var req request.CreateWishlistRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			// Error:   err.Error(),
 		})
 		return
 	}
-	wishlist, err := h.wishlistUseCase.AddProduct(
+	err := h.wishlistUseCase.CreateWishlist(
 		c.Request.Context(),
-		userID,
-		req.ProductID,
+		uint(userID),
+		req.Name,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, domainerrors.ErrInvalidUserID):
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid user id",
+			})
+		case errors.Is(err, domainerrors.ErrWishlistItemAlreadyExists):
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "wishlist with this name already exists",
+			})
+
+		default:
+			c.JSON(http.StatusInternalServerError, response.APIResponse{
+				Success: false,
+				Message: "failed to create wishlist",
+			})
+		}
+		return
+	}
+	c.JSON(http.StatusCreated, response.APIResponse{
+		Success: true,
+		Message: "wishlist created successfully",
+	})
+}
+func (h *WishlistHandler) GetWishlists(c *gin.Context) {
+	userID, ok := getCartUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "authentication required",
+		})
+		return
+	}
+	wishlists, err := h.wishlistUseCase.GetWishlists(
+		c.Request.Context(),
+		uint(userID),
 	)
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrInvalidUserID) {
@@ -98,104 +93,299 @@ func (h *WishlistHandler) AddProduct(c *gin.Context) {
 			})
 			return
 		}
-		if errors.Is(err, domainerrors.ErrInvalidProductID) {
-			c.JSON(http.StatusBadRequest, response.APIResponse{
-				Success: false,
-				Message: "invalid product id",
-			})
-			return
-		}
-		if errors.Is(err, domainerrors.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, response.APIResponse{
-				Success: false,
-				Message: "product not found",
-			})
-			return
-		}
-		if errors.Is(err, domainerrors.ErrProductNotAvailable) {
-			c.JSON(http.StatusConflict, response.APIResponse{
-				Success: false,
-				Message: "product is unavailable",
-			})
-			return
-		}
-		if errors.Is(err, domainerrors.ErrWishlistItemAlreadyExists) {
-			c.JSON(http.StatusConflict, response.APIResponse{
-				Success: false,
-				Message: "product already exists in wishlist",
-			})
-			return
-		}
+
 		c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Success: false,
-			Message: "failed to add product to wishlist",
-			// Error:   err.Error(),
+			Message: "failed to fetch wishlists",
 		})
 		return
 	}
-	c.JSON(http.StatusCreated, response.APIResponse{
+	result := make([]response.WishlistResponse, 0, len(wishlists))
+	for i := range wishlists {
+		result = append(result, response.ToWishlistResponse(&wishlists[i]))
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
-		Message: "product added to wishlist successfully",
-		Data:    response.ToWishlistResponse(wishlist),
+		Message: "wishlists fetched successfully",
+		Data:    result,
 	})
 }
-func (h *WishlistHandler) RemoveItem(c *gin.Context) {
+func (h *WishlistHandler) GetWishlistByID(c *gin.Context) {
 	userID, ok := getCartUserID(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "authentication required",
-			// Error:   "unauthorized",
 		})
 		return
 	}
-	itemID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil || itemID <= 0 {
+	wishlistID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || wishlistID == 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid wishlist id",
+		})
+		return
+	}
+	wishlist, err := h.wishlistUseCase.GetWishlistByID(
+		c.Request.Context(),
+		uint(userID),
+		uint(wishlistID),
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, domainerrors.ErrInvalidUserID):
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid user id",
+			})
+		case errors.Is(err, domainerrors.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, response.APIResponse{
+				Success: false,
+				Message: "wishlist not found",
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, response.APIResponse{
+				Success: false,
+				Message: "failed to fetch wishlist",
+			})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "wishlist fetched successfully",
+		Data:    response.ToWishlistDetailsResponse(wishlist),
+	})
+
+}
+func (h *WishlistHandler) UpdateWishlist(c *gin.Context) {
+	userID, ok := getCartUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "authentication required",
+		})
+		return
+	}
+	wishlistID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || wishlistID == 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid wishlist id",
+		})
+		return
+	}
+	var req request.UpdateWishlistRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+		})
+		return
+	}
+	err = h.wishlistUseCase.UpdateWishlist(
+		c.Request.Context(),
+		uint(wishlistID),
+		uint(userID),
+		req.Name,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, domainerrors.ErrInvalidUserID):
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid user id",
+			})
+		case errors.Is(err, domainerrors.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, response.APIResponse{
+				Success: false,
+				Message: "wishlist not found",
+			})
+		case errors.Is(err, domainerrors.ErrWishlistItemAlreadyExists):
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "wishlist with this name already exists",
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, response.APIResponse{
+				Success: false,
+				Message: "failed to update wishlist",
+			})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "wishlist updated successfully",
+	})
+}
+func (h *WishlistHandler) DeleteWishlist(c *gin.Context) {
+	userID, ok := getCartUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "authentication required",
+		})
+		return
+	}
+	wishlistID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || wishlistID == 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid wishlist id",
+		})
+		return
+	}
+	err = h.wishlistUseCase.DeleteWishlist(
+		c.Request.Context(),
+		uint(wishlistID),
+		uint(userID),
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, domainerrors.ErrInvalidUserID):
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid user id",
+			})
+		case errors.Is(err, domainerrors.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, response.APIResponse{
+				Success: false,
+				Message: "wishlist not found",
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, response.APIResponse{
+				Success: false,
+				Message: "failed to delete wishlist",
+			})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "wishlist deleted successfully",
+	})
+}
+func (h *WishlistHandler) AddProductToWishlist(c *gin.Context) {
+	userID, ok := getCartUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "authentication required",
+		})
+		return
+	}
+	var req request.AddProductToWishlistRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+		})
+		return
+	}
+	wishlist, err := h.wishlistUseCase.AddProductToWishlist(
+		c.Request.Context(),
+		req.WishlistName,
+		uint(userID),
+		req.ProductID,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, domainerrors.ErrInvalidUserID):
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid user id",
+			})
+		case errors.Is(err, domainerrors.ErrInvalidProductID):
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid product id",
+			})
+		case errors.Is(err, domainerrors.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, response.APIResponse{
+				Success: false,
+				Message: "product not found",
+			})
+		case errors.Is(err, domainerrors.ErrProductNotAvailable):
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "product is unavailable",
+			})
+		case errors.Is(err, domainerrors.ErrWishlistItemAlreadyExists):
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "product already exists in wishlist",
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, response.APIResponse{
+				Success: false,
+				Message: "failed to add product to wishlist",
+			})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "product added to wishlist successfully",
+		Data:    response.ToWishlistDetailsResponse(wishlist),
+	})
+}
+func (h *WishlistHandler) RemoveWishlistItem(c *gin.Context) {
+	userID, ok := getCartUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "authentication required",
+		})
+		return
+	}
+	wishlistID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || wishlistID == 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid wishlist id",
+		})
+		return
+	}
+	itemID, err := strconv.ParseUint(c.Param("itemId"), 10, 64)
+	if err != nil || itemID == 0 {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid wishlist item id",
 		})
 		return
 	}
-	wishlist, err := h.wishlistUseCase.RemoveItem(
+	wishlist, err := h.wishlistUseCase.RemoveWishlistItem(
 		c.Request.Context(),
-		userID,
-		itemID,
+		uint(wishlistID),
+		uint(userID),
+		uint(itemID),
 	)
 	if err != nil {
-		if errors.Is(err, domainerrors.ErrInvalidUserID) {
+		switch {
+		case errors.Is(err, domainerrors.ErrInvalidUserID):
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid user id",
 			})
-			return
-		}
-		if errors.Is(err, domainerrors.ErrRecordNotFound) {
+		case errors.Is(err, domainerrors.ErrRecordNotFound):
 			c.JSON(http.StatusNotFound, response.APIResponse{
 				Success: false,
 				Message: "wishlist or wishlist item not found",
 			})
-			return
-		}
-		if errors.Is(err, domainerrors.ErrProductNotAvailable) {
-			c.JSON(http.StatusConflict, response.APIResponse{
+		default:
+			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
-				Message: "product is unavailable",
+				Message: "failed to remove wishlist item",
 			})
-			return
 		}
-		c.JSON(http.StatusInternalServerError, response.APIResponse{
-			Success: false,
-			Message: "failed to remove wishlist item",
-			Error:   err.Error(),
-		})
 		return
 	}
-
 	c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
 		Message: "wishlist item removed successfully",
-		Data:    response.ToWishlistResponse(wishlist),
+		Data:    response.ToWishlistDetailsResponse(wishlist),
 	})
 }
 func (h *WishlistHandler) ClearWishlist(c *gin.Context) {
@@ -204,100 +394,108 @@ func (h *WishlistHandler) ClearWishlist(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "authentication required",
-			// Error:   "unauthorized",
+		})
+		return
+	}
+	wishlistID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || wishlistID == 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid wishlist id",
 		})
 		return
 	}
 	wishlist, err := h.wishlistUseCase.ClearWishlist(
 		c.Request.Context(),
-		userID,
+		uint(wishlistID),
+		uint(userID),
 	)
 	if err != nil {
-		if errors.Is(err, domainerrors.ErrInvalidUserID) {
+		switch {
+		case errors.Is(err, domainerrors.ErrInvalidUserID):
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid user id",
 			})
-			return
+		case errors.Is(err, domainerrors.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, response.APIResponse{
+				Success: false,
+				Message: "wishlist not found",
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, response.APIResponse{
+				Success: false,
+				Message: "failed to clear wishlist",
+			})
 		}
-		c.JSON(http.StatusInternalServerError, response.APIResponse{
-			Success: false,
-			Message: "failed to clear wishlist",
-			// Error:   err.Error(),
-		})
 		return
 	}
 	c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
 		Message: "wishlist cleared successfully",
-		Data:    response.ToWishlistResponse(wishlist),
+		Data:    response.ToWishlistDetailsResponse(wishlist),
 	})
 }
-func (h *WishlistHandler) MergeGuestWishlist(c *gin.Context) {
+func (h *WishlistHandler) MergeWishlistItems(c *gin.Context) {
 	userID, ok := getCartUserID(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
 			Message: "authentication required",
-			Error:   "unauthorized",
 		})
 		return
 	}
-	var req request.MergeGuestWishlistRequest
+	var req request.MergeWishlistItemsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "invalid request",
-			// Error:   err.Error(),
 		})
 		return
 	}
-
-	wishlist, err := h.wishlistUseCase.MergeGuestWishlist(
+	wishlist, accepted, skipped, err := h.wishlistUseCase.MergeWishlistItems(
 		c.Request.Context(),
-		userID,
+		req.WishlistName,
+		uint(userID),
 		req.ProductIDs,
 	)
-
 	if err != nil {
-		if errors.Is(err, domainerrors.ErrInvalidUserID) {
+		switch {
+		case errors.Is(err, domainerrors.ErrInvalidUserID):
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid user id",
 			})
-			return
-		}
-		if errors.Is(err, domainerrors.ErrInvalidProductID) {
+		case errors.Is(err, domainerrors.ErrInvalidProductID):
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
 				Message: "invalid product id",
 			})
-			return
-		}
-		if errors.Is(err, domainerrors.ErrRecordNotFound) {
+		case errors.Is(err, domainerrors.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, response.APIResponse{
+				Success: false,
+				Message: "one or more wishlist products were not found",
+			})
+		case errors.Is(err, domainerrors.ErrProductNotAvailable):
 			c.JSON(http.StatusConflict, response.APIResponse{
 				Success: false,
-				Message: "one or more wishlist products no longer exist",
+				Message: "one or more products are unavailable",
 			})
-			return
-		}
-		if errors.Is(err, domainerrors.ErrProductNotAvailable) {
-			c.JSON(http.StatusConflict, response.APIResponse{
+		default:
+			c.JSON(http.StatusInternalServerError, response.APIResponse{
 				Success: false,
-				Message: "product is unavailable",
+				Message: "failed to merge wishlist",
 			})
-			return
 		}
-		c.JSON(http.StatusInternalServerError, response.APIResponse{
-			Success: false,
-			Message: "failed to merge guest wishlist",
-			Error:   err.Error(),
-		})
 		return
 	}
 	c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
-		Message: "guest wishlist merged successfully",
-		Data:    response.ToWishlistResponse(wishlist),
+		Message: "wishlist merged successfully",
+		Data: response.MergeWishlistItemsResponse{
+			Wishlist: response.ToWishlistDetailsResponse(wishlist),
+			Accepted: accepted,
+			Skipped:  skipped,
+		},
 	})
 }

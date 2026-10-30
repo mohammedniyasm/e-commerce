@@ -92,11 +92,16 @@ func RegisterRoutes(r *gin.Engine,
 		protected.POST("/cart/merge", cartHandler.MergeCart)
 
 		//wishlist
-		protected.GET("/wishlist", wishlistHandler.GetWishlist)
-		protected.POST("/wishlist/items", wishlistHandler.AddProduct)
-		protected.DELETE("/wishlist/items/:id", wishlistHandler.RemoveItem)
-		protected.DELETE("/wishlist", wishlistHandler.ClearWishlist)
-		protected.POST("/wishlist/merge", wishlistHandler.MergeGuestWishlist)
+		protected.POST("/wishlist", wishlistHandler.CreateWishlist)
+		protected.GET("/wishlist", wishlistHandler.GetWishlists)
+		protected.GET("/wishlist/:id", wishlistHandler.GetWishlistByID)
+		protected.PATCH("/wishlist/:id", wishlistHandler.UpdateWishlist)
+		protected.DELETE("/wishlist/:id", wishlistHandler.DeleteWishlist)
+
+		protected.POST("/wishlist/items", wishlistHandler.AddProductToWishlist)
+		protected.DELETE("/wishlist/:id/items/:itemId", wishlistHandler.RemoveWishlistItem)
+		protected.DELETE("/wishlist/:id/items", wishlistHandler.ClearWishlist)
+		protected.POST("/wishlist/merge", wishlistHandler.MergeWishlistItems)
 
 		//coupon
 		protected.POST("/coupon/validate", couponHandler.ValidateCoupon)

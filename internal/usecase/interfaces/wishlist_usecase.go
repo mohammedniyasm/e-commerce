@@ -6,9 +6,13 @@ import (
 )
 
 type WishlistUseCase interface {
-	GetWishlist(ctx context.Context, userID int64) (*models.Wishlist, error)
-	AddProduct(ctx context.Context, userID int64, productID int64) (*models.Wishlist, error)
-	RemoveItem(ctx context.Context, userID int64, itemID int64) (*models.Wishlist, error)
-	ClearWishlist(ctx context.Context, userID int64) (*models.Wishlist, error)
-	MergeGuestWishlist(ctx context.Context, userID int64, productIDs []int64) (*models.Wishlist, error)
+	CreateWishlist(ctx context.Context, userID uint, name string) error
+	GetWishlists(ctx context.Context, userID uint) ([]models.Wishlist, error)
+	GetWishlistByID(ctx context.Context, userID uint, wishlistID uint) (*models.Wishlist, error)
+	UpdateWishlist(ctx context.Context, wishlistID uint, userID uint, name string) error
+	DeleteWishlist(ctx context.Context, wishlistID uint, userID uint) error
+	AddProductToWishlist(ctx context.Context, wishlistName string, userID uint, productID uint) (*models.Wishlist, error)
+	RemoveWishlistItem(ctx context.Context, wishlistID uint, userID uint, itemID uint) (*models.Wishlist, error)
+	ClearWishlist(ctx context.Context, wishlistID uint, userID uint) (*models.Wishlist, error)
+	MergeWishlistItems(ctx context.Context, wishlistName string, userID uint, productIDs []uint) (*models.Wishlist, uint, uint, error)
 }

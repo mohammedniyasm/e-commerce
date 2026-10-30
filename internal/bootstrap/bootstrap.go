@@ -100,7 +100,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	cartHandler := handler.NewCartHandler(cartUseCase)
 
 	wishlistRepository := postgres.NewWishlistRepository(db)
-	wishlistUseCase := wishlist.NewWishlistUseCase(wishlistRepository, productRepository, log)
+	wishlistUseCase := wishlist.NewWishlistUseCase(wishlistRepository, log)
 	wishlistHandler := handler.NewWishlistHandler(wishlistUseCase)
 
 	pdfGen := invoice.NewPDFGenerator("Drape")
