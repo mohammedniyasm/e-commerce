@@ -29,6 +29,7 @@ func (uow *GormUnitOfWork) WithinTransaction(ctx context.Context, fn func(repos 
 			ProductVariant:     postgres.NewProductVariantRepository(tx),
 			Coupon:             postgres.NewCouponRepository(tx),
 			CouponUsage:        postgres.NewCouponUsageRepository(tx),
+			Wallet:             postgres.NewWalletRepository(tx),
 			Cart:               postgres.NewCartRepository(tx),
 			Payment:            postgres.NewPaymentRepository(tx),
 			Notification:       postgres.NewNotificationRepository(tx),

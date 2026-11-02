@@ -26,6 +26,7 @@ import (
 	"ecommerce/internal/usecase/profile"
 	return_request "ecommerce/internal/usecase/returnrequest"
 	"ecommerce/internal/usecase/shipment"
+	"ecommerce/internal/usecase/wallet"
 	"ecommerce/internal/usecase/wishlist"
 	"ecommerce/internal/worker"
 	"ecommerce/internal/worker/coupon"
@@ -123,6 +124,10 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 
 	couponWorker := coupon.NewWorker(couponRepository, notificationRepo, couponUsageRepository, notificationUseCase, time.Minute, log)
 
+	walletRepository := postgres.NewWalletRepository(db)
+	walletUseCase := wallet.NewWalletUseCase(walletRepository, unitOfWork, log)
+	walletHandler := handler.NewWalletHandler(walletUseCase, log)
+
 	shipmentRepository := postgres.NewShipmentRepository(db)
 	shipmentUseCase := shipment.NewShipmentUseCase(shipmentRepository, orderRepository, unitOfWork, log)
 	shipmentHandler := handler.NewShipmentHandler(shipmentUseCase, log)
@@ -156,6 +161,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		orderHandler,
 		shipmentHandler,
 		returnRequestHandler,
+		walletHandler,
 	)
 
 	return &Application{

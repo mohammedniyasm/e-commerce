@@ -11,6 +11,7 @@ type TransactionRepositories struct {
 	Shipment           ShipmentRepository
 	ReturnRequest      ReturnRequestRepository
 
+	Wallet      WalletRepository
 	Payment     PaymentRepository
 	Coupon      CouponRepository
 	CouponUsage CouponUsageRepository

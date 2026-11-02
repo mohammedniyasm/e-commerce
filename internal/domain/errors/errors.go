@@ -101,4 +101,6 @@ var (
 	ErrOrderNeedToConfirm       = errors.New("order needs to be confirm")
 
 	ErrDuplicateRecord = errors.New("error duplicate records")
+
+	ErrInsufficientBalance = errors.New("insufficient balance")
 )

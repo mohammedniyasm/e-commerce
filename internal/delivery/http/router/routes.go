@@ -30,6 +30,7 @@ func RegisterRoutes(r *gin.Engine,
 	orderHandler *handler.OrderHandler,
 	shipmentHandler *handler.ShipmentHandler,
 	returnRequestHandler *handler.ReturnRequestHandler,
+	walletHandler *handler.WalletHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -119,6 +120,10 @@ func RegisterRoutes(r *gin.Engine,
 		protected.POST("/return-requests", returnRequestHandler.Create)
 		protected.GET("/return-requests", returnRequestHandler.ListByUserID)
 		protected.GET("/return-requests/:id", returnRequestHandler.GetByID)
+
+		protected.GET("/wallet", walletHandler.GetWallet)
+		protected.GET("/wallet/transactions", walletHandler.ListTransactions)
+		protected.GET("/wallet/transactions/:id", walletHandler.GetTransactionByID)
 	}
 	auth = v1.Group("/admin/auth")
 	protected = auth.Group("")
@@ -256,5 +261,9 @@ func RegisterRoutes(r *gin.Engine,
 		admin.GET("/return-requests", returnRequestHandler.List)
 		admin.GET("/return-requests/:id", returnRequestHandler.GetByID)
 		admin.PATCH("return-requests/:id/status", returnRequestHandler.UpdateStatus)
+
+		admin.GET("/wallets/:userId", walletHandler.GetUserWallet)
+		admin.GET("/wallets/:userId/transactions", walletHandler.GetUserWalletTransactions)
+		admin.POST("/wallets/:userId/credit", walletHandler.CreditUserWallet)
 	}
 }
