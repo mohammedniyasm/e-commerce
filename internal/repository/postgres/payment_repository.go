@@ -84,5 +84,18 @@ func (r *PaymentRepository) Update(ctx context.Context, payment *models.Payment)
 	}
 	return nil
 }
+func (r *PaymentRepository) GetByGatewayOrderID(ctx context.Context, gatewayOrderID string) (*models.Payment, error) {
+	var payment models.Payment
+
+	err := r.db.WithContext(ctx).
+		Where("gateway_order_id = ?", gatewayOrderID).
+		First(&payment).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &payment, nil
+}
 
 var _ interfaces.PaymentRepository = (*PaymentRepository)(nil)

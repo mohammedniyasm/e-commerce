@@ -350,14 +350,10 @@ func (u *OrderUseCase) PlaceOrder(ctx context.Context, userID uint, cartItemIDs 
 			}
 		}
 		now := time.Now()
-		var paymentDeadline *time.Time
+		// var paymentDeadline *time.Time
 		orderStatus := "pending"
 		if paymentMethod == "cod" {
 			orderStatus = "confirmed"
-		}
-		if paymentMethod == "online" {
-			deadline := now.Add(10 * time.Minute)
-			paymentDeadline = &deadline
 		}
 		orderID := uuid.New()
 		shippingAmount := 0.0
@@ -365,19 +361,19 @@ func (u *OrderUseCase) PlaceOrder(ctx context.Context, userID uint, cartItemIDs 
 			subtotal - discountAmount + shippingAmount,
 		)
 		newOrder := &models.Order{
-			ID:              orderID,
-			UserID:          userID,
-			OrderNumber:     "ORD-" + strings.ToUpper(uuid.NewString()),
-			Subtotal:        subtotal,
-			DiscountAmount:  discountAmount,
-			ShippingAmount:  shippingAmount,
-			TotalAmount:     totalAmount,
-			OrderStatus:     orderStatus,
-			PaymentStatus:   "pending",
-			PaymentDeadline: paymentDeadline,
-			PlacedAt:        now,
-			CreatedAt:       now,
-			UpdatedAt:       now,
+			ID:             orderID,
+			UserID:         userID,
+			OrderNumber:    "ORD-" + strings.ToUpper(uuid.NewString()),
+			Subtotal:       subtotal,
+			DiscountAmount: discountAmount,
+			ShippingAmount: shippingAmount,
+			TotalAmount:    totalAmount,
+			OrderStatus:    orderStatus,
+			PaymentStatus:  "pending",
+			// PaymentDeadline: paymentDeadline,
+			PlacedAt:  now,
+			CreatedAt: now,
+			UpdatedAt: now,
 		}
 		if err := repos.Order.Create(ctx, newOrder); err != nil {
 			return err

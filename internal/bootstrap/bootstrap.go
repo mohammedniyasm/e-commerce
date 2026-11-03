@@ -8,6 +8,7 @@ import (
 	"ecommerce/internal/infrastructure/database"
 	"ecommerce/internal/infrastructure/email"
 	"ecommerce/internal/infrastructure/invoice"
+	"ecommerce/internal/infrastructure/payment/razorpay"
 	"ecommerce/internal/infrastructure/redis"
 	"ecommerce/internal/infrastructure/storage"
 	"ecommerce/internal/repository/postgres"
@@ -20,6 +21,7 @@ import (
 	couponuseCase "ecommerce/internal/usecase/coupons"
 	"ecommerce/internal/usecase/notification"
 	"ecommerce/internal/usecase/order"
+	"ecommerce/internal/usecase/payment"
 	"ecommerce/internal/usecase/productimage"
 	"ecommerce/internal/usecase/products"
 	"ecommerce/internal/usecase/productvariant"
@@ -140,6 +142,13 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	refferalUseCase := referral.NewReferralUseCase(userRepository, refferalRepository, refferalSettingsRepository, log)
 	refferalHandler := handler.NewReferralHandler(refferalUseCase, log)
 
+	razorpayClient, err := razorpay.NewClient(cfg.Razorpay.KeyID, cfg.Razorpay.KeySecret)
+	if err != nil {
+		return nil, err
+	}
+	paymentRepository := postgres.NewPaymentRepository(db)
+	paymentUseCase := payment.NewPaymentUseCase(orderRepository, paymentRepository, razorpayClient, unitOfWork, cfg.Razorpay.KeyID, cfg.Razorpay.WebhookSecret)
+	paymentHandler := handler.NewPaymentHandler(paymentUseCase)
 	storeProductHandler := handler.NewStoreProductHandler(productUseCase)
 	r := router.SetupRouter(log,
 		authHandler,
@@ -165,6 +174,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		returnRequestHandler,
 		walletHandler,
 		refferalHandler,
+		paymentHandler,
 	)
 
 	couponWorker := coupon.NewWorker(couponRepository, notificationRepo, couponUsageRepository, notificationUseCase, 4*time.Hour, log)

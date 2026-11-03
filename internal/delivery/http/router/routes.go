@@ -32,6 +32,7 @@ func RegisterRoutes(r *gin.Engine,
 	returnRequestHandler *handler.ReturnRequestHandler,
 	walletHandler *handler.WalletHandler,
 	refferalHandler *handler.ReferralHandler,
+	paymentHandler *handler.PaymentHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -44,6 +45,7 @@ func RegisterRoutes(r *gin.Engine,
 		v1.GET("/products/slug/:slug", storeProductHandler.GetStoreProductBySlug)
 		v1.GET("/products/:id/recommendations", storeProductHandler.GetRelatedProducts)
 		v1.POST("/guest-cart/validate", middleware.RateLimit(rateLimiter, 30, 60, "guest-cart-validate"), cartHandler.ValidateGuestCart)
+		v1.POST("/payments/razorpay/webhook", paymentHandler.HandleRazorpayWebhook)
 	}
 	authMiddleware := middleware.AuthMiddleware(jwtService, userRepo, blacklist)
 	auth := v1.Group("/auth")
@@ -127,6 +129,10 @@ func RegisterRoutes(r *gin.Engine,
 		protected.GET("/wallet/transactions/:id", walletHandler.GetTransactionByID)
 
 		protected.GET("/referrals", refferalHandler.GetReferralDashboard)
+
+		protected.POST("/payments/razorpay/order", paymentHandler.CreateRazorpayOrder)
+		protected.POST("/payments/razorpay/verify", paymentHandler.VerifyRazorpayPayment)
+		protected.POST("/payments/razorpay/webhook", paymentHandler.HandleRazorpayWebhook)
 	}
 	auth = v1.Group("/admin/auth")
 	protected = auth.Group("")
