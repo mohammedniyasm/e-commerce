@@ -23,6 +23,6 @@ type UserRepository interface {
 	LinkGoogleID(ctx context.Context, userID uint, googleID string) error
 	UpdateEmail(ctx context.Context, userID uint, email string) error
 	SetBlocked(ctx context.Context, userID uint, blocked bool) error
-
+	FindByReferralCode(ctx context.Context, referralCode string) (*models.User, error)
 	Delete(ctx context.Context, userID uint) error
 }

@@ -11,10 +11,12 @@ type TransactionRepositories struct {
 	Shipment           ShipmentRepository
 	ReturnRequest      ReturnRequestRepository
 
-	Wallet      WalletRepository
-	Payment     PaymentRepository
-	Coupon      CouponRepository
-	CouponUsage CouponUsageRepository
+	Referral         ReferralRepository
+	ReferralSettings ReferralSettingsRepository
+	Wallet           WalletRepository
+	Payment          PaymentRepository
+	Coupon           CouponRepository
+	CouponUsage      CouponUsageRepository
 
 	Address        AddressRepository
 	ProductVariant ProductVariantRepository

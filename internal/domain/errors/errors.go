@@ -102,5 +102,6 @@ var (
 
 	ErrDuplicateRecord = errors.New("error duplicate records")
 
-	ErrInsufficientBalance = errors.New("insufficient balance")
+	ErrInsufficientBalance     = errors.New("insufficient balance")
+	ErrInvalidReferralSettings = errors.New("invalid referral settings")
 )

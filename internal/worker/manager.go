@@ -19,11 +19,9 @@ func NewManager(log *slog.Logger) *Manager {
 		log:     log,
 	}
 }
-
 func (m *Manager) Register(w interfaces.Worker) {
 	m.workers = append(m.workers, w)
 }
-
 func (m *Manager) Start(ctx context.Context) {
 	for _, w := range m.workers {
 		m.wg.Add(1)
@@ -38,7 +36,6 @@ func (m *Manager) Start(ctx context.Context) {
 		"count", len(m.workers),
 	)
 }
-
 func (m *Manager) Wait() {
 	m.wg.Wait()
 	m.log.Info("all background workers stopped")

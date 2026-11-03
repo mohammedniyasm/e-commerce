@@ -279,11 +279,13 @@ func (w *Worker) Run(ctx context.Context) {
 	defer ticker.Stop()
 	w.log.Info("coupon maintenance worker started", "interval", w.interval)
 	w.processCoupons(ctx)
-	select {
-	case <-ctx.Done():
-		w.log.Info("coupon maintenance worker stopped")
-		return
-	case <-ticker.C:
-		w.processCoupons(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			w.log.Info("coupon maintenance worker stopped")
+			return
+		case <-ticker.C:
+			w.processCoupons(ctx)
+		}
 	}
 }

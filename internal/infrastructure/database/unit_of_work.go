@@ -32,6 +32,8 @@ func (uow *GormUnitOfWork) WithinTransaction(ctx context.Context, fn func(repos 
 			Wallet:             postgres.NewWalletRepository(tx),
 			Cart:               postgres.NewCartRepository(tx),
 			Payment:            postgres.NewPaymentRepository(tx),
+			Referral:           postgres.NewReferralRepository(tx),
+			ReferralSettings:   postgres.NewReferralSettingsRepository(tx),
 			Notification:       postgres.NewNotificationRepository(tx),
 			User:               postgres.NewUserRepository(tx),
 			ReturnRequest:      postgres.NewReturnRequestRepository(tx),

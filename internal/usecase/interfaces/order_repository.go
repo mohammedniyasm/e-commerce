@@ -22,4 +22,5 @@ type OrderRepository interface {
 	UpdateOrderStatus(ctx context.Context, orderID uuid.UUID, status string, note *string) error
 	ListExpiredPendingOrders(ctx context.Context, now time.Time, limit int) ([]models.Order, error)
 	LockByID(ctx context.Context, orderID uuid.UUID) (*models.Order, error)
+	HasQualifyingDeliveredOrder(ctx context.Context, userID uint, minimumAmount float64) (bool, error)
 }

@@ -24,12 +24,14 @@ import (
 	"ecommerce/internal/usecase/products"
 	"ecommerce/internal/usecase/productvariant"
 	"ecommerce/internal/usecase/profile"
+	"ecommerce/internal/usecase/referral"
 	return_request "ecommerce/internal/usecase/returnrequest"
 	"ecommerce/internal/usecase/shipment"
 	"ecommerce/internal/usecase/wallet"
 	"ecommerce/internal/usecase/wishlist"
 	"ecommerce/internal/worker"
 	"ecommerce/internal/worker/coupon"
+	referralworker "ecommerce/internal/worker/referral"
 	"fmt"
 	"log/slog"
 	"time"
@@ -51,7 +53,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	if err != nil {
 		return nil, fmt.Errorf("initialize MinIO storage: %w", err)
 	}
-
+	unitOfWork := database.NewGormUnitOfWork(db)
 	accessTokenBlacklistStore := redis.NewAccessTokenBlacklistStore(redisClient)
 	refreshSessionStore := redis.NewRefreshSessionStore(redisClient, cfg.JWT.RefreshExpiry)
 
@@ -62,7 +64,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	googleTokenVerifier := authinfra.NewGoogleTokenVerifier(cfg.Google.ClientID)
 
 	userRepository := postgres.NewUserRepository(db)
-	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore, accessTokenBlacklistStore, emailSender, googleTokenVerifier, log)
+	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore, accessTokenBlacklistStore, emailSender, googleTokenVerifier, unitOfWork, log)
 	authHandler := handler.NewAuthHandler(authUseCase, cfg.Cookie)
 
 	profileUsecase := profile.NewProfileUseCase(userRepository, otpStore, emailSender, objectStorage, log)
@@ -107,7 +109,6 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	pdfGen := invoice.NewPDFGenerator("Drape")
 	orderItemRepository := postgres.NewOrderItemRepository(db)
 	orderRepository := postgres.NewOrderRepository(db)
-	unitOfWork := database.NewGormUnitOfWork(db)
 	orderUsecase := order.NewOrderUseCase(orderRepository, unitOfWork, pdfGen, log)
 	orderHandler := handler.NewOrderHandler(orderUsecase, log)
 
@@ -122,8 +123,6 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	couponUsage := couponuseCase.NewCouponUseCase(couponRepository, orderRepository, couponUsageRepository, log)
 	couponHandler := handler.NewCouponHandler(couponUsage, log)
 
-	couponWorker := coupon.NewWorker(couponRepository, notificationRepo, couponUsageRepository, notificationUseCase, time.Minute, log)
-
 	walletRepository := postgres.NewWalletRepository(db)
 	walletUseCase := wallet.NewWalletUseCase(walletRepository, unitOfWork, log)
 	walletHandler := handler.NewWalletHandler(walletUseCase, log)
@@ -136,7 +135,10 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	returnRequestUseCase := return_request.NewReturnRequestUseCase(returnRequestRepository, orderRepository, orderItemRepository, productVariantRepository, unitOfWork, log)
 	returnRequestHandler := handler.NewReturnRequestHandler(returnRequestUseCase)
 
-	workerManager.Register(couponWorker)
+	refferalRepository := postgres.NewReferralRepository(db)
+	refferalSettingsRepository := postgres.NewReferralSettingsRepository(db)
+	refferalUseCase := referral.NewReferralUseCase(userRepository, refferalRepository, refferalSettingsRepository, log)
+	refferalHandler := handler.NewReferralHandler(refferalUseCase, log)
 
 	storeProductHandler := handler.NewStoreProductHandler(productUseCase)
 	r := router.SetupRouter(log,
@@ -162,7 +164,14 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		shipmentHandler,
 		returnRequestHandler,
 		walletHandler,
+		refferalHandler,
 	)
+
+	couponWorker := coupon.NewWorker(couponRepository, notificationRepo, couponUsageRepository, notificationUseCase, 4*time.Hour, log)
+	refferalWorker := referralworker.NewWorker(refferalRepository, unitOfWork, 4*time.Hour, log)
+
+	workerManager.Register(couponWorker)
+	workerManager.Register(refferalWorker)
 
 	return &Application{
 		Router:        r,

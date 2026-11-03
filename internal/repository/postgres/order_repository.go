@@ -252,5 +252,15 @@ func (r *OrderRepository) LockByID(ctx context.Context, orderID uuid.UUID) (*mod
 
 	return &order, nil
 }
+func (r *OrderRepository) HasQualifyingDeliveredOrder(ctx context.Context, userID uint, minimumAmount float64) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&models.Order{}).
+		Where("user_id = ?", userID).
+		Where("order_status = ?", "delivered").
+		Where("total_amount >= ?", minimumAmount).
+		Count(&count).Error
+	return count > 0, err
+}
 
 var _ interfaces.OrderRepository = (*OrderRepository)(nil)

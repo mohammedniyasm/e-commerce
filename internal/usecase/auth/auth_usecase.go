@@ -2,14 +2,17 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"ecommerce/internal/delivery/http/validator"
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/infrastructure/redis"
 	"ecommerce/internal/usecase/interfaces"
+	"encoding/hex"
 	"errors"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -23,10 +26,11 @@ type AuthUseCase struct {
 	accessTokenBlacklist interfaces.AccessTokenBlacklist
 	emailSender          interfaces.EmailSender
 	googleTokenVerifier  interfaces.GoogleTokenVerifier
+	uow                  interfaces.UnitOfWork
 	log                  *slog.Logger
 }
 
-func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, jwtService interfaces.JWTService, refreshSessionStore interfaces.RefreshSessionStore, accessTokenBlacklist interfaces.AccessTokenBlacklist, emailSender interfaces.EmailSender, googleTokenVerifier interfaces.GoogleTokenVerifier, log *slog.Logger) *AuthUseCase {
+func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, jwtService interfaces.JWTService, refreshSessionStore interfaces.RefreshSessionStore, accessTokenBlacklist interfaces.AccessTokenBlacklist, emailSender interfaces.EmailSender, googleTokenVerifier interfaces.GoogleTokenVerifier, uow interfaces.UnitOfWork, log *slog.Logger) *AuthUseCase {
 	return &AuthUseCase{
 		userRepo:             userRepo,
 		otpStore:             otpStore,
@@ -35,12 +39,12 @@ func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore,
 		accessTokenBlacklist: accessTokenBlacklist,
 		googleTokenVerifier:  googleTokenVerifier,
 		emailSender:          emailSender,
-
-		log: log,
+		uow:                  uow,
+		log:                  log,
 	}
 }
 
-func (u *AuthUseCase) Register(ctx context.Context, user *models.User) (*models.User, error) {
+func (u *AuthUseCase) Register(ctx context.Context, user *models.User, referralCode string) (*models.User, error) {
 	if !validator.ValidateName(user.Name) {
 		return nil, domainerrors.ErrInvalidName
 	}
@@ -73,27 +77,88 @@ func (u *AuthUseCase) Register(ctx context.Context, user *models.User) (*models.
 	if user.Role == "" {
 		user.Role = models.RoleUser
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*user.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(*user.Password),
+		bcrypt.DefaultCost,
+	)
 	if err != nil {
-		u.log.Error(
-			"failed to hash password",
-			"error", err,
-		)
+		u.log.Error("failed to hash password", "error", err)
 		return nil, err
 	}
 	user.Password = stringPtr(string(hashedPassword))
-	err = u.userRepo.Create(ctx, user)
+	newreferralCode, err := generateReferralCode()
+	if err != nil {
+		return nil, err
+	}
+
+	user.ReferralCode = newreferralCode
+	err = u.uow.WithinTransaction(ctx, func(repos interfaces.TransactionRepositories) error {
+		if err := repos.User.Create(ctx, user); err != nil {
+			return err
+		}
+		if referralCode == "" {
+			return nil
+		}
+		referrer, err := repos.User.FindByReferralCode(ctx, referralCode)
+		if err != nil {
+			if errors.Is(err, domainerrors.ErrUserNotFound) {
+				u.log.Warn(
+					"invalid referral code",
+					"referral_code", referralCode,
+				)
+				return nil
+			}
+			return err
+		}
+		if referrer.ID == user.ID {
+			u.log.Warn(
+				"self referral attempt",
+				"user_id", user.ID,
+			)
+			return nil
+		}
+		settings, err := repos.ReferralSettings.Get(ctx)
+		if err != nil {
+			return err
+		}
+		if !settings.IsActive {
+			return nil
+		}
+		referral := &models.Referral{
+			ReferrerID:           referrer.ID,
+			ReferredUserID:       user.ID,
+			Status:               models.ReferralStatusPending,
+			ReferrerReward:       settings.ReferrerReward,
+			ReferredReward:       settings.ReferredReward,
+			MinimumOrderAmount:   settings.MinimumOrderAmount,
+			ReferrerRewardStatus: models.ReferralRewardStatusPending,
+			ReferredRewardStatus: models.ReferralRewardStatusPending,
+		}
+		created, err := repos.Referral.CreateIfNotReferred(ctx, referral)
+		if err != nil {
+			return err
+		}
+		if !created {
+			u.log.Warn(
+				"user already has a referral",
+				"user_id", user.ID,
+			)
+		}
+		return nil
+	})
 	if err != nil {
 		u.log.Error(
-			"failed to create user",
+			"failed to register user",
 			"email", user.Email,
 			"error", err,
 		)
 		return nil, err
 	}
-	u.log.Info("user signup successful",
+	u.log.Info(
+		"user signup successful",
 		"user_id", user.ID,
-		"user_email", user.Email)
+		"user_email", user.Email,
+	)
 	return user, nil
 }
 func (u *AuthUseCase) Login(ctx context.Context, email, password string) (string, string, error) {
@@ -569,7 +634,7 @@ func (u *AuthUseCase) ResetPassword(ctx context.Context, resetToken string, newP
 	)
 	return nil
 }
-func (u *AuthUseCase) GoogleLogin(ctx context.Context, idToken string) (string, string, error) {
+func (u *AuthUseCase) GoogleLogin(ctx context.Context, idToken string, referralCode string) (string, string, error) {
 	googleUser, err := u.googleTokenVerifier.Verify(ctx, idToken)
 	if err != nil {
 		u.log.Warn(
@@ -653,21 +718,80 @@ func (u *AuthUseCase) GoogleLogin(ctx context.Context, idToken string) (string, 
 		Role:            models.RoleUser,
 		IsBlocked:       false,
 	}
-
-	if err := u.userRepo.Create(ctx, newUser); err != nil {
+	newReferralCode, err := generateReferralCode()
+	if err != nil {
+		u.log.Error("failed to generate referral code", "error", err)
+		return "", "", err
+	}
+	newUser.ReferralCode = newReferralCode
+	err = u.uow.WithinTransaction(ctx, func(repos interfaces.TransactionRepositories) error {
+		if err := repos.User.Create(ctx, newUser); err != nil {
+			return err
+		}
+		if referralCode == "" {
+			return nil
+		}
+		// 3. Find the person who referred this user.
+		referrer, err := repos.User.FindByReferralCode(ctx, referralCode)
+		if err != nil {
+			if errors.Is(err, domainerrors.ErrUserNotFound) {
+				u.log.Warn(
+					"invalid referral code during Google signup",
+					"referral_code", referralCode,
+				)
+				return nil
+			}
+			return err
+		}
+		if referrer.ID == newUser.ID {
+			u.log.Warn(
+				"self referral attempt during Google signup",
+				"user_id", newUser.ID,
+			)
+			return nil
+		}
+		settings, err := repos.ReferralSettings.Get(ctx)
+		if err != nil {
+			return err
+		}
+		if !settings.IsActive {
+			return nil
+		}
+		referral := &models.Referral{
+			ReferrerID:           referrer.ID,
+			ReferredUserID:       newUser.ID,
+			Status:               models.ReferralStatusPending,
+			ReferrerReward:       settings.ReferrerReward,
+			ReferredReward:       settings.ReferredReward,
+			MinimumOrderAmount:   settings.MinimumOrderAmount,
+			ReferrerRewardStatus: models.ReferralRewardStatusPending,
+			ReferredRewardStatus: models.ReferralRewardStatusPending,
+		}
+		created, err := repos.Referral.CreateIfNotReferred(ctx, referral)
+		if err != nil {
+			return err
+		}
+		if !created {
+			u.log.Warn(
+				"Google user already has a referral",
+				"user_id", newUser.ID,
+			)
+		}
+		return nil
+	})
+	if err != nil {
 		u.log.Error(
 			"failed to create Google user",
+			"email", newUser.Email,
 			"error", err,
 		)
 		return "", "", err
 	}
-
 	u.log.Info(
-		"google user created",
+		"Google user created",
 		"user_id", newUser.ID,
 		"email", newUser.Email,
 	)
-
 	return u.generateAuthTokens(ctx, newUser)
 }
 func stringPtr(value string) *string {
@@ -705,4 +829,13 @@ func (u *AuthUseCase) generateAuthTokens(ctx context.Context, user *models.User)
 		"user_id", user.ID,
 	)
 	return accessToken, refreshToken, nil
+}
+func generateReferralCode() (string, error) {
+	bytes := make([]byte, 6)
+
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+
+	return strings.ToUpper(hex.EncodeToString(bytes)), nil
 }

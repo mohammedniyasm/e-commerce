@@ -43,6 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	app.WorkerManager.Start(ctx)
 	defer stop()
 	server := &http.Server{
 		Addr:              ":" + cfg.Server.Port,

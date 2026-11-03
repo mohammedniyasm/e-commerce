@@ -31,6 +31,7 @@ func RegisterRoutes(r *gin.Engine,
 	shipmentHandler *handler.ShipmentHandler,
 	returnRequestHandler *handler.ReturnRequestHandler,
 	walletHandler *handler.WalletHandler,
+	refferalHandler *handler.ReferralHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -124,6 +125,8 @@ func RegisterRoutes(r *gin.Engine,
 		protected.GET("/wallet", walletHandler.GetWallet)
 		protected.GET("/wallet/transactions", walletHandler.ListTransactions)
 		protected.GET("/wallet/transactions/:id", walletHandler.GetTransactionByID)
+
+		protected.GET("/referrals", refferalHandler.GetReferralDashboard)
 	}
 	auth = v1.Group("/admin/auth")
 	protected = auth.Group("")
@@ -265,5 +268,11 @@ func RegisterRoutes(r *gin.Engine,
 		admin.GET("/wallets/:userId", walletHandler.GetUserWallet)
 		admin.GET("/wallets/:userId/transactions", walletHandler.GetUserWalletTransactions)
 		admin.POST("/wallets/:userId/credit", walletHandler.CreditUserWallet)
+
+		admin.GET("/referrals/dashboard", refferalHandler.GetAdminReferralDashboard)
+		admin.GET("/referrals/top-referrers", refferalHandler.GetTopReferrers)
+		admin.GET("/referrals", refferalHandler.GetReferrals)
+		admin.GET("/referrals/settings", refferalHandler.GetReferralSettings)
+		admin.PUT("/referrals/settings", refferalHandler.UpdateReferralSettings)
 	}
 }

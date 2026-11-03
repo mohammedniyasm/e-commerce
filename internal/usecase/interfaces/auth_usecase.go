@@ -6,7 +6,7 @@ import (
 )
 
 type AuthUseCase interface {
-	Register(ctx context.Context, user *models.User) (*models.User, error)
+	Register(ctx context.Context, user *models.User, referralCode string) (*models.User, error)
 	Login(ctx context.Context, email string, password string) (string, string, error)
 	AdminLogin(ctx context.Context, email string, password string) (string, string, error)
 	RefreshAccessToken(ctx context.Context, refreshToken string) (string, string, error)
@@ -21,5 +21,5 @@ type AuthUseCase interface {
 	ResendForgotPasswordOTP(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, resetToken string, newPassword string) error
 
-	GoogleLogin(ctx context.Context, idToken string) (string, string, error)
+	GoogleLogin(ctx context.Context, idToken string, referralCode string) (string, string, error)
 }

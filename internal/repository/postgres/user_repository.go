@@ -174,3 +174,16 @@ func (r *UserRepository) Delete(ctx context.Context, userID uint) error {
 
 	return nil
 }
+func (r *UserRepository) FindByReferralCode(ctx context.Context, referralCode string) (*models.User, error) {
+	var user models.User
+	err := r.db.WithContext(ctx).
+		Where("referral_code = ?", referralCode).
+		First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrUserNotFound
+		}
+		return nil, err
+	}
+	return &user, nil
+}

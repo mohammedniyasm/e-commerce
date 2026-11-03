@@ -41,13 +41,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Phone:    req.Phone,
 		Password: &req.Password,
 	}
-	createdUser, err := h.authUsecase.Register(c, user)
+	createdUser, err := h.authUsecase.Register(c, user, req.ReferralCode)
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrInvalidName) {
 			c.JSON(400, response.APIResponse{
 				Success: false,
 				Message: "Invalid Name",
-				Error:   "INVALID_NAME",
 			})
 			return
 		}
@@ -55,7 +54,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			c.JSON(400, response.APIResponse{
 				Success: false,
 				Message: "Invalid Phone",
-				Error:   "INVALID_PHONE",
 			})
 			return
 		}
@@ -63,7 +61,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			c.JSON(400, response.APIResponse{
 				Success: false,
 				Message: "Password does not meet the required strength",
-				Error:   "WEAK_PASSWORD",
 			})
 			return
 		}
@@ -71,14 +68,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			c.JSON(409, response.APIResponse{
 				Success: false,
 				Message: "Email already exists",
-				Error:   "EMAIL_ALREADY_EXISTS",
 			})
 			return
 		}
 		c.JSON(500, response.APIResponse{
 			Success: false,
 			Message: "Failed to create user",
-			Error:   "INTERNAL_SERVER_ERROR",
 		})
 		return
 	}
@@ -434,7 +429,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		})
 		return
 	}
-	accessToken, refreshToken, err := h.authUsecase.GoogleLogin(c.Request.Context(), req.IDToken)
+	accessToken, refreshToken, err := h.authUsecase.GoogleLogin(c.Request.Context(), req.IDToken, req.ReferralCode)
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrUserBlocked) {
 			c.JSON(http.StatusForbidden, response.APIResponse{

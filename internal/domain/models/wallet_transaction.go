@@ -32,6 +32,7 @@ type WalletTransaction struct {
 	BalanceBefore   float64                 `gorm:"type:numeric(12,2);not null"`
 	BalanceAfter    float64                 `gorm:"type:numeric(12,2);not null"`
 	ReferenceID     *uuid.UUID              `gorm:"type:uuid;index"`
+	ReferralID      *uint                   `gorm:"index"`
 	Description     *string                 `gorm:"type:text"`
 	CreatedAt       time.Time               `gorm:"not null"`
 
