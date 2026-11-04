@@ -33,6 +33,7 @@ func RegisterRoutes(r *gin.Engine,
 	walletHandler *handler.WalletHandler,
 	refferalHandler *handler.ReferralHandler,
 	paymentHandler *handler.PaymentHandler,
+	reviewHandler *handler.ReviewHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -47,6 +48,7 @@ func RegisterRoutes(r *gin.Engine,
 		v1.POST("/guest-cart/validate", middleware.RateLimit(rateLimiter, 30, 60, "guest-cart-validate"), cartHandler.ValidateGuestCart)
 		v1.POST("/payments/razorpay/webhook", paymentHandler.HandleRazorpayWebhook)
 		v1.POST("/wallet/razorpay/webhook", walletHandler.RazorpayWebhook)
+		v1.GET("/products/:id/reviews", reviewHandler.ListProductReviews)
 	}
 	authMiddleware := middleware.AuthMiddleware(jwtService, userRepo, blacklist)
 	auth := v1.Group("/auth")
@@ -136,6 +138,12 @@ func RegisterRoutes(r *gin.Engine,
 
 		protected.POST("/payments/razorpay/order", paymentHandler.CreateRazorpayOrder)
 		protected.POST("/payments/razorpay/verify", paymentHandler.VerifyRazorpayPayment)
+
+		protected.POST("/reviews", reviewHandler.CreateReview)
+		protected.GET("/reviews", reviewHandler.ListMyReviews)
+		protected.GET("/reviews/:id", reviewHandler.GetMyReview)
+		protected.PATCH("/reviews/:id", reviewHandler.UpdateReview)
+		protected.DELETE("/reviews/:id", reviewHandler.DeleteReview)
 	}
 	auth = v1.Group("/admin/auth")
 	protected = auth.Group("")
@@ -287,5 +295,8 @@ func RegisterRoutes(r *gin.Engine,
 		admin.GET("/referrals", refferalHandler.GetReferrals)
 		admin.GET("/referrals/settings", refferalHandler.GetReferralSettings)
 		admin.PUT("/referrals/settings", refferalHandler.UpdateReferralSettings)
+
+		admin.GET("/reviews", reviewHandler.ListAllReviews)
+		admin.PATCH("/reviews/:id/visibility", reviewHandler.SetReviewVisibility)
 	}
 }

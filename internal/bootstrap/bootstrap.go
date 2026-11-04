@@ -28,6 +28,7 @@ import (
 	"ecommerce/internal/usecase/profile"
 	"ecommerce/internal/usecase/referral"
 	return_request "ecommerce/internal/usecase/returnrequest"
+	"ecommerce/internal/usecase/review"
 	"ecommerce/internal/usecase/shipment"
 	"ecommerce/internal/usecase/wallet"
 	"ecommerce/internal/usecase/wishlist"
@@ -154,6 +155,10 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	walletUseCase := wallet.NewWalletUseCase(walletRepository, walletTopUpRepository, razorpayClient, unitOfWork, cfg.Razorpay.KeyID, log)
 	walletHandler := handler.NewWalletHandler(walletUseCase, cfg.Razorpay.KeyID, cfg.Razorpay.WebhookSecret)
 
+	reviewRepository := postgres.NewReviewRepository(db)
+	reviewUseCase := review.NewReviewUseCase(reviewRepository, orderItemRepository, orderRepository, shipmentRepository, productVariantRepository, log)
+	reviewHandler := handler.NewReviewHandler(reviewUseCase)
+
 	r := router.SetupRouter(log,
 		authHandler,
 		jwtService,
@@ -179,6 +184,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		walletHandler,
 		refferalHandler,
 		paymentHandler,
+		reviewHandler,
 	)
 
 	couponWorker := coupon.NewWorker(couponRepository, notificationRepo, couponUsageRepository, notificationUseCase, 4*time.Hour, log)
