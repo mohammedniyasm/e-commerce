@@ -271,7 +271,7 @@ func (h *ReturnRequestHandler) UpdateStatus(c *gin.Context) {
 		c.Request.Context(),
 		uint(id),
 		req.Status,
-		req.AdminNote,
+		req.AdminNote, req.CourierName, req.TrackingNumber,
 	)
 	if err != nil {
 		switch {
@@ -305,5 +305,108 @@ func (h *ReturnRequestHandler) UpdateStatus(c *gin.Context) {
 		Success: true,
 		Message: "return request status updated successfully",
 		Data:    response.ToReturnRequestResponse(returnRequest),
+	})
+}
+func (h *ReturnRequestHandler) CreateExchangeOrder(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || id == 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid return request id",
+		})
+		return
+	}
+	order, err := h.returnRequestUseCase.CreateExchangeOrder(
+		c.Request.Context(),
+		uint(id),
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, domainerrors.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, response.APIResponse{
+				Success: false,
+				Message: "return request or replacement variant not found",
+			})
+		case errors.Is(err, domainerrors.ErrInsufficientStock):
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "insufficient replacement variant stock",
+			})
+		case errors.Is(err, domainerrors.ErrProductNotAvailable):
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "replacement variant is unavailable",
+			})
+		default:
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "failed to create exchange order",
+			})
+		}
+		return
+	}
+	c.JSON(http.StatusCreated, response.APIResponse{
+		Success: true,
+		Message: "exchange replacement order created successfully",
+		Data:    order,
+	})
+}
+func (h *ReturnRequestHandler) CreateReturnToCustomerShipment(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || id == 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid return request id",
+		})
+		return
+	}
+	var req request.CreateReturnToCustomerShipmentDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid shipment request",
+		})
+		return
+	}
+
+	shipment, err := h.returnRequestUseCase.CreateReturnToCustomerShipment(
+		c.Request.Context(),
+		uint(id),
+		req.CourierName,
+		req.TrackingNumber,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, domainerrors.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, response.APIResponse{
+				Success: false,
+				Message: "return request not found",
+			})
+
+		case errors.Is(err, domainerrors.ErrInvalidOrderTransition):
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "return request inspection has not failed",
+			})
+
+		case errors.Is(err, domainerrors.ErrInvalidInput):
+			c.JSON(http.StatusConflict, response.APIResponse{
+				Success: false,
+				Message: "return-to-customer shipment already exists or request is invalid",
+			})
+
+		default:
+			c.JSON(http.StatusInternalServerError, response.APIResponse{
+				Success: false,
+				Message: "failed to create return-to-customer shipment",
+			})
+		}
+		return
+	}
+	c.JSON(http.StatusCreated, response.APIResponse{
+		Success: true,
+		Message: "return-to-customer shipment created successfully",
+		Data:    toShipmentResponse(shipment),
 	})
 }

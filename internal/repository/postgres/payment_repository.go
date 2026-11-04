@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PaymentRepository struct {
@@ -92,6 +93,24 @@ func (r *PaymentRepository) GetByGatewayOrderID(ctx context.Context, gatewayOrde
 		First(&payment).Error
 
 	if err != nil {
+		return nil, err
+	}
+
+	return &payment, nil
+}
+func (r *PaymentRepository) GetLatestByOrderIDForUpdate(ctx context.Context, orderID uuid.UUID) (*models.Payment, error) {
+	var payment models.Payment
+
+	err := r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("order_id = ?", orderID).
+		Order("created_at DESC").
+		First(&payment).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrRecordNotFound
+		}
 		return nil, err
 	}
 

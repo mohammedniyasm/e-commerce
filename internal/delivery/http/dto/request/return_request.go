@@ -10,6 +10,12 @@ type CreateReturnRequestDTO struct {
 }
 
 type UpdateReturnRequestStatusDTO struct {
-	Status    string  `json:"status" binding:"required,oneof=approved rejected pickup_scheduled in_transit received inspection_pending inspection_passed inspection_failed closed"`
-	AdminNote *string `json:"admin_note,omitempty" binding:"omitempty,max=1000"`
+	Status         string  `json:"status" binding:"required,oneof=approved rejected pickup_scheduled in_transit received inspection_pending inspection_passed inspection_failed closed"`
+	AdminNote      *string `json:"admin_note,omitempty"`
+	CourierName    *string `json:"courier_name,omitempty"`
+	TrackingNumber *string `json:"tracking_number,omitempty"`
+}
+type CreateReturnToCustomerShipmentDTO struct {
+	CourierName    string `json:"courier_name" binding:"required,min=2,max=255"`
+	TrackingNumber string `json:"tracking_number" binding:"required,min=3,max=255"`
 }

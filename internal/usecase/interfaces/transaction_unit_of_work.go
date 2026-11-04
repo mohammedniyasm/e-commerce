@@ -17,6 +17,7 @@ type TransactionRepositories struct {
 	Payment          PaymentRepository
 	Coupon           CouponRepository
 	CouponUsage      CouponUsageRepository
+	WalletTopUp      WalletTopUpRepository
 
 	Address        AddressRepository
 	ProductVariant ProductVariantRepository

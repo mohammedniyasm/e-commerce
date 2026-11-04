@@ -5,11 +5,29 @@ import (
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/usecase/interfaces"
-	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
 	// "uuid"
+)
+
+const (
+	RequestTypeReturn    = "return"
+	ReturnStatusReturn   = "return"
+	ReturnStatusExchange = "exchange"
+	RequestTypeExchange  = "exchange"
+
+	ReturnStatusRequested         = "requested"
+	ReturnStatusApproved          = "approved"
+	ReturnStatusRejected          = "rejected"
+	ReturnStatusPickupScheduled   = "pickup_scheduled"
+	ReturnStatusInTransit         = "in_transit"
+	ReturnStatusReceived          = "received"
+	ReturnStatusInspectionPending = "inspection_pending"
+	ReturnStatusInspectionPassed  = "inspection_passed"
+	ReturnStatusInspectionFailed  = "inspection_failed"
+	ReturnStatusClosed            = "closed"
 )
 
 type ShipmentUseCase struct {
@@ -74,6 +92,7 @@ func (u *ShipmentUseCase) CreateShipment(ctx context.Context, shipment *models.S
 	}
 	if order.OrderStatus == "confirmed" || order.OrderStatus == "processing" {
 		shipment.ShippingStatus = "pending"
+		shipment.Type = models.ShipmentTypeDelivery
 		if err := u.shipmentRepo.Create(ctx, shipment); err != nil {
 			return err
 		}
@@ -138,73 +157,56 @@ func (u *ShipmentUseCase) UpdateShippingStatus(ctx context.Context, shipmentID u
 		if err := repos.Shipment.UpdateShippingStatus(ctx, shipmentID, status, description, location); err != nil {
 			return err
 		}
+		if shipment.Type == models.ShipmentTypeReturnToCustomer {
+			return nil
+		}
+		if shipment.Type == models.ShipmentTypeReturn {
+			if status == ReturnStatusInTransit || status == "delivered" {
+				if shipment.ReturnRequestID == nil {
+					return domainerrors.ErrInvalidInput
+				}
+				request, err := repos.ReturnRequest.GetByID(
+					ctx,
+					*shipment.ReturnRequestID,
+				)
+				if err != nil {
+					return fmt.Errorf("get return request: %w", err)
+				}
+				var nextReturnStatus string
+				switch status {
+				case "in_transit":
+					nextReturnStatus = ReturnStatusInTransit
+
+				case "delivered":
+					nextReturnStatus = ReturnStatusReceived
+				}
+
+				if !isValidReturnTransition(
+					request.Status,
+					nextReturnStatus,
+				) {
+					return domainerrors.ErrInvalidOrderTransition
+				}
+				request.Status = nextReturnStatus
+				if err := repos.ReturnRequest.Update(ctx, request); err != nil {
+					return fmt.Errorf("update return request status: %w", err)
+				}
+			}
+			return nil
+		}
 		var orderStatus string
-		var notificationType string
-		var notificationMessage string
 		switch status {
 		case "shipped":
 			orderStatus = "shipped"
-			notificationType = "order_shipped"
-			notificationMessage = "An order has been shipped."
-
+		case "in_transit":
+			orderStatus = "shipped"
 		case "delivered":
 			orderStatus = "delivered"
-			notificationType = "order_delivered"
-			notificationMessage = "An order has been delivered."
-
-		case "failed":
-			notificationType = "shipment_failed"
-			notificationMessage = "A shipment delivery attempt has failed."
-
-		case "returned":
-			notificationType = "shipment_returned"
-			notificationMessage = "A shipment has been returned."
 		}
 		if orderStatus != "" {
 			note := "Order status automatically updated to " +
 				orderStatus + " because the shipment status changed."
 			if err := repos.Order.UpdateOrderStatus(ctx, shipment.OrderID, orderStatus, &note); err != nil {
-				return err
-			}
-		}
-		if notificationType != "" && notificationMessage != "" {
-			adminIDs, err := repos.User.ListAdminIDs(ctx)
-			if err != nil {
-				return err
-			}
-			if len(adminIDs) == 0 {
-				return nil
-			}
-			eventData := map[string]interface{}{
-				"shipment_id": shipment.ID,
-				"order_id":    shipment.OrderID,
-				"status":      status,
-			}
-			data, err := json.Marshal(eventData)
-			if err != nil {
-				return err
-			}
-			notification := &models.Notification{
-				Type:      notificationType,
-				Message:   notificationMessage,
-				Priority:  "medium",
-				EventData: (*json.RawMessage)(&data),
-			}
-			if err := repos.Notification.Create(ctx, notification); err != nil {
-				return err
-			}
-			recipients := make([]models.NotificationRecipient, 0, len(adminIDs))
-
-			for _, adminID := range adminIDs {
-				recipients = append(
-					recipients,
-					models.NotificationRecipient{
-						NotificationID: notification.ID,
-						AdminID:        adminID,
-					},
-				)
-			}
-			if err := repos.Notification.CreateRecipients(ctx, recipients); err != nil {
 				return err
 			}
 		}
@@ -271,6 +273,61 @@ func (u *ShipmentUseCase) GetCustomerTrackingHistory(ctx context.Context, userID
 		return nil, err
 	}
 	return history, nil
+}
+func isValidReturnStatus(status string) bool {
+	switch status {
+	case ReturnStatusRequested,
+		ReturnStatusApproved,
+		ReturnStatusRejected,
+		ReturnStatusPickupScheduled,
+		ReturnStatusInTransit,
+		ReturnStatusReceived,
+		ReturnStatusInspectionPending,
+		ReturnStatusInspectionPassed,
+		ReturnStatusInspectionFailed,
+		ReturnStatusClosed:
+		return true
+	default:
+		return false
+	}
+}
+func isValidReturnTransition(current, next string) bool {
+	if current == next {
+		return false
+	}
+
+	switch current {
+	case ReturnStatusRequested:
+		return next == ReturnStatusApproved ||
+			next == ReturnStatusRejected
+
+	case ReturnStatusApproved:
+		return next == ReturnStatusPickupScheduled ||
+			next == ReturnStatusClosed
+
+	case ReturnStatusPickupScheduled:
+		return next == ReturnStatusInTransit ||
+			next == ReturnStatusClosed
+
+	case ReturnStatusInTransit:
+		return next == ReturnStatusReceived
+
+	case ReturnStatusReceived:
+		return next == ReturnStatusInspectionPending
+
+	case ReturnStatusInspectionPending:
+		return next == ReturnStatusInspectionPassed ||
+			next == ReturnStatusInspectionFailed
+
+	case ReturnStatusInspectionPassed:
+		return next == ReturnStatusClosed
+
+	case ReturnStatusInspectionFailed:
+		return next == ReturnStatusClosed
+
+	default:
+		return false
+	}
 }
 
 var _ interfaces.ShipmentUseCase = (*ShipmentUseCase)(nil)

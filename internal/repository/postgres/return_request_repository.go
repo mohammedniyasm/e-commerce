@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ReturnRequestRepository struct {
@@ -114,6 +115,7 @@ func (r *ReturnRequestRepository) Update(ctx context.Context, request *models.Re
 		Select(
 			"Status",
 			"AdminNote",
+			"ReplacementOrderID",
 			"UpdatedAt",
 		).
 		Updates(request)
@@ -139,6 +141,21 @@ func (r *ReturnRequestRepository) HasActiveRequest(ctx context.Context, orderIte
 		return false, err
 	}
 	return count > 0, nil
+}
+func (r *ReturnRequestRepository) LockByID(ctx context.Context, id uint) (*models.ReturnRequest, error) {
+	var request models.ReturnRequest
+	err := r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Preload("OrderItem").
+		Where("id = ?", id).
+		First(&request).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrRecordNotFound
+		}
+		return nil, err
+	}
+	return &request, nil
 }
 
 var _ interfaces.ReturnRequestRepository = (*ReturnRequestRepository)(nil)

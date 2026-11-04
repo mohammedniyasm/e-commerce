@@ -109,6 +109,7 @@ func (h *OrderHandler) PlaceOrder(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "Unable to place order",
+			Error:   err.Error(),
 		})
 		return
 	}
@@ -681,4 +682,113 @@ func mapOrderToResponse(order *models.Order) response.OrderResponse {
 		PlacedAt:               order.PlacedAt,
 		CreatedAt:              order.CreatedAt,
 	}
+}
+func (h *OrderHandler) ListRefundPendingOrders(c *gin.Context) {
+	var req request.ListOrdersRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "Invalid query parameters",
+		})
+		return
+	}
+	if req.Limit <= 0 {
+		req.Limit = 10
+	}
+	if req.Limit > 100 {
+		req.Limit = 100
+	}
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	cancelled := "cancelled"
+	paid := "paid"
+	orders, total, err := h.orderUseCase.List(
+		c.Request.Context(),
+		nil,
+		"",
+		req.Limit,
+		req.Page,
+		req.Sort,
+		&cancelled,
+		&paid,
+	)
+	if err != nil {
+		h.log.ErrorContext(
+			c.Request.Context(),
+			"failed to list refund pending orders",
+			"error", err,
+		)
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "Unable to retrieve refund pending orders",
+		})
+		return
+	}
+	orderResponses := make(
+		[]response.OrderResponse,
+		0,
+		len(orders),
+	)
+	for i := range orders {
+		orderResponses = append(
+			orderResponses,
+			mapOrderToResponse(&orders[i]),
+		)
+	}
+	totalPages := int64(0)
+	if total > 0 {
+		totalPages = (total + int64(req.Limit) - 1) / int64(req.Limit)
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "Refund pending orders retrieved successfully",
+		Data: response.OrderListResponse{
+			Orders:     orderResponses,
+			TotalCount: total,
+			Page:       req.Page,
+			Limit:      req.Limit,
+			TotalPages: totalPages,
+		},
+	})
+}
+func (h *OrderHandler) ProcessWalletRefund(c *gin.Context) {
+	adminID, ok := getAuthenticatedUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "Authentication required",
+		})
+		return
+	}
+	orderID, err := uuid.Parse(c.Param("order_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "Invalid order ID",
+		})
+		return
+	}
+	if err := h.orderUseCase.ProcessWalletRefund(
+		c.Request.Context(),
+		adminID,
+		orderID,
+	); err != nil {
+		h.log.ErrorContext(
+			c.Request.Context(),
+			"failed to process wallet refund",
+			"admin_id", adminID,
+			"order_id", orderID,
+			"error", err,
+		)
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "Unable to process wallet refund",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "Refund credited to customer's wallet successfully",
+	})
 }

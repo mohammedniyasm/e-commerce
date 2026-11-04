@@ -46,6 +46,7 @@ func RegisterRoutes(r *gin.Engine,
 		v1.GET("/products/:id/recommendations", storeProductHandler.GetRelatedProducts)
 		v1.POST("/guest-cart/validate", middleware.RateLimit(rateLimiter, 30, 60, "guest-cart-validate"), cartHandler.ValidateGuestCart)
 		v1.POST("/payments/razorpay/webhook", paymentHandler.HandleRazorpayWebhook)
+		v1.POST("/wallet/razorpay/webhook", walletHandler.RazorpayWebhook)
 	}
 	authMiddleware := middleware.AuthMiddleware(jwtService, userRepo, blacklist)
 	auth := v1.Group("/auth")
@@ -127,6 +128,8 @@ func RegisterRoutes(r *gin.Engine,
 		protected.GET("/wallet", walletHandler.GetWallet)
 		protected.GET("/wallet/transactions", walletHandler.ListTransactions)
 		protected.GET("/wallet/transactions/:id", walletHandler.GetTransactionByID)
+		protected.POST("/wallet/top-up/order", walletHandler.CreateTopUpOrder)
+		protected.POST("/wallet/top-up/verify", walletHandler.VerifyTopUpPayment)
 
 		protected.GET("/referrals", refferalHandler.GetReferralDashboard)
 
@@ -260,6 +263,8 @@ func RegisterRoutes(r *gin.Engine,
 		admin.PATCH("/orders/:order_id/status", orderHandler.UpdateOrderStatus)
 		admin.GET("/orders/:order_id", orderHandler.GetOrderByID)
 		admin.GET("/orders/:order_id/shipment", shipmentHandler.GetShipmentByOrderID)
+		admin.GET("/orders/refund-pending", orderHandler.ListRefundPendingOrders)
+		admin.POST("/orders/:order_id/refund", orderHandler.ProcessWalletRefund)
 
 		admin.POST("/shipments", shipmentHandler.CreateShipment)
 		admin.GET("/shipments/:shipment_id", shipmentHandler.GetShipmentByID)
@@ -270,6 +275,8 @@ func RegisterRoutes(r *gin.Engine,
 		admin.GET("/return-requests", returnRequestHandler.List)
 		admin.GET("/return-requests/:id", returnRequestHandler.GetByID)
 		admin.PATCH("return-requests/:id/status", returnRequestHandler.UpdateStatus)
+		admin.POST("/return-requests/:id/exchange", returnRequestHandler.CreateExchangeOrder)
+		admin.POST("/return-requests/:id/return-shipment", returnRequestHandler.CreateReturnToCustomerShipment)
 
 		admin.GET("/wallets/:userId", walletHandler.GetUserWallet)
 		admin.GET("/wallets/:userId/transactions", walletHandler.GetUserWalletTransactions)

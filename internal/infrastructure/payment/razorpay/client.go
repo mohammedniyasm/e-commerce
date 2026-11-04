@@ -3,6 +3,7 @@ package razorpay
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -73,4 +74,20 @@ func (c *Client) FetchPayment(paymentID string) (map[string]interface{}, error) 
 		return nil, fmt.Errorf("failed to fetch razorpay payment: %w", err)
 	}
 	return result, nil
+}
+func VerifyWebhookSignature(body []byte, signature string, webhookSecret string) bool {
+	if len(body) == 0 || signature == "" || webhookSecret == "" {
+		return false
+	}
+	receivedSignature, err := hex.DecodeString(signature)
+	if err != nil {
+		return false
+	}
+	mac := hmac.New(sha256.New, []byte(webhookSecret))
+	mac.Write(body)
+	expectedSignature := mac.Sum(nil)
+	return subtle.ConstantTimeCompare(
+		expectedSignature,
+		receivedSignature,
+	) == 1
 }

@@ -37,7 +37,7 @@ func (r *ShipmentRepository) GetByID(ctx context.Context, id uint) (*models.Ship
 }
 func (r *ShipmentRepository) GetByOrderID(ctx context.Context, orderID uuid.UUID) (*models.Shipment, error) {
 	var shipment models.Shipment
-	if err := r.db.WithContext(ctx).Where("order_id = ?", orderID).First(&shipment).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("order_id = ? AND type = ?", orderID, models.ShipmentTypeDelivery).First(&shipment).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domainerrors.ErrRecordNotFound
 		}
@@ -46,13 +46,13 @@ func (r *ShipmentRepository) GetByOrderID(ctx context.Context, orderID uuid.UUID
 	return &shipment, nil
 }
 func (r *ShipmentRepository) Update(ctx context.Context, shipment *models.Shipment) error {
-	result := r.db.WithContext(ctx).Model(&models.Order{}).Where("id = ?", shipment.ID).Select(
+	result := r.db.WithContext(ctx).Model(&models.Shipment{}).Where("id = ?", shipment.ID).Select(
 		"CourierName",
 		"TrackingNumber",
 		"UpdatedAt",
 	).Updates(shipment)
 	if result.Error != nil {
-		return nil
+		return result.Error
 	}
 	if result.RowsAffected == 0 {
 		return domainerrors.ErrRecordNotFound
@@ -99,6 +99,39 @@ func (r *ShipmentRepository) GetTrackingHistory(ctx context.Context, shipmentID 
 		return nil, err
 	}
 	return history, nil
+}
+func (r *ShipmentRepository) GetByReturnRequestID(ctx context.Context, returnRequestID uint) ([]models.Shipment, error) {
+	var shipments []models.Shipment
+	err := r.db.WithContext(ctx).
+		Where(
+			"return_request_id = ? AND type = ?",
+			returnRequestID,
+			models.ShipmentTypeReturn,
+		).
+		Order("created_at DESC").
+		Find(&shipments).Error
+	if err != nil {
+		return nil, err
+	}
+	return shipments, nil
+
+}
+func (r *ShipmentRepository) GetByReturnRequestIDAndType(ctx context.Context, returnRequestID uint, shipmentType models.ShipmentType) (*models.Shipment, error) {
+	var shipment models.Shipment
+	err := r.db.WithContext(ctx).
+		Where(
+			"return_request_id = ? AND type = ?",
+			returnRequestID,
+			shipmentType,
+		).
+		First(&shipment).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrRecordNotFound
+		}
+		return nil, err
+	}
+	return &shipment, nil
 }
 
 var _ interfaces.ShipmentRepository = (*ShipmentRepository)(nil)

@@ -20,4 +20,6 @@ type OrderUseCase interface {
 	UpdateOrderAddress(ctx context.Context, userID uint, orderID uuid.UUID, address models.OrderAddress) error
 	GenerateInvoice(ctx context.Context, userID uint, orderID uuid.UUID) ([]byte, error)
 	UpdateCODPaymentStatus(ctx context.Context, orderID uuid.UUID, status string) error
+	ExpirePendingOrder(ctx context.Context, orderID uuid.UUID) error
+	ProcessWalletRefund(ctx context.Context, adminID uint, orderID uuid.UUID) error
 }

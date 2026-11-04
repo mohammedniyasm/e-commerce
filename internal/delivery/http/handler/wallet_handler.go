@@ -1,28 +1,38 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
+	"io"
+	"math"
+	"net/http"
+	"strconv"
+
 	"ecommerce/internal/delivery/http/dto/request"
 	"ecommerce/internal/delivery/http/dto/response"
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
+	"ecommerce/internal/infrastructure/payment/razorpay"
 	"ecommerce/internal/usecase/interfaces"
-	"errors"
-	"log/slog"
-	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 type WalletHandler struct {
 	walletUseCase interfaces.WalletUseCase
-	log           *slog.Logger
+	razorpayKeyID string
+	webhookSecret string
 }
 
-func NewWalletHandler(walletUseCase interfaces.WalletUseCase, log *slog.Logger) *WalletHandler {
+func NewWalletHandler(
+	walletUseCase interfaces.WalletUseCase,
+	razorpayKeyID string,
+	webhookSecret string,
+) *WalletHandler {
 	return &WalletHandler{
 		walletUseCase: walletUseCase,
-		log:           log,
+		razorpayKeyID: razorpayKeyID,
+		webhookSecret: webhookSecret,
 	}
 }
 func (h *WalletHandler) GetWallet(c *gin.Context) {
@@ -315,5 +325,185 @@ func (h *WalletHandler) CreditUserWallet(c *gin.Context) {
 	c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
 		Message: "user wallet credited successfully",
+	})
+}
+func (h *WalletHandler) CreateTopUpOrder(c *gin.Context) {
+	userID, ok := getCartUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "authentication required",
+		})
+		return
+	}
+	var req request.CreateTopUpOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid wallet top-up request",
+		})
+		return
+	}
+	gatewayOrderID, err := h.walletUseCase.CreateTopUpOrder(
+		c.Request.Context(),
+		uint(userID),
+		req.Amount,
+	)
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrInvalidUserID) {
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid user id",
+			})
+			return
+		}
+		if errors.Is(err, domainerrors.ErrInvalidInput) {
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid top-up amount",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "failed to create wallet top-up order",
+		})
+		return
+	}
+	c.JSON(http.StatusCreated, response.APIResponse{
+		Success: true,
+		Message: "wallet top-up order created successfully",
+		Data: gin.H{
+			"razorpay_key_id":  h.razorpayKeyID,
+			"gateway_order_id": gatewayOrderID,
+			"amount":           int64(math.Round(req.Amount * 100)),
+			"currency":         "INR",
+		},
+	})
+}
+func (h *WalletHandler) VerifyTopUpPayment(c *gin.Context) {
+	userID, ok := getCartUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "authentication required",
+		})
+		return
+	}
+	var req request.VerifyTopUpPaymentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid payment verification request",
+		})
+		return
+	}
+	err := h.walletUseCase.VerifyTopUpPayment(
+		c.Request.Context(),
+		uint(userID),
+		req.GatewayOrderID,
+		req.GatewayPaymentID,
+		req.Signature,
+	)
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrInvalidInput) {
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid payment details",
+			})
+			return
+		}
+		if errors.Is(err, domainerrors.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, response.APIResponse{
+				Success: false,
+				Message: "wallet top-up not found",
+			})
+			return
+		}
+		if errors.Is(err, domainerrors.ErrInvalidUserID) {
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "invalid user id",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "failed to verify wallet top-up payment",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "wallet topped up successfully",
+	})
+}
+func (h *WalletHandler) RazorpayWebhook(c *gin.Context) {
+	const maxBodySize = 1 << 20 // 1 MB
+	c.Request.Body = http.MaxBytesReader(
+		c.Writer,
+		c.Request.Body,
+		maxBodySize,
+	)
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid webhook payload",
+		})
+		return
+	}
+	signature := c.GetHeader("X-Razorpay-Signature")
+	if !razorpay.VerifyWebhookSignature(
+		body,
+		signature,
+		h.webhookSecret,
+	) {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid webhook signature",
+		})
+		return
+	}
+	var webhook models.RazorpayWebhook
+	if err := json.Unmarshal(body, &webhook); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid webhook event",
+		})
+		return
+	}
+	if webhook.Event != "payment.captured" {
+		c.JSON(http.StatusOK, response.APIResponse{
+			Success: true,
+			Message: "webhook event ignored",
+		})
+		return
+	}
+	payment := webhook.Payload.Payment.Entity
+	if payment.ID == "" || payment.OrderID == "" {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "missing payment details",
+		})
+		return
+	}
+	err = h.walletUseCase.ProcessTopUpWebhook(
+		c.Request.Context(),
+		payment.OrderID,
+		payment.ID,
+		payment.Amount,
+		payment.Currency,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "webhook processing failed",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "webhook processed successfully",
 	})
 }

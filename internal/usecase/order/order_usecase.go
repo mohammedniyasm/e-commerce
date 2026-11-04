@@ -166,7 +166,7 @@ func (u *OrderUseCase) PlaceOrder(ctx context.Context, userID uint, cartItemIDs 
 	}
 	paymentMethod = strings.ToLower(strings.TrimSpace(paymentMethod))
 	switch paymentMethod {
-	case "cod", "online":
+	case "cod", "online", "wallet":
 		// Supported payment method.
 
 	default:
@@ -349,17 +349,41 @@ func (u *OrderUseCase) PlaceOrder(ctx context.Context, userID uint, cartItemIDs 
 				return domainerrors.ErrInvalidInput
 			}
 		}
+
 		now := time.Now()
-		// var paymentDeadline *time.Time
-		orderStatus := "pending"
-		if paymentMethod == "cod" {
-			orderStatus = "confirmed"
-		}
 		orderID := uuid.New()
 		shippingAmount := 0.0
 		totalAmount := roundMoney(
 			subtotal - discountAmount + shippingAmount,
 		)
+		var wallet *models.Wallet
+		if paymentMethod == "wallet" {
+			wallet, err = repos.Wallet.GetByUserIDForUpdate(
+				ctx,
+				userID,
+			)
+			if err != nil {
+				return err
+			}
+			if roundMoney(wallet.Balance) < totalAmount {
+				return domainerrors.ErrInsufficientBalance
+			}
+		}
+		orderStatus := "pending"
+		orderPaymentStatus := "pending"
+		paymentStatus := "pending"
+
+		switch paymentMethod {
+
+		case "cod":
+			orderStatus = "confirmed"
+
+		case "wallet":
+			orderStatus = "confirmed"
+			orderPaymentStatus = "paid"
+			paymentStatus = "paid"
+		}
+
 		newOrder := &models.Order{
 			ID:             orderID,
 			UserID:         userID,
@@ -369,11 +393,10 @@ func (u *OrderUseCase) PlaceOrder(ctx context.Context, userID uint, cartItemIDs 
 			ShippingAmount: shippingAmount,
 			TotalAmount:    totalAmount,
 			OrderStatus:    orderStatus,
-			PaymentStatus:  "pending",
-			// PaymentDeadline: paymentDeadline,
-			PlacedAt:  now,
-			CreatedAt: now,
-			UpdatedAt: now,
+			PaymentStatus:  orderPaymentStatus,
+			PlacedAt:       now,
+			CreatedAt:      now,
+			UpdatedAt:      now,
 		}
 		if err := repos.Order.Create(ctx, newOrder); err != nil {
 			return err
@@ -415,13 +438,48 @@ func (u *OrderUseCase) PlaceOrder(ctx context.Context, userID uint, cartItemIDs 
 		payment := &models.Payment{
 			OrderID:       orderID,
 			PaymentMethod: paymentMethod,
-			PaymentStatus: "pending",
+			PaymentStatus: paymentStatus,
 			Amount:        newOrder.TotalAmount,
 			CreatedAt:     now,
 			UpdatedAt:     now,
 		}
 		if err := repos.Payment.Create(ctx, payment); err != nil {
 			return err
+		}
+		if paymentMethod == "wallet" {
+			balanceBefore := roundMoney(wallet.Balance)
+			balanceAfter := roundMoney(
+				balanceBefore - totalAmount,
+			)
+			if balanceAfter < 0 {
+				return domainerrors.ErrInsufficientBalance
+			}
+			wallet.Balance = balanceAfter
+			wallet.UpdatedAt = now
+			if err := repos.Wallet.Update(
+				ctx,
+				wallet,
+			); err != nil {
+				return err
+			}
+			description := "Order payment: " + newOrder.OrderNumber
+			walletTransaction := &models.WalletTransaction{
+				WalletID:        userID,
+				TransactionType: models.WalletTransactionDebit,
+				Source:          models.WalletSourceOrderPayment,
+				Amount:          totalAmount,
+				BalanceBefore:   balanceBefore,
+				BalanceAfter:    balanceAfter,
+				ReferenceID:     &orderID,
+				Description:     &description,
+				CreatedAt:       now,
+			}
+			if err := repos.Wallet.CreateTransaction(
+				ctx,
+				walletTransaction,
+			); err != nil {
+				return err
+			}
 		}
 		if coupon != nil {
 			usage := &models.CouponUsage{
@@ -781,6 +839,205 @@ func (u *OrderUseCase) UpdateCODPaymentStatus(ctx context.Context, orderID uuid.
 			return nil
 		},
 	)
+}
+func (u *OrderUseCase) ExpirePendingOrder(ctx context.Context, orderID uuid.UUID) error {
+	if orderID == uuid.Nil {
+		return domainerrors.ErrInvalidOrderID
+	}
+	now := time.Now()
+	err := u.unitOfWork.WithinTransaction(
+		ctx,
+		func(repos interfaces.TransactionRepositories) error {
+			order, err := repos.Order.LockByID(ctx, orderID)
+			if err != nil {
+				return err
+			}
+			if order.OrderStatus != "pending" ||
+				order.PaymentStatus != "pending" {
+				return nil
+			}
+			if order.PlacedAt.Add(10 * time.Minute).After(now) {
+				return nil
+			}
+			payments, err := repos.Payment.GetByOrderID(ctx, order.ID)
+			if err != nil {
+				return err
+			}
+			if len(payments) == 0 {
+				return domainerrors.ErrRecordNotFound
+			}
+			payment := &payments[0]
+			method := strings.ToLower(strings.TrimSpace(payment.PaymentMethod))
+			if method == "cod" || method == "cash_on_delivery" {
+				return nil
+			}
+			if payment.PaymentStatus != "pending" {
+				return nil
+			}
+			items, err := repos.OrderItem.ListByOrderID(ctx, order.ID)
+			if err != nil {
+				return err
+			}
+			if len(items) == 0 {
+				return domainerrors.ErrInvalidInput
+			}
+			for _, item := range items {
+				if item.Quantity <= 0 {
+					return domainerrors.ErrInvalidQuantity
+				}
+				err := repos.ProductVariant.IncreaseStock(
+					ctx,
+					int64(item.VariantID),
+					item.Quantity,
+				)
+				if err != nil {
+					return err
+				}
+			}
+			payment.PaymentStatus = "failed"
+			payment.UpdatedAt = now
+			failureReason := "Payment expired"
+			payment.FailureReason = &failureReason
+			if err := repos.Payment.Update(ctx, payment); err != nil {
+				return err
+			}
+			order.OrderStatus = "cancelled"
+			order.PaymentStatus = "failed"
+			order.UpdatedAt = now
+			if err := repos.Order.Update(ctx, order); err != nil {
+				return err
+			}
+			note := "Order automatically cancelled due to payment timeout"
+			history := &models.OrderStatusHistory{
+				OrderID:   order.ID,
+				Status:    "cancelled",
+				Note:      &note,
+				CreatedAt: now,
+			}
+			if err := repos.OrderStatusHistory.Create(ctx, history); err != nil {
+				return err
+			}
+			if err := repos.CouponUsage.CancelByOrderID(ctx, order.ID); err != nil {
+				return err
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		u.log.ErrorContext(
+			ctx,
+			"failed to expire pending order",
+			"order_id", orderID,
+			"error", err,
+		)
+		return err
+	}
+	u.log.InfoContext(
+		ctx,
+		"pending order expiry processed",
+		"order_id", orderID,
+	)
+	return nil
+}
+func (u *OrderUseCase) ProcessWalletRefund(ctx context.Context, adminID uint, orderID uuid.UUID) error {
+	if adminID == 0 {
+		return domainerrors.ErrInvalidUserID
+	}
+	if orderID == uuid.Nil {
+		return domainerrors.ErrInvalidOrderID
+	}
+	now := time.Now()
+	err := u.unitOfWork.WithinTransaction(
+		ctx,
+		func(repos interfaces.TransactionRepositories) error {
+			order, err := repos.Order.LockByID(ctx, orderID)
+			if err != nil {
+				return err
+			}
+			if order.OrderStatus != "cancelled" {
+				return domainerrors.ErrInvalidOrderTransition
+			}
+			if order.PaymentStatus != "paid" {
+				return domainerrors.ErrInvalidInput
+			}
+			payment, err := repos.Payment.GetLatestByOrderIDForUpdate(
+				ctx,
+				orderID,
+			)
+			if err != nil {
+				return err
+			}
+			if payment.PaymentStatus != "paid" {
+				return domainerrors.ErrInvalidInput
+			}
+			amount := roundMoney(payment.Amount)
+			if amount <= 0 {
+				return domainerrors.ErrInvalidInput
+			}
+			wallet, err := repos.Wallet.GetByUserIDForUpdate(
+				ctx,
+				order.UserID,
+			)
+			if err != nil {
+				return err
+			}
+			balanceBefore := roundMoney(wallet.Balance)
+			balanceAfter := roundMoney(balanceBefore + amount)
+			wallet.Balance = balanceAfter
+			wallet.UpdatedAt = now
+			if err := repos.Wallet.Update(ctx, wallet); err != nil {
+				return err
+			}
+			description := fmt.Sprintf(
+				"Refund for order %s processed by admin %d",
+				order.OrderNumber,
+				adminID,
+			)
+			walletTransaction := &models.WalletTransaction{
+				WalletID:        order.UserID,
+				TransactionType: models.WalletTransactionCredit,
+				Source:          models.WalletSourceRefund,
+				Amount:          amount,
+				BalanceBefore:   balanceBefore,
+				BalanceAfter:    balanceAfter,
+				ReferenceID:     &order.ID,
+				Description:     &description,
+				CreatedAt:       now,
+			}
+			if err := repos.Wallet.CreateTransaction(
+				ctx,
+				walletTransaction,
+			); err != nil {
+				return err
+			}
+			order.PaymentStatus = "refunded"
+			order.UpdatedAt = now
+			if err := repos.Order.Update(ctx, order); err != nil {
+				return err
+			}
+			return nil
+		},
+	)
+
+	if err != nil {
+		u.log.ErrorContext(
+			ctx,
+			"failed to process wallet refund",
+			"admin_id", adminID,
+			"order_id", orderID,
+			"error", err,
+		)
+		return err
+	}
+
+	u.log.InfoContext(
+		ctx,
+		"wallet refund processed successfully",
+		"admin_id", adminID,
+		"order_id", orderID,
+	)
+
+	return nil
 }
 func roundMoney(amount float64) float64 {
 	return math.Round(amount*100) / 100

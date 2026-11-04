@@ -81,26 +81,17 @@ func (h *PaymentHandler) CreateRazorpayOrder(c *gin.Context) {
 		})
 		return
 	}
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, response.APIResponse{
-			Success: false,
-			Message: "unauthorized",
-		})
-		return
-	}
-
-	id, ok := userID.(uint)
+	userID, ok := getCartUserID(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
-			Message: "invalid user identity",
+			Message: "authentication required",
 		})
 		return
 	}
 	razorpayOrderID, err := h.paymentUseCase.CreateRazorpayOrder(
 		c.Request.Context(),
-		id,
+		uint(userID),
 		req.OrderID,
 	)
 	if err != nil {
@@ -129,28 +120,18 @@ func (h *PaymentHandler) VerifyRazorpayPayment(c *gin.Context) {
 		})
 		return
 	}
-
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, response.APIResponse{
-			Success: false,
-			Message: "unauthorized",
-		})
-		return
-	}
-
-	id, ok := userID.(uint)
+	userID, ok := getCartUserID(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.APIResponse{
 			Success: false,
-			Message: "invalid user identity",
+			Message: "authentication required",
 		})
 		return
 	}
 
 	err := h.paymentUseCase.VerifyRazorpayPayment(
 		c.Request.Context(),
-		id,
+		uint(userID),
 		req.OrderID,
 		req.RazorpayOrderID,
 		req.RazorpayPaymentID,

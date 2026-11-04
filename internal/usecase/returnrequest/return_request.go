@@ -3,6 +3,7 @@ package return_request
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -337,7 +338,7 @@ func (u *ReturnRequestUseCase) List(ctx context.Context, orderID *uuid.UUID, sta
 	}
 	return requests, total, nil
 }
-func (u *ReturnRequestUseCase) UpdateStatus(ctx context.Context, returnRequestID uint, status string, adminNote *string) (*models.ReturnRequest, error) {
+func (u *ReturnRequestUseCase) UpdateStatus(ctx context.Context, returnRequestID uint, status string, adminNote *string, courierName *string, trackingNumber *string) (*models.ReturnRequest, error) {
 	if returnRequestID == 0 {
 		return nil, domainerrors.ErrInvalidInput
 	}
@@ -346,36 +347,146 @@ func (u *ReturnRequestUseCase) UpdateStatus(ctx context.Context, returnRequestID
 		return nil, domainerrors.ErrInvalidInput
 	}
 	var updatedRequest *models.ReturnRequest
-	err := u.uow.WithinTransaction(
-		ctx,
-		func(repos interfaces.TransactionRepositories) error {
-			request, err := repos.ReturnRequest.GetByID(
+	err := u.uow.WithinTransaction(ctx, func(repos interfaces.TransactionRepositories) error {
+		request, err := repos.ReturnRequest.GetByID(
+			ctx,
+			returnRequestID,
+		)
+		if err != nil {
+			return err
+		}
+		if !isValidReturnTransition(request.Status, status) {
+			return domainerrors.ErrInvalidOrderTransition
+		}
+		if status == ReturnStatusApproved {
+			existingShipments, err := repos.Shipment.GetByReturnRequestID(
 				ctx,
-				returnRequestID,
+				request.ID,
 			)
 			if err != nil {
-				return fmt.Errorf(
-					"get return request for status update: %w",
-					err,
-				)
+				return err
 			}
-			if !isValidReturnTransition(request.Status, status) {
-				return domainerrors.ErrInvalidOrderTransition
+			if len(existingShipments) > 0 {
+				return domainerrors.ErrInvalidInput
 			}
-			request.Status = status
-			request.AdminNote = adminNote
-			if err := repos.ReturnRequest.Update(
+			shipment := &models.Shipment{
+				OrderID:         request.OrderID,
+				ReturnRequestID: &request.ID,
+				Type:            models.ShipmentTypeReturn,
+				ShippingStatus:  "pending",
+			}
+			if err := repos.Shipment.Create(ctx, shipment); err != nil {
+				return err
+			}
+		}
+		if status == ReturnStatusPickupScheduled {
+			shipments, err := repos.Shipment.GetByReturnRequestID(
 				ctx,
-				request,
-			); err != nil {
-				return fmt.Errorf(
-					"update return request status: %w",
-					err,
-				)
+				request.ID,
+			)
+			if err != nil {
+				return fmt.Errorf("get return shipment: %w", err)
 			}
-			updatedRequest = request
-			return nil
-		},
+			if len(shipments) != 1 {
+				return domainerrors.ErrRecordNotFound
+			}
+			shipment := &shipments[0]
+			if courierName == nil || strings.TrimSpace(*courierName) == "" {
+				return domainerrors.ErrInvalidInput
+			}
+			if trackingNumber == nil || strings.TrimSpace(*trackingNumber) == "" {
+				return domainerrors.ErrInvalidInput
+			}
+			shipment.CourierName = courierName
+			shipment.TrackingNumber = trackingNumber
+			if err := repos.Shipment.Update(ctx, shipment); err != nil {
+				return fmt.Errorf("update return shipment: %w", err)
+			}
+		}
+		if status == ReturnStatusInspectionPassed {
+			orderItem, err := repos.OrderItem.GetByID(
+				ctx,
+				request.OrderItemID,
+			)
+			if err != nil {
+				return fmt.Errorf("get returned order item: %w", err)
+			}
+			variantID := int64(orderItem.VariantID)
+			if err := repos.ProductVariant.IncreaseStock(
+				ctx,
+				variantID,
+				request.Quantity,
+			); err != nil {
+				return fmt.Errorf("restore returned product stock: %w", err)
+			}
+		}
+		if status == ReturnStatusInspectionPassed &&
+			request.RequestType == RequestTypeReturn {
+			orderItem, err := repos.OrderItem.GetByID(
+				ctx,
+				request.OrderItemID,
+			)
+			if err != nil {
+				return fmt.Errorf("get returned order item: %w", err)
+			}
+			order, err := repos.Order.GetByID(ctx, request.OrderID)
+			if err != nil {
+				return fmt.Errorf("get original order: %w", err)
+			}
+			refundAmount := orderItem.UnitPrice * float64(request.Quantity)
+			if refundAmount <= 0 {
+				return domainerrors.ErrInvalidInput
+			}
+			wallet, err := repos.Wallet.GetByUserIDForUpdate(
+				ctx,
+				order.UserID,
+			)
+			if err != nil {
+				return fmt.Errorf("get customer wallet: %w", err)
+			}
+			balanceBefore := wallet.Balance
+			balanceAfter := balanceBefore + refundAmount
+			wallet.Balance = balanceAfter
+			if err := repos.Wallet.Update(ctx, wallet); err != nil {
+				return fmt.Errorf("update customer wallet: %w", err)
+			}
+			description := fmt.Sprintf(
+				"Refund for return request #%d",
+				request.ID,
+			)
+			transaction := &models.WalletTransaction{
+				WalletID:        wallet.ID,
+				TransactionType: models.WalletTransactionCredit,
+				Source:          models.WalletSourceRefund,
+				Amount:          refundAmount,
+				BalanceBefore:   balanceBefore,
+				BalanceAfter:    balanceAfter,
+				ReturnRequestID: &request.ID,
+				Description:     &description,
+				CreatedAt:       time.Now(),
+			}
+			if err := repos.Wallet.CreateTransaction(
+				ctx,
+				transaction,
+			); err != nil {
+				return fmt.Errorf("create refund transaction: %w", err)
+			}
+			status = ReturnStatusClosed
+		}
+		request.Status = status
+		request.AdminNote = adminNote
+		if err := repos.ReturnRequest.Update(
+			ctx,
+			request,
+		); err != nil {
+			return fmt.Errorf(
+				"update return request status: %w",
+				err,
+			)
+		}
+		updatedRequest = request
+		return nil
+	},
 	)
 	if err != nil {
 		u.log.ErrorContext(
@@ -449,6 +560,267 @@ func isValidReturnTransition(current, next string) bool {
 	default:
 		return false
 	}
+}
+func (u ReturnRequestUseCase) CreateExchangeOrder(ctx context.Context, returnRequestID uint) (*models.Order, error) {
+	if returnRequestID <= 0 {
+		return nil, domainerrors.ErrInvalidInput
+	}
+	var replacementOrder *models.Order
+	err := u.uow.WithinTransaction(ctx, func(repos interfaces.TransactionRepositories) error {
+		request, err := repos.ReturnRequest.LockByID(ctx, returnRequestID)
+		if err != nil {
+			return err
+		}
+		if request.RequestType == RequestTypeExchange {
+			return domainerrors.ErrInvalidInput
+		}
+		if request.Status != ReturnStatusInspectionPassed {
+			return domainerrors.ErrInvalidOrderStatus
+		}
+		if request.RequestedVariantID == nil ||
+			*request.RequestedVariantID == 0 {
+			return domainerrors.ErrInvalidInput
+		}
+		if request.ReplacementOrderID != nil {
+			return domainerrors.ErrInvalidInput
+		}
+		originalItem, err := repos.OrderItem.GetByID(
+			ctx,
+			request.OrderItemID,
+		)
+		if err != nil {
+			return err
+		}
+		if originalItem.OrderID != request.OrderID {
+			return domainerrors.ErrInvalidInput
+		}
+		if request.Quantity <= 0 ||
+			request.Quantity > originalItem.Quantity {
+			return domainerrors.ErrInvalidQuantity
+		}
+		originalVariant, err := repos.ProductVariant.GetByID(ctx, int64(originalItem.VariantID))
+		if err != nil {
+			return err
+		}
+		variant, err := repos.ProductVariant.GetByID(ctx, int64(*request.RequestedVariantID))
+		if err != nil {
+			return err
+		}
+		if variant.ProductID != originalVariant.ProductID ||
+			variant.ID == originalVariant.ID {
+			return domainerrors.ErrInvalidInput
+		}
+		product := variant.Product
+		if !variant.IsActive ||
+			!product.IsActive ||
+			!product.IsListed ||
+			product.DeletedAt != nil ||
+			!product.Brand.IsActive ||
+			!product.Category.IsActive ||
+			product.Brand.DeletedAt != nil ||
+			product.Category.DeletedAt != nil {
+			return domainerrors.ErrProductNotAvailable
+		}
+		originalOrder, err := repos.Order.GetByID(ctx, request.OrderID)
+		if err != nil {
+			return err
+		}
+		address, err := repos.OrderAddress.GetByOrderID(
+			ctx,
+			originalOrder.ID,
+		)
+		if err != nil {
+			return err
+		}
+		unitPrice := variant.SellingPrice
+		subtotal := unitPrice * float64(request.Quantity)
+		now := time.Now()
+		orderID := uuid.New()
+		newOrder := &models.Order{
+			ID:             orderID,
+			UserID:         originalOrder.UserID,
+			OrderNumber:    "ORD-" + strings.ToUpper(uuid.NewString()),
+			Subtotal:       subtotal,
+			DiscountAmount: 0,
+			ShippingAmount: 0,
+			TotalAmount:    subtotal,
+			OrderStatus:    "confirmed",
+			PaymentStatus:  "paid",
+			PlacedAt:       now,
+			CreatedAt:      now,
+			UpdatedAt:      now,
+		}
+		if err := repos.Order.Create(ctx, newOrder); err != nil {
+			return err
+		}
+		variantInfo, err := json.Marshal(map[string]any{
+			"sku":   variant.SKU,
+			"size":  variant.Size,
+			"color": variant.Color,
+		})
+		if err != nil {
+			return err
+		}
+		newItem := &models.OrderItem{
+			OrderID:     orderID,
+			VariantID:   variant.ID,
+			ProductName: product.Name,
+			ImageURL:    originalItem.ImageURL,
+			VariantInfo: variantInfo,
+			UnitPrice:   unitPrice,
+			Quantity:    request.Quantity,
+			Subtotal:    subtotal,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+		if err := repos.OrderItem.Create(ctx, newItem); err != nil {
+			return err
+		}
+		newAddress := &models.OrderAddress{
+			OrderID:      orderID,
+			Name:         address.Name,
+			Phone:        address.Phone,
+			AddressLine1: address.AddressLine1,
+			AddressLine2: address.AddressLine2,
+			City:         address.City,
+			State:        address.State,
+			PostalCode:   address.PostalCode,
+			Country:      address.Country,
+			CreatedAt:    now,
+		}
+		if err := repos.OrderAddress.Create(
+			ctx,
+			newAddress,
+		); err != nil {
+			return err
+		}
+		note := "Exchange replacement order created"
+		history := &models.OrderStatusHistory{
+			OrderID:   orderID,
+			Status:    "confirmed",
+			Note:      &note,
+			CreatedAt: now,
+		}
+		if err := repos.OrderStatusHistory.Create(
+			ctx,
+			history,
+		); err != nil {
+			return err
+		}
+		if err := repos.ProductVariant.DecreaseStock(
+			ctx,
+			int64(variant.ID),
+			request.Quantity,
+		); err != nil {
+			return err
+		}
+		shipment := &models.Shipment{
+			OrderID:        orderID,
+			Type:           models.ShipmentTypeDelivery,
+			ShippingStatus: "pending",
+			CreatedAt:      now,
+			UpdatedAt:      now,
+		}
+		if err := repos.Shipment.Create(
+			ctx,
+			shipment,
+		); err != nil {
+			return err
+		}
+		request.ReplacementOrderID = &orderID
+		request.Status = ReturnStatusClosed
+		request.UpdatedAt = now
+		if err := repos.ReturnRequest.Update(
+			ctx,
+			request,
+		); err != nil {
+			return err
+		}
+		replacementOrder = newOrder
+		return nil
+	})
+	if err != nil {
+		u.log.ErrorContext(
+			ctx,
+			"failed to create exchange replacement order",
+			"return_request_id", returnRequestID,
+			"error", err,
+		)
+		return nil, err
+	}
+
+	return replacementOrder, nil
+}
+func (u *ReturnRequestUseCase) CreateReturnToCustomerShipment(ctx context.Context, returnRequestID uint, courierName string, trackingNumber string) (*models.Shipment, error) {
+	if returnRequestID == 0 {
+		return nil, domainerrors.ErrInvalidInput
+	}
+	courierName = strings.TrimSpace(courierName)
+	trackingNumber = strings.TrimSpace(trackingNumber)
+	if courierName == "" || trackingNumber == "" {
+		return nil, domainerrors.ErrInvalidInput
+	}
+	var createdShipment *models.Shipment
+	err := u.uow.WithinTransaction(
+		ctx,
+		func(repos interfaces.TransactionRepositories) error {
+			request, err := repos.ReturnRequest.LockByID(
+				ctx,
+				returnRequestID,
+			)
+			if err != nil {
+				return err
+			}
+			if request.Status != ReturnStatusInspectionFailed {
+				return domainerrors.ErrInvalidOrderTransition
+			}
+			_, err = repos.Shipment.GetByReturnRequestIDAndType(
+				ctx,
+				request.ID,
+				models.ShipmentTypeReturnToCustomer,
+			)
+			if err == nil {
+				return domainerrors.ErrInvalidInput
+			}
+			if !errors.Is(err, domainerrors.ErrRecordNotFound) {
+				return err
+			}
+			shipment := &models.Shipment{
+				OrderID:         request.OrderID,
+				ReturnRequestID: &request.ID,
+				Type:            models.ShipmentTypeReturnToCustomer,
+				CourierName:     &courierName,
+				TrackingNumber:  &trackingNumber,
+				ShippingStatus:  "pending",
+				CreatedAt:       time.Now(),
+				UpdatedAt:       time.Now(),
+			}
+			if err := repos.Shipment.Create(ctx, shipment); err != nil {
+				return err
+			}
+			createdShipment = shipment
+			return nil
+		},
+	)
+
+	if err != nil {
+		u.log.ErrorContext(
+			ctx,
+			"failed to create return-to-customer shipment",
+			"return_request_id", returnRequestID,
+			"error", err,
+		)
+		return nil, err
+	}
+
+	u.log.InfoContext(
+		ctx,
+		"return-to-customer shipment created",
+		"return_request_id", returnRequestID,
+		"shipment_id", createdShipment.ID,
+	)
+
+	return createdShipment, nil
 }
 
 var _ interfaces.ReturnRequestUseCase = (*ReturnRequestUseCase)(nil)

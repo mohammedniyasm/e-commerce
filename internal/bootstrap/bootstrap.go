@@ -33,6 +33,7 @@ import (
 	"ecommerce/internal/usecase/wishlist"
 	"ecommerce/internal/worker"
 	"ecommerce/internal/worker/coupon"
+	orderworker "ecommerce/internal/worker/order"
 	referralworker "ecommerce/internal/worker/referral"
 	"fmt"
 	"log/slog"
@@ -125,9 +126,8 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	couponUsage := couponuseCase.NewCouponUseCase(couponRepository, orderRepository, couponUsageRepository, log)
 	couponHandler := handler.NewCouponHandler(couponUsage, log)
 
+	walletTopUpRepository := postgres.NewWalletTopUpRepository(db)
 	walletRepository := postgres.NewWalletRepository(db)
-	walletUseCase := wallet.NewWalletUseCase(walletRepository, unitOfWork, log)
-	walletHandler := handler.NewWalletHandler(walletUseCase, log)
 
 	shipmentRepository := postgres.NewShipmentRepository(db)
 	shipmentUseCase := shipment.NewShipmentUseCase(shipmentRepository, orderRepository, unitOfWork, log)
@@ -150,6 +150,10 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	paymentUseCase := payment.NewPaymentUseCase(orderRepository, paymentRepository, razorpayClient, unitOfWork, cfg.Razorpay.KeyID, cfg.Razorpay.WebhookSecret)
 	paymentHandler := handler.NewPaymentHandler(paymentUseCase)
 	storeProductHandler := handler.NewStoreProductHandler(productUseCase)
+
+	walletUseCase := wallet.NewWalletUseCase(walletRepository, walletTopUpRepository, razorpayClient, unitOfWork, cfg.Razorpay.KeyID, log)
+	walletHandler := handler.NewWalletHandler(walletUseCase, cfg.Razorpay.KeyID, cfg.Razorpay.WebhookSecret)
+
 	r := router.SetupRouter(log,
 		authHandler,
 		jwtService,
@@ -179,9 +183,11 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 
 	couponWorker := coupon.NewWorker(couponRepository, notificationRepo, couponUsageRepository, notificationUseCase, 4*time.Hour, log)
 	refferalWorker := referralworker.NewWorker(refferalRepository, unitOfWork, 4*time.Hour, log)
+	orderExpiryWorker := orderworker.NewWorker(orderRepository, orderUsecase, 30*time.Second, log)
 
 	workerManager.Register(couponWorker)
 	workerManager.Register(refferalWorker)
+	workerManager.Register(orderExpiryWorker)
 
 	return &Application{
 		Router:        r,

@@ -16,4 +16,5 @@ type ReturnRequestRepository interface {
 	List(ctx context.Context, orderID *uuid.UUID, status *string, limit int, page int) ([]models.ReturnRequest, int64, error)
 	Update(ctx context.Context, request *models.ReturnRequest) error
 	HasActiveRequest(ctx context.Context, orderItemID uint) (bool, error)
+	LockByID(ctx context.Context, id uint) (*models.ReturnRequest, error)
 }

@@ -200,40 +200,6 @@ func (r *OrderRepository) UpdateOrderStatus(ctx context.Context, orderID uuid.UU
 		return nil
 	})
 }
-func (r *OrderRepository) ListExpiredPendingOrders(ctx context.Context, now time.Time, limit int) ([]models.Order, error) {
-	var orders []models.Order
-	if limit <= 0 {
-		return nil, domainerrors.ErrInvalidInput
-	}
-	err := r.db.WithContext(ctx).
-		Model(&models.Order{}).
-		Where("orders.order_status = ?", "pending").
-		Where("orders.payment_status IN ?", []string{"pending", "failed"}).
-		Where("orders.payment_deadline IS NOT NULL").
-		Where("orders.payment_deadline <= ?", now).
-		Where(`
-			EXISTS (
-				SELECT 1
-				FROM payments p
-				WHERE p.order_id = orders.id
-				  AND p.id = (
-					  SELECT MAX(p2.id)
-					  FROM payments p2
-					  WHERE p2.order_id = orders.id
-				  )
-				  AND LOWER(p.payment_method) NOT IN (?, ?)
-			)
-		`, "cod", "cash_on_delivery").
-		Order("orders.payment_deadline ASC").
-		Limit(limit).
-		Find(&orders).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return orders, nil
-}
 func (r *OrderRepository) LockByID(ctx context.Context, orderID uuid.UUID) (*models.Order, error) {
 	var order models.Order
 
@@ -261,6 +227,38 @@ func (r *OrderRepository) HasQualifyingDeliveredOrder(ctx context.Context, userI
 		Where("total_amount >= ?", minimumAmount).
 		Count(&count).Error
 	return count > 0, err
+}
+func (r *OrderRepository) ListExpiredPendingOrders(ctx context.Context, now time.Time, limit int) ([]models.Order, error) {
+	var orders []models.Order
+	if limit <= 0 {
+		return nil, domainerrors.ErrInvalidInput
+	}
+	deadline := now.Add(-10 * time.Minute)
+	err := r.db.WithContext(ctx).
+		Model(&models.Order{}).
+		Where("orders.order_status = ?", "pending").
+		Where("orders.payment_status IN ?", []string{"pending", "failed"}).
+		Where("orders.placed_at <= ?", deadline).
+		Where(`
+            EXISTS (
+                SELECT 1
+                FROM payments p
+                WHERE p.order_id = orders.id
+                  AND p.id = (
+                      SELECT MAX(p2.id)
+                      FROM payments p2
+                      WHERE p2.order_id = orders.id
+                  )
+                  AND LOWER(p.payment_method) NOT IN (?, ?)
+            )
+        `, "cod", "cash_on_delivery").
+		Order("orders.placed_at ASC").
+		Limit(limit).
+		Find(&orders).Error
+	if err != nil {
+		return nil, err
+	}
+	return orders, nil
 }
 
 var _ interfaces.OrderRepository = (*OrderRepository)(nil)
