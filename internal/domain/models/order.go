@@ -25,5 +25,5 @@ type Order struct {
 	Address       *OrderAddress        `gorm:"foreignKey:OrderID"`
 	Payments      []Payment            `gorm:"foreignKey:OrderID"`
 	StatusHistory []OrderStatusHistory `gorm:"foreignKey:OrderID"`
-	Shipment      *Shipment            `gorm:"foreignKey:OrderID"`
+	Shipments     []Shipment           `gorm:"foreignKey:OrderID"`
 }

@@ -103,18 +103,14 @@ func (r *ShipmentRepository) GetTrackingHistory(ctx context.Context, shipmentID 
 func (r *ShipmentRepository) GetByReturnRequestID(ctx context.Context, returnRequestID uint) ([]models.Shipment, error) {
 	var shipments []models.Shipment
 	err := r.db.WithContext(ctx).
-		Where(
-			"return_request_id = ? AND type = ?",
-			returnRequestID,
-			models.ShipmentTypeReturn,
-		).
-		Order("created_at DESC").
+		Preload("History").
+		Where("return_request_id = ?", returnRequestID).
+		Order("created_at ASC").
 		Find(&shipments).Error
 	if err != nil {
 		return nil, err
 	}
 	return shipments, nil
-
 }
 func (r *ShipmentRepository) GetByReturnRequestIDAndType(ctx context.Context, returnRequestID uint, shipmentType models.ShipmentType) (*models.Shipment, error) {
 	var shipment models.Shipment

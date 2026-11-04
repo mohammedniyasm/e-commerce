@@ -410,3 +410,49 @@ func (h *ReturnRequestHandler) CreateReturnToCustomerShipment(c *gin.Context) {
 		Data:    toShipmentResponse(shipment),
 	})
 }
+func (h *ReturnRequestHandler) GetCustomerShipments(c *gin.Context) {
+	userID, ok := getCartUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.APIResponse{
+			Success: false,
+			Message: "authentication required",
+		})
+		return
+	}
+	requestID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil || requestID == 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid return request ID",
+		})
+		return
+	}
+	shipments, err := h.returnRequestUseCase.GetCustomerShipments(
+		c.Request.Context(),
+		uint(requestID),
+		uint(userID),
+	)
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, response.APIResponse{
+				Success: false,
+				Message: "return request not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "failed to retrieve return shipments",
+		})
+		return
+	}
+	data := make([]response.ShipmentResponse, 0, len(shipments))
+	for i := range shipments {
+		data = append(data, toShipmentResponse(&shipments[i]))
+	}
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "return shipments retrieved successfully",
+		Data:    data,
+	})
+}

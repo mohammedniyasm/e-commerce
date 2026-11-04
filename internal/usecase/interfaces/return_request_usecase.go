@@ -16,4 +16,5 @@ type ReturnRequestUseCase interface {
 	UpdateStatus(ctx context.Context, returnRequestID uint, status string, adminNote *string, courierName *string, trackingNumber *string) (*models.ReturnRequest, error)
 	CreateExchangeOrder(ctx context.Context, returnRequestID uint) (*models.Order, error)
 	CreateReturnToCustomerShipment(ctx context.Context, returnRequestID uint, courierName string, trackingNumber string) (*models.Shipment, error)
+	GetCustomerShipments(ctx context.Context, requestID uint, userID uint) ([]models.Shipment, error)
 }

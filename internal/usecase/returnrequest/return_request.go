@@ -40,6 +40,7 @@ type ReturnRequestUseCase struct {
 	orderRepo         interfaces.OrderRepository
 	orderItemRepo     interfaces.OrderItemRepository
 	variantRepo       interfaces.ProductVariantRepository
+	shipmentRepo      interfaces.ShipmentRepository
 	uow               interfaces.UnitOfWork
 	log               *slog.Logger
 }
@@ -49,6 +50,7 @@ func NewReturnRequestUseCase(
 	orderRepo interfaces.OrderRepository,
 	orderItemRepo interfaces.OrderItemRepository,
 	variantRepo interfaces.ProductVariantRepository,
+	shipmentRepo interfaces.ShipmentRepository,
 	uow interfaces.UnitOfWork,
 	log *slog.Logger,
 ) *ReturnRequestUseCase {
@@ -57,6 +59,7 @@ func NewReturnRequestUseCase(
 		orderRepo:         orderRepo,
 		orderItemRepo:     orderItemRepo,
 		variantRepo:       variantRepo,
+		shipmentRepo:      shipmentRepo,
 		uow:               uow,
 		log:               log,
 	}
@@ -348,7 +351,7 @@ func (u *ReturnRequestUseCase) UpdateStatus(ctx context.Context, returnRequestID
 	}
 	var updatedRequest *models.ReturnRequest
 	err := u.uow.WithinTransaction(ctx, func(repos interfaces.TransactionRepositories) error {
-		request, err := repos.ReturnRequest.GetByID(
+		request, err := repos.ReturnRequest.LockByID(
 			ctx,
 			returnRequestID,
 		)
@@ -571,7 +574,7 @@ func (u ReturnRequestUseCase) CreateExchangeOrder(ctx context.Context, returnReq
 		if err != nil {
 			return err
 		}
-		if request.RequestType == RequestTypeExchange {
+		if request.RequestType != RequestTypeExchange {
 			return domainerrors.ErrInvalidInput
 		}
 		if request.Status != ReturnStatusInspectionPassed {
@@ -774,6 +777,18 @@ func (u *ReturnRequestUseCase) CreateReturnToCustomerShipment(ctx context.Contex
 			if request.Status != ReturnStatusInspectionFailed {
 				return domainerrors.ErrInvalidOrderTransition
 			}
+			returnShipment, err := repos.Shipment.GetByReturnRequestIDAndType(
+				ctx,
+				request.ID,
+				models.ShipmentTypeReturn,
+			)
+			if err != nil {
+				return fmt.Errorf("get return shipment: %w", err)
+			}
+
+			if returnShipment.ShippingStatus != "delivered" {
+				return domainerrors.ErrInvalidOrderTransition
+			}
 			_, err = repos.Shipment.GetByReturnRequestIDAndType(
 				ctx,
 				request.ID,
@@ -821,6 +836,27 @@ func (u *ReturnRequestUseCase) CreateReturnToCustomerShipment(ctx context.Contex
 	)
 
 	return createdShipment, nil
+}
+func (u *ReturnRequestUseCase) GetCustomerShipments(ctx context.Context, requestID uint, userID uint) ([]models.Shipment, error) {
+	if requestID == 0 || userID == 0 {
+		return nil, domainerrors.ErrInvalidInput
+	}
+	_, err := u.returnRequestRepo.GetByIDAndUserID(
+		ctx,
+		requestID,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get customer return request: %w", err)
+	}
+	shipments, err := u.shipmentRepo.GetByReturnRequestID(
+		ctx,
+		requestID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get return request shipments: %w", err)
+	}
+	return shipments, nil
 }
 
 var _ interfaces.ReturnRequestUseCase = (*ReturnRequestUseCase)(nil)

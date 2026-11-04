@@ -158,6 +158,33 @@ func (u *ShipmentUseCase) UpdateShippingStatus(ctx context.Context, shipmentID u
 			return err
 		}
 		if shipment.Type == models.ShipmentTypeReturnToCustomer {
+			if status != "delivered" {
+				return nil
+			}
+			if shipment.ReturnRequestID == nil {
+				return domainerrors.ErrInvalidInput
+			}
+			request, err := repos.ReturnRequest.GetByID(
+				ctx,
+				*shipment.ReturnRequestID,
+			)
+			if err != nil {
+				return fmt.Errorf("get return request: %w", err)
+			}
+			if request.Status != ReturnStatusInspectionFailed {
+				return domainerrors.ErrInvalidOrderTransition
+			}
+			if !isValidReturnTransition(
+				request.Status,
+				ReturnStatusClosed,
+			) {
+				return domainerrors.ErrInvalidOrderTransition
+			}
+			request.Status = ReturnStatusClosed
+			if err := repos.ReturnRequest.Update(ctx, request); err != nil {
+				return fmt.Errorf("close return request: %w", err)
+			}
+
 			return nil
 		}
 		if shipment.Type == models.ShipmentTypeReturn {

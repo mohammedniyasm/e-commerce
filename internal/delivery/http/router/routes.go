@@ -124,6 +124,7 @@ func RegisterRoutes(r *gin.Engine,
 		protected.POST("/return-requests", returnRequestHandler.Create)
 		protected.GET("/return-requests", returnRequestHandler.ListByUserID)
 		protected.GET("/return-requests/:id", returnRequestHandler.GetByID)
+		protected.GET("/return-requests/:id/shipments", returnRequestHandler.GetCustomerShipments)
 
 		protected.GET("/wallet", walletHandler.GetWallet)
 		protected.GET("/wallet/transactions", walletHandler.ListTransactions)
@@ -135,7 +136,6 @@ func RegisterRoutes(r *gin.Engine,
 
 		protected.POST("/payments/razorpay/order", paymentHandler.CreateRazorpayOrder)
 		protected.POST("/payments/razorpay/verify", paymentHandler.VerifyRazorpayPayment)
-		protected.POST("/payments/razorpay/webhook", paymentHandler.HandleRazorpayWebhook)
 	}
 	auth = v1.Group("/admin/auth")
 	protected = auth.Group("")
@@ -274,7 +274,7 @@ func RegisterRoutes(r *gin.Engine,
 
 		admin.GET("/return-requests", returnRequestHandler.List)
 		admin.GET("/return-requests/:id", returnRequestHandler.GetByID)
-		admin.PATCH("return-requests/:id/status", returnRequestHandler.UpdateStatus)
+		admin.PATCH("/return-requests/:id/status", returnRequestHandler.UpdateStatus)
 		admin.POST("/return-requests/:id/exchange", returnRequestHandler.CreateExchangeOrder)
 		admin.POST("/return-requests/:id/return-shipment", returnRequestHandler.CreateReturnToCustomerShipment)
 

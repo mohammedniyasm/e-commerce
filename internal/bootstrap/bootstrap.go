@@ -134,7 +134,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	shipmentHandler := handler.NewShipmentHandler(shipmentUseCase, log)
 
 	returnRequestRepository := postgres.NewReturnRequestRepository(db)
-	returnRequestUseCase := return_request.NewReturnRequestUseCase(returnRequestRepository, orderRepository, orderItemRepository, productVariantRepository, unitOfWork, log)
+	returnRequestUseCase := return_request.NewReturnRequestUseCase(returnRequestRepository, orderRepository, orderItemRepository, productVariantRepository, shipmentRepository, unitOfWork, log)
 	returnRequestHandler := handler.NewReturnRequestHandler(returnRequestUseCase)
 
 	refferalRepository := postgres.NewReferralRepository(db)

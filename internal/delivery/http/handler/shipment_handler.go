@@ -420,16 +420,34 @@ func parseShipmentID(c *gin.Context) (uint, bool) {
 	return uint(id), true
 }
 func toShipmentResponse(shipment *models.Shipment) response.ShipmentResponse {
+	history := make(
+		[]response.ShipmentTrackingHistoryResponse,
+		0,
+		len(shipment.History),
+	)
+	for _, item := range shipment.History {
+		history = append(history, response.ShipmentTrackingHistoryResponse{
+			ID:             item.ID,
+			ShipmentID:     item.ShipmentID,
+			ShippingStatus: item.ShippingStatus,
+			Description:    item.Description,
+			Location:       item.Location,
+			CreatedAt:      item.CreatedAt,
+		})
+	}
 	return response.ShipmentResponse{
-		ID:             shipment.ID,
-		OrderID:        shipment.OrderID,
-		CourierName:    shipment.CourierName,
-		TrackingNumber: shipment.TrackingNumber,
-		ShippingStatus: shipment.ShippingStatus,
-		ShippedAt:      shipment.ShippedAt,
-		DeliveredAt:    shipment.DeliveredAt,
-		CreatedAt:      shipment.CreatedAt,
-		UpdatedAt:      shipment.UpdatedAt,
+		ID:              shipment.ID,
+		OrderID:         shipment.OrderID,
+		Type:            shipment.Type,
+		ReturnRequestID: shipment.ReturnRequestID,
+		CourierName:     shipment.CourierName,
+		TrackingNumber:  shipment.TrackingNumber,
+		ShippingStatus:  shipment.ShippingStatus,
+		ShippedAt:       shipment.ShippedAt,
+		DeliveredAt:     shipment.DeliveredAt,
+		CreatedAt:       shipment.CreatedAt,
+		UpdatedAt:       shipment.UpdatedAt,
+		History:         history,
 	}
 }
 func (h *ShipmentHandler) handleShipmentError(c *gin.Context, err error, message string) {

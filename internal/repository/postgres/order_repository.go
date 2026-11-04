@@ -35,8 +35,8 @@ func (r *OrderRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Or
 		Preload("Address").
 		Preload("Payments").
 		Preload("StatusHistory").
-		Preload("Shipment").
-		Preload("Shipment.History").
+		Preload("Shipments").
+		Preload("Shipments.History").
 		First(&order).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
