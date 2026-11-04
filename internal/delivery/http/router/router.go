@@ -35,6 +35,8 @@ func SetupRouter(log *slog.Logger,
 	refferalHander *handler.ReferralHandler,
 	paymentHandler *handler.PaymentHandler,
 	reviewHandler *handler.ReviewHandler,
+	dashboardHandler *handler.DashboardHandler,
+	reportHandler *handler.ReportHandler,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(
@@ -68,6 +70,8 @@ func SetupRouter(log *slog.Logger,
 		refferalHander,
 		paymentHandler,
 		reviewHandler,
+		dashboardHandler,
+		reportHandler,
 	)
 	return r
 }

@@ -19,6 +19,7 @@ import (
 	"ecommerce/internal/usecase/cart"
 	"ecommerce/internal/usecase/category"
 	couponuseCase "ecommerce/internal/usecase/coupons"
+	"ecommerce/internal/usecase/dashboard"
 	"ecommerce/internal/usecase/notification"
 	"ecommerce/internal/usecase/order"
 	"ecommerce/internal/usecase/payment"
@@ -27,6 +28,7 @@ import (
 	"ecommerce/internal/usecase/productvariant"
 	"ecommerce/internal/usecase/profile"
 	"ecommerce/internal/usecase/referral"
+	"ecommerce/internal/usecase/report"
 	return_request "ecommerce/internal/usecase/returnrequest"
 	"ecommerce/internal/usecase/review"
 	"ecommerce/internal/usecase/shipment"
@@ -159,6 +161,14 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	reviewUseCase := review.NewReviewUseCase(reviewRepository, orderItemRepository, orderRepository, shipmentRepository, productVariantRepository, log)
 	reviewHandler := handler.NewReviewHandler(reviewUseCase)
 
+	dashboardRepository := postgres.NewDashboardRepository(db)
+	dashboardUseCase := dashboard.NewDashboardUseCase(dashboardRepository, log)
+	dashboardHandler := handler.NewDashboardHandler(dashboardUseCase)
+
+	reportRepo := postgres.NewReportRepository(db)
+	reportUseCase := report.NewReportUseCase(reportRepo, log)
+	reportHandler := handler.NewReportHandler(reportUseCase)
+
 	r := router.SetupRouter(log,
 		authHandler,
 		jwtService,
@@ -185,6 +195,8 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 		refferalHandler,
 		paymentHandler,
 		reviewHandler,
+		dashboardHandler,
+		reportHandler,
 	)
 
 	couponWorker := coupon.NewWorker(couponRepository, notificationRepo, couponUsageRepository, notificationUseCase, 4*time.Hour, log)

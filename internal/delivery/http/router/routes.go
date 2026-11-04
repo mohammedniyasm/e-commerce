@@ -34,6 +34,8 @@ func RegisterRoutes(r *gin.Engine,
 	refferalHandler *handler.ReferralHandler,
 	paymentHandler *handler.PaymentHandler,
 	reviewHandler *handler.ReviewHandler,
+	dashboardHandler *handler.DashboardHandler,
+	reportHandler *handler.ReportHandler,
 ) {
 
 	v1 := r.Group("/api/v1")
@@ -298,5 +300,26 @@ func RegisterRoutes(r *gin.Engine,
 
 		admin.GET("/reviews", reviewHandler.ListAllReviews)
 		admin.PATCH("/reviews/:id/visibility", reviewHandler.SetReviewVisibility)
+
+		// Dashboard
+		admin.GET("/dashboard/overview", dashboardHandler.GetOverview)
+		admin.GET("/dashboard/sales", dashboardHandler.GetSales)
+		admin.GET("/dashboard/orders", dashboardHandler.GetOrderStats)
+		admin.GET("/dashboard/customers", dashboardHandler.GetCustomerStats)
+		admin.GET("/dashboard/top-products", dashboardHandler.GetTopProducts)
+		admin.GET("/dashboard/top-categories", dashboardHandler.GetTopCategories)
+		admin.GET("/dashboard/top-brands", dashboardHandler.GetTopBrands)
+
+		admin.GET("/reports/sales", reportHandler.GetSalesReport)
+		admin.GET("/reports/orders", reportHandler.GetOrdersReport)
+		admin.GET("/reports/products", reportHandler.GetProductsReport)
+
+		admin.GET("/reports/sales/export/pdf", reportHandler.ExportSalesPDF)
+		admin.GET("/reports/sales/export/excel", reportHandler.ExportSalesExcel)
+
+		admin.GET("/reports/orders/export/pdf", reportHandler.ExportOrdersPDF)
+		admin.GET("/reports/orders/export/excel", reportHandler.ExportOrdersExcel)
+
+		admin.GET("/reports/products/export/excel", reportHandler.ExportProductsExcel)
 	}
 }
