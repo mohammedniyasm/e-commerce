@@ -143,7 +143,7 @@ func (h *ReferralHandler) GetReferralDashboard(c *gin.Context) {
 	}
 	dashboard := response.ReferralDashboardResponse{
 		ReferralCode: referralCode,
-		ReferralLink: "/register?ref=" + referralCode,
+		ReferralLink: "https://chaos-dander-quilt.ngrok-free.dev/register?ref=" + referralCode,
 		Summary: response.ReferralSummaryDTO{
 			TotalReferrals:     total,
 			PendingReferrals:   pending,

@@ -195,6 +195,7 @@ func (u *PaymentUseCase) VerifyRazorpayPayment(ctx context.Context, userID uint,
 			return err
 		}
 		lockedOrder.PaymentStatus = "paid"
+		lockedOrder.OrderStatus = "confirmed"
 		lockedOrder.UpdatedAt = now
 		return repos.Order.Update(ctx, lockedOrder)
 	})
@@ -206,7 +207,10 @@ func (u *PaymentUseCase) HandleRazorpayWebhook(ctx context.Context, payload []by
 	mac := hmac.New(sha256.New, []byte(u.webHookSecret))
 	mac.Write(payload)
 	expectedSignature := hex.EncodeToString(mac.Sum(nil))
-	if !hmac.Equal([]byte(expectedSignature), []byte(signature)) {
+	if !hmac.Equal(
+		[]byte(expectedSignature),
+		[]byte(signature),
+	) {
 		return domainerrors.ErrInvalidInput
 	}
 	var event struct {
@@ -235,71 +239,101 @@ func (u *PaymentUseCase) HandleRazorpayWebhook(ctx context.Context, payload []by
 	if gatewayPayment.ID == "" || gatewayPayment.OrderID == "" {
 		return domainerrors.ErrInvalidInput
 	}
+	if gatewayPayment.Currency != "INR" {
+		return domainerrors.ErrInvalidInput
+	}
+	switch event.Event {
+	case "payment.captured":
+		if gatewayPayment.Status != "captured" {
+			return domainerrors.ErrInvalidInput
+		}
+	case "payment.failed":
+		if gatewayPayment.Status != "failed" {
+			return domainerrors.ErrInvalidInput
+		}
+	}
 	now := time.Now()
-	return u.unitOfWork.WithinTransaction(ctx, func(repos interfaces.TransactionRepositories) error {
-		txPayment, err := repos.Payment.GetByGatewayOrderID(
-			ctx,
-			gatewayPayment.OrderID,
-		)
-		if err != nil {
-			return err
-		}
-		if txPayment == nil {
-			return domainerrors.ErrRecordNotFound
-		}
-		if txPayment.GatewayOrderID == nil ||
-			*txPayment.GatewayOrderID != gatewayPayment.OrderID {
-			return domainerrors.ErrInvalidInput
-		}
-		if gatewayPayment.Currency != "INR" {
-			return domainerrors.ErrInvalidInput
-		}
-		if gatewayPayment.Amount != int64(math.Round(txPayment.Amount*100)) {
-			return domainerrors.ErrInvalidInput
-		}
-		orderID := txPayment.OrderID
-		lockedOrder, err := repos.Order.LockByID(ctx, orderID)
-		if err != nil {
-			return err
-		}
-		if lockedOrder.PaymentStatus == "paid" {
-			return nil
-		}
-		if lockedOrder.PaymentStatus != "pending" {
-			return domainerrors.ErrInvalidInput
-		}
-		if txPayment.PaymentStatus == "paid" ||
-			txPayment.PaymentStatus == "failed" {
-			return nil
-		}
-		transactionID := gatewayPayment.ID
-		txPayment.TransactionID = &transactionID
-		txPayment.UpdatedAt = now
-		response, err := json.Marshal(gatewayPayment)
-		if err != nil {
-			return err
-		}
-		txPayment.GatewayResponse = response
-		switch event.Event {
-		case "payment.captured":
-			if gatewayPayment.Status != "captured" {
+	return u.unitOfWork.WithinTransaction(
+		ctx,
+		func(repos interfaces.TransactionRepositories) error {
+			txPayment, err := repos.Payment.GetByGatewayOrderID(
+				ctx,
+				gatewayPayment.OrderID,
+			)
+			if err != nil {
+				return err
+			}
+			if txPayment == nil {
+				return domainerrors.ErrRecordNotFound
+			}
+			lockedOrder, err := repos.Order.LockByID(
+				ctx,
+				txPayment.OrderID,
+			)
+			if err != nil {
+				return err
+			}
+			txPayment, err = repos.Payment.GetByGatewayOrderIDForUpdate(
+				ctx,
+				gatewayPayment.OrderID,
+			)
+			if err != nil {
+				return err
+			}
+			if txPayment.OrderID != lockedOrder.ID {
 				return domainerrors.ErrInvalidInput
 			}
-			txPayment.PaymentStatus = "paid"
-			txPayment.PaidAt = &now
-			lockedOrder.PaymentStatus = "paid"
-		case "payment.failed":
-			if gatewayPayment.Status != "failed" {
+			if txPayment.GatewayOrderID == nil ||
+				*txPayment.GatewayOrderID != gatewayPayment.OrderID {
 				return domainerrors.ErrInvalidInput
 			}
-			txPayment.PaymentStatus = "failed"
-			txPayment.FailureReason = &gatewayPayment.ErrorDescription
-			lockedOrder.PaymentStatus = "failed"
-		}
-		lockedOrder.UpdatedAt = now
-		if err := repos.Payment.Update(ctx, txPayment); err != nil {
-			return err
-		}
-		return repos.Order.Update(ctx, lockedOrder)
-	})
+			expectedAmount := int64(math.Round(txPayment.Amount * 100))
+			if gatewayPayment.Amount != expectedAmount {
+				return domainerrors.ErrInvalidInput
+			}
+			if txPayment.PaymentStatus == "paid" ||
+				txPayment.PaymentStatus == "refunded" {
+				return nil
+			}
+			if lockedOrder.PaymentStatus == "refunded" ||
+				lockedOrder.PaymentStatus == "partially_refunded" {
+				return nil
+			}
+			if event.Event == "payment.failed" &&
+				txPayment.PaymentStatus == "failed" {
+				return nil
+			}
+			response, err := json.Marshal(gatewayPayment)
+			if err != nil {
+				return err
+			}
+			transactionID := gatewayPayment.ID
+			txPayment.TransactionID = &transactionID
+			txPayment.GatewayResponse = response
+			txPayment.UpdatedAt = now
+			switch event.Event {
+			case "payment.captured":
+				txPayment.PaymentStatus = "paid"
+				txPayment.PaidAt = &now
+				txPayment.FailureReason = nil
+				lockedOrder.PaymentStatus = "paid"
+			case "payment.failed":
+				if txPayment.PaymentStatus == "paid" {
+					return nil
+				}
+				txPayment.PaymentStatus = "failed"
+				if gatewayPayment.ErrorDescription != "" {
+					reason := gatewayPayment.ErrorDescription
+					txPayment.FailureReason = &reason
+				}
+				lockedOrder.PaymentStatus = "failed"
+			}
+			lockedOrder.UpdatedAt = now
+			lockedOrder.OrderStatus = "confirmed"
+			if err := repos.Payment.Update(ctx, txPayment); err != nil {
+				return err
+			}
+			return repos.Order.Update(ctx, lockedOrder)
+		},
+	)
 }

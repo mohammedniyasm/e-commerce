@@ -41,7 +41,7 @@ func SetupRouter(log *slog.Logger,
 	r := gin.Default()
 	r.Use(
 		middleware.Recovery(log),
-		middleware.Logger(log),
+		// middleware.Logger(log),
 		middleware.CORS(),
 	)
 	RegisterRoutes(r,

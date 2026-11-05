@@ -792,3 +792,38 @@ func (h *OrderHandler) ProcessWalletRefund(c *gin.Context) {
 		Message: "Refund credited to customer's wallet successfully",
 	})
 }
+func (h *OrderHandler) GetAdminOrderByID(c *gin.Context) {
+	orderID, err := parseOrderID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "Invalid order ID",
+		})
+		return
+	}
+
+	order, err := h.orderUseCase.GetByID(
+		c.Request.Context(),
+		orderID,
+	)
+	if err != nil {
+		h.log.ErrorContext(
+			c.Request.Context(),
+			"admin failed to retrieve order",
+			"order_id", orderID,
+			"error", err,
+		)
+
+		c.JSON(http.StatusNotFound, response.APIResponse{
+			Success: false,
+			Message: "Order not found",
+		})
+		return
+	}
+	res := mapOrderToResponse(order)
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "Order retrieved successfully",
+		Data:    res,
+	})
+}

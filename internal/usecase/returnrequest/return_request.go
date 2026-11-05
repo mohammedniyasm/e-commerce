@@ -126,8 +126,7 @@ func (u *ReturnRequestUseCase) Create(ctx context.Context, userID uint, orderID 
 			return nil, err
 		}
 
-		if !variant.IsActive ||
-			variant.ID == orderItem.VariantID {
+		if !variant.IsActive {
 			return nil, domainerrors.ErrProductNotAvailable
 		}
 	}
@@ -145,17 +144,17 @@ func (u *ReturnRequestUseCase) Create(ctx context.Context, userID uint, orderID 
 	err = u.uow.WithinTransaction(
 		ctx,
 		func(repos interfaces.TransactionRepositories) error {
-			hasActiveRequest, err := repos.ReturnRequest.HasActiveRequest(
-				ctx,
-				orderItemID,
-			)
-			if err != nil {
-				return err
-			}
+			// hasActiveRequest, err := repos.ReturnRequest.HasActiveRequest(
+			// 	ctx,
+			// 	orderItemID,
+			// )
+			// if err != nil {
+			// 	return err
+			// }
 
-			if hasActiveRequest {
-				return domainerrors.ErrInvalidInput
-			}
+			// if hasActiveRequest {
+			// 	return domainerrors.ErrInvalidInput
+			// }
 
 			if err := repos.ReturnRequest.Create(ctx, request); err != nil {
 				u.log.ErrorContext(
@@ -609,8 +608,7 @@ func (u ReturnRequestUseCase) CreateExchangeOrder(ctx context.Context, returnReq
 		if err != nil {
 			return err
 		}
-		if variant.ProductID != originalVariant.ProductID ||
-			variant.ID == originalVariant.ID {
+		if variant.ProductID != originalVariant.ProductID {
 			return domainerrors.ErrInvalidInput
 		}
 		product := variant.Product

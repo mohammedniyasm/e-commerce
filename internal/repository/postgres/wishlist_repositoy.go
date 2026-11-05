@@ -37,7 +37,7 @@ func (r *wishlistRepository) GetWishlistsByUserID(ctx context.Context, userID ui
 		Model(&models.Wishlist{}).
 		Select(`
 		wishlist.*,
-		COUNT(wishlists_items.id) AS item_count
+		COUNT(wishlist_items.id) AS item_count
 		`).
 		Joins(`LEFT JOIN wishlist_items
 		ON wishlist_items.wishlist_id=wishlist.id
@@ -129,7 +129,7 @@ func (r *wishlistRepository) RemoveWishlistItem(ctx context.Context, wishlistID 
 	AND EXISTS(
 		SELECT 1
 		FROM wishlist
-		WHERE wishlist.id = wishlist_items.id 
+		WHERE wishlist.id = wishlist_items.wishlist_id 
 		AND wishlist.user_id = ?
 	)	
 	`, wishlistID, itemID, userID).

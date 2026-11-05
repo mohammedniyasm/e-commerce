@@ -116,5 +116,25 @@ func (r *PaymentRepository) GetLatestByOrderIDForUpdate(ctx context.Context, ord
 
 	return &payment, nil
 }
+func (r *PaymentRepository) GetByGatewayOrderIDForUpdate(
+	ctx context.Context,
+	gatewayOrderID string,
+) (*models.Payment, error) {
+	var payment models.Payment
+
+	err := r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("gateway_order_id = ?", gatewayOrderID).
+		First(&payment).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrRecordNotFound
+		}
+		return nil, err
+	}
+
+	return &payment, nil
+}
 
 var _ interfaces.PaymentRepository = (*PaymentRepository)(nil)

@@ -15,4 +15,5 @@ type PaymentRepository interface {
 	Update(ctx context.Context, payment *models.Payment) error
 	GetLatestByOrderIDForUpdate(ctx context.Context, orderID uuid.UUID) (*models.Payment, error)
 	GetByGatewayOrderID(ctx context.Context, gatewayOrderID string) (*models.Payment, error)
+	GetByGatewayOrderIDForUpdate(ctx context.Context, gatewayOrderID string) (*models.Payment, error)
 }

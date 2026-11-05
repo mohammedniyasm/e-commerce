@@ -20,10 +20,6 @@ func NewReportRepository(db *gorm.DB) *ReportRepository {
 }
 
 func (r *ReportRepository) GetSalesReport(ctx context.Context, filter models.ReportFilter) (*models.SalesReport, error) {
-	groupBy, err := normalizeReportGroupBy(filter.GroupBy)
-	if err != nil {
-		return nil, err
-	}
 	where, args := buildReportOrderFilter("o", filter)
 	report := &models.SalesReport{
 		Breakdown: []models.SalesReportRow{},
@@ -32,16 +28,16 @@ func (r *ReportRepository) GetSalesReport(ctx context.Context, filter models.Rep
 	WITH filtered_orders AS (
 		SELECT o.id, o.total_amount, o.discount_amount, o.placed_at
 		FROM orders o
-		WHERE %s
+		WHERE %s 
 	)
 	SELECT
 		COALESCE(SUM(total_amount), 0) AS total_sales,
 		COUNT(*) AS total_orders,
 		COALESCE(SUM(discount_amount), 0) AS total_discount,
 		(
-			SELECT COALESCE(SUM(oi.quantity), 0)
-			FROM order_items oi
-			JOIN filtered_orders fo ON fo.id = oi.order_id
+			SELECT COALESCE(SUM(order_items.quantity), 0)
+			FROM order_items
+			JOIN filtered_orders fo ON fo.id = order_items.order_id
 		) AS total_units_sold
 	FROM filtered_orders
 `, where)
@@ -80,7 +76,7 @@ func (r *ReportRepository) GetSalesReport(ctx context.Context, filter models.Rep
 	FROM order_groups og
 	LEFT JOIN item_groups ig ON ig.period = og.period
 	ORDER BY og.period ASC
-`, where, groupBy, groupBy)
+`, where, filter.GroupBy, filter.GroupBy)
 	if err := r.db.WithContext(ctx).
 		Raw(breakdownQuery, args...).
 		Scan(&report.Breakdown).Error; err != nil {
@@ -89,11 +85,7 @@ func (r *ReportRepository) GetSalesReport(ctx context.Context, filter models.Rep
 	return report, nil
 }
 func (r *ReportRepository) GetOrdersReport(ctx context.Context, filter models.ReportFilter) (*models.OrdersReport, error) {
-	groupBy, err := normalizeReportGroupBy(filter.GroupBy)
-	if err != nil {
-		return nil, err
-	}
-	where, args := buildReportDateFilter("orders", filter)
+	where, args := buildReportDateFilter("o", filter)
 	report := &models.OrdersReport{
 		Breakdown: []models.OrdersReportRow{},
 	}
@@ -123,7 +115,7 @@ func (r *ReportRepository) GetOrdersReport(ctx context.Context, filter models.Re
 	WHERE %s
 	GROUP BY 1
 	ORDER BY 1 ASC
-`, groupBy, where)
+`, filter.GroupBy, where)
 	if err := r.db.WithContext(ctx).
 		Raw(breakdownQuery, args...).
 		Scan(&report.Breakdown).Error; err != nil {
@@ -172,18 +164,6 @@ func (r *ReportRepository) GetProductsReport(ctx context.Context, filter models.
 	}
 	return report, nil
 }
-func normalizeReportGroupBy(groupBy string) (string, error) {
-	groupBy = strings.ToLower(strings.TrimSpace(groupBy))
-	if groupBy == "" {
-		return "day", nil
-	}
-	switch groupBy {
-	case "day", "week", "month", "year":
-		return groupBy, nil
-	default:
-		return "", fmt.Errorf("invalid report grouping: %s", groupBy)
-	}
-}
 func buildReportOrderFilter(alias string, filter models.ReportFilter) (string, []interface{}) {
 	conditions := []string{
 		alias + ".payment_status IN ('paid', 'partially_refunded')",
@@ -224,9 +204,9 @@ func buildReportDateFilter(alias string, filter models.ReportFilter) (string, []
 		)
 	}
 	if len(conditions) == 0 {
-		return "", args
+		return "TRUE", args
 	}
-	return "WHERE " + strings.Join(conditions, " AND "), args
+	return strings.Join(conditions, " AND "), args
 }
 
 var _ interfaces.ReportRepository = (*ReportRepository)(nil)

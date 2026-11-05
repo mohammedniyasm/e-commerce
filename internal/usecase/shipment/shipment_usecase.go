@@ -90,7 +90,7 @@ func (u *ShipmentUseCase) CreateShipment(ctx context.Context, shipment *models.S
 	if err != nil {
 		return err
 	}
-	if order.OrderStatus == "confirmed" || order.OrderStatus == "processing" {
+	if order.OrderStatus == "confirmed" || order.OrderStatus == "processing" || order.OrderStatus == "confirmed" {
 		shipment.ShippingStatus = "pending"
 		shipment.Type = models.ShipmentTypeDelivery
 		if err := u.shipmentRepo.Create(ctx, shipment); err != nil {
@@ -184,7 +184,6 @@ func (u *ShipmentUseCase) UpdateShippingStatus(ctx context.Context, shipmentID u
 			if err := repos.ReturnRequest.Update(ctx, request); err != nil {
 				return fmt.Errorf("close return request: %w", err)
 			}
-
 			return nil
 		}
 		if shipment.Type == models.ShipmentTypeReturn {

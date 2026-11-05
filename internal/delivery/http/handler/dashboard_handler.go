@@ -73,7 +73,7 @@ func (h *DashboardHandler) GetSales(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.APIResponse{
 			Success: false,
 			Message: "failed to fetch sales data",
-			Error:   err.Error(),
+			// Error:   err.Error(),
 		})
 		return
 	}

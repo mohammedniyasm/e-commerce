@@ -77,7 +77,7 @@ func (r *DashboardRepository) GetSales(ctx context.Context, filter models.Dashbo
 		query = query.Where("placed_at <= ?", filter.EndDate)
 	}
 	err := query.
-		Group("DATE_TRUNC('" + groupBy + "', placed_at)").
+		Group("date").
 		Order("date ASC").
 		Scan(&sales).Error
 	if err != nil {
@@ -134,20 +134,21 @@ func (r *DashboardRepository) GetTopProducts(ctx context.Context, limit int) ([]
 	err := r.db.WithContext(ctx).
 		Table("order_items").
 		Select(`
-		product_variants.product_id AS product_id,
-		MAX(order_items.product_name) AS product_name,
-		SUM(order_items.quantity) AS units_sold,
-		COUNT(DISTINCT order_items.order_id) AS total_orders,
-		SUM(order_items.subtotal) AS revenue
-	`).
+			products.id AS product_id,
+			products.name AS product_name,
+			SUM(order_items.quantity) AS units_sold,
+			COUNT(DISTINCT(order_items.order_id)) AS total_orders,
+			SUM(order_items.subtotal) AS total_revenue
+		`).
 		Joins("JOIN orders ON orders.id = order_items.order_id").
 		Joins("JOIN product_variants ON product_variants.id = order_items.variant_id").
-		Where("orders.payment_status IN ('paid', 'partially_refunded')").
+		Joins("JOIN products ON products.id = product_variants.product_id").
+		Where("orders.payment_status IN ('paid','partially_refunded')").
 		Where("orders.order_status NOT IN ('cancelled', 'returned')").
-		Group("product_variants.product_id").
-		Order("units_sold DESC").
-		Limit(limit).
+		Group("products.id,products.name").
+		Order("units_sold DESC,products.id ASC").
 		Scan(&products).Error
+
 	if err != nil {
 		return nil, err
 	}
