@@ -307,3 +307,9 @@ func (u *ProductVariantUseCase) ListVariantsByProductID(ctx context.Context, pro
 	}
 	return variants, nil
 }
+func (u *ProductVariantUseCase) IncreaseStock(ctx context.Context, variantID uint, quantity uint) error {
+	if variantID <= 0 || quantity <= 0 {
+		return domainerrors.ErrInvalidInput
+	}
+	return u.variantRepo.IncreaseStock(ctx, int64(variantID), int(quantity))
+}
