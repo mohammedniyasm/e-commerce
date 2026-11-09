@@ -14,5 +14,7 @@ type CartRepository interface {
 	UpdateCartItemQuantity(ctx context.Context, cartID int64, itemID int64, quantity int) error
 	RemoveCartItem(ctx context.Context, cartID int64, itemID int64) error
 	ClearCart(ctx context.Context, cartID int64) error
+	GetCartItemsByIDs(ctx context.Context, cartID int64, itemIDs []uint) ([]models.CartItem, error)
+	RemoveCartItems(ctx context.Context, cartID int64, itemIDs []uint) error
 	WithTransaction(ctx context.Context, fn func(txRepo CartRepository) error) error
 }

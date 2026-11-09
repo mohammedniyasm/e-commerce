@@ -104,6 +104,10 @@ func validateVariant(variant *models.ProductVariant, quantity int) error {
 	if quantity <= 0 {
 		return domainerrors.ErrInvalidQuantity
 	}
+	if quantity > 5 {
+		return domainerrors.ErrInvalidQuantity
+
+	}
 
 	if quantity > variant.Stock {
 		return domainerrors.ErrInsufficientStock

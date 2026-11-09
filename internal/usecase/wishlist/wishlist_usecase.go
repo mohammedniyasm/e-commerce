@@ -5,224 +5,213 @@ import (
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/usecase/interfaces"
-	"errors"
 	"log/slog"
+	"strings"
 )
 
 type WishlistUseCase struct {
 	wishlistRepo interfaces.WishlistRepository
-	productRepo  interfaces.ProductRepository
 	log          *slog.Logger
 }
 
 func NewWishlistUseCase(
 	wishlistRepo interfaces.WishlistRepository,
-	productRepo interfaces.ProductRepository,
 	log *slog.Logger,
 ) *WishlistUseCase {
 	return &WishlistUseCase{
 		wishlistRepo: wishlistRepo,
-		productRepo:  productRepo,
 		log:          log,
 	}
 }
-func (u *WishlistUseCase) getOrCreateWishlist(ctx context.Context, userID int64) (*models.Wishlist, error) {
-	wishlist, err := u.wishlistRepo.GetWishlistByUserID(ctx, userID)
-	if err == nil {
-		return wishlist, nil
+func (u *WishlistUseCase) CreateWishlist(ctx context.Context, userID uint, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return domainerrors.ErrInvalidInput
 	}
-	if !errors.Is(err, domainerrors.ErrRecordNotFound) {
-		return nil, err
-	}
-	newWishlist := &models.Wishlist{
-		UserID: uint(userID),
-	}
-	if err := u.wishlistRepo.CreateWishlist(ctx, newWishlist); err != nil {
-		existingWishlist, lookupErr :=
-			u.wishlistRepo.GetWishlistByUserID(ctx, userID)
-		if lookupErr == nil {
-			return existingWishlist, nil
-		}
-		return nil, err
-	}
-	return newWishlist, nil
-}
-func (u *WishlistUseCase) ValidateProduct(ctx context.Context, id int64) error {
-	product, err := u.productRepo.GetByID(ctx, uint(id))
-	if err != nil {
-		if errors.Is(err, domainerrors.ErrRecordNotFound) {
-			return domainerrors.ErrRecordNotFound
-		}
+	wishlist := &models.Wishlist{UserID: userID, Name: name}
+	if err := u.wishlistRepo.CreateWishlist(ctx, wishlist); err != nil {
+		u.log.ErrorContext(ctx,
+			"failed to create wishlist",
+			"user_id", userID,
+			"error", err,
+		)
 		return err
-	}
-	if !product.IsActive ||
-		!product.IsListed ||
-		product.DeletedAt != nil ||
-		product.Category.DeletedAt != nil ||
-		product.Brand.DeletedAt != nil ||
-		!product.Category.IsActive ||
-		!product.Brand.IsActive {
-		return domainerrors.ErrProductNotAvailable
 	}
 	return nil
 }
-func (u *WishlistUseCase) GetWishlist(ctx context.Context, userID int64) (*models.Wishlist, error) {
-	if userID <= 0 {
-		return nil, domainerrors.ErrInvalidUserID
-	}
-	wishlist, err := u.getOrCreateWishlist(ctx, userID)
+func (u *WishlistUseCase) GetWishlists(ctx context.Context, userID uint) ([]models.Wishlist, error) {
+	wishlists, err := u.wishlistRepo.GetWishlistsByUserID(ctx, userID)
 	if err != nil {
+		u.log.ErrorContext(ctx,
+			"failed to retrieve user wishlists",
+			"user_id", userID,
+			"error", err,
+		)
 		return nil, err
 	}
-	items, err := u.wishlistRepo.GetWishlistItems(ctx, int64(wishlist.ID))
+	return wishlists, nil
+}
+func (u *WishlistUseCase) GetWishlistByID(ctx context.Context, userID uint, wishlistID uint) (*models.Wishlist, error) {
+	if wishlistID == 0 {
+		return nil, domainerrors.ErrInvalidInput
+	}
+	wishlist, err := u.wishlistRepo.GetWishlistByID(
+		ctx,
+		userID,
+		wishlistID,
+	)
 	if err != nil {
+		u.log.ErrorContext(ctx,
+			"failed to retrieve wishlist",
+			"wishlist_id", wishlistID,
+			"user_id", userID,
+			"error", err,
+		)
 		return nil, err
 	}
-	wishlist.Items = items
 	return wishlist, nil
 }
-func (u *WishlistUseCase) AddProduct(ctx context.Context, userID int64, productID int64) (*models.Wishlist, error) {
-	if userID <= 0 {
-		return nil, domainerrors.ErrInvalidUserID
+func (u *WishlistUseCase) UpdateWishlist(ctx context.Context, wishlistID uint, userID uint, name string) error {
+	name = strings.TrimSpace(name)
+	if wishlistID == 0 || name == "" {
+		return domainerrors.ErrInvalidInput
 	}
-	if productID <= 0 {
-		return nil, domainerrors.ErrInvalidProductID
-	}
-	if err := u.ValidateProduct(ctx, productID); err != nil {
-		return nil, err
-	}
-	wishlist, err := u.getOrCreateWishlist(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	_, err = u.wishlistRepo.GetWishlistItemByProductID(ctx, int64(wishlist.ID), productID)
-	if err == nil {
-		return nil, domainerrors.ErrWishlistItemAlreadyExists
-	}
-	if !errors.Is(err, domainerrors.ErrRecordNotFound) {
-		return nil, err
-	}
-	item := &models.WishlistItem{
-		WishlistID: wishlist.ID,
-		ProductID:  uint(productID),
-	}
-	if err := u.wishlistRepo.CreateWishlistItem(ctx, item); err != nil {
-		existingItem, lookupErr := u.wishlistRepo.GetWishlistItemByProductID(ctx, int64(wishlist.ID), productID)
-		if lookupErr == nil && existingItem != nil {
-			return nil, domainerrors.ErrWishlistItemAlreadyExists
-		}
-		return nil, err
-	}
-	u.log.Info(
-		"product added to wishlist",
-		"user_id", userID,
-		"product_id", productID,
+	err := u.wishlistRepo.UpdateWishlist(
+		ctx,
+		wishlistID,
+		userID,
+		name,
 	)
-	return u.GetWishlist(ctx, userID)
+	if err != nil {
+		u.log.ErrorContext(ctx,
+			"failed to update wishlist",
+			"wishlist_id", wishlistID,
+			"user_id", userID,
+			"error", err,
+		)
+		return err
+	}
+	return nil
 }
-func (u *WishlistUseCase) RemoveItem(ctx context.Context, userID int64, itemID int64) (*models.Wishlist, error) {
-	if userID <= 0 {
-		return nil, domainerrors.ErrInvalidUserID
+func (u *WishlistUseCase) DeleteWishlist(ctx context.Context, wishlistID uint, userID uint) error {
+	if wishlistID == 0 {
+		return domainerrors.ErrInvalidInput
 	}
-	if itemID <= 0 {
-		return nil, domainerrors.ErrInvalidProductID
-	}
-	wishlist, err := u.wishlistRepo.GetWishlistByUserID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	if err := u.ValidateProduct(ctx, itemID); err != nil {
-		return nil, err
-	}
-	_, err = u.wishlistRepo.GetWishlistItemByProductID(ctx, int64(wishlist.ID), itemID)
-	if err != nil {
-		if errors.Is(err, domainerrors.ErrRecordNotFound) {
-			return nil, domainerrors.ErrProductNotFound
-		}
-		return nil, err
-	}
-	if err := u.wishlistRepo.RemoveWishlistItem(ctx, int64(wishlist.ID), itemID); err != nil {
-		return nil, err
-	}
-	u.log.Info(
-		"product removed from wishlist",
-		"user_id", userID,
-		"item_id", itemID,
+	err := u.wishlistRepo.DeleteWishlist(
+		ctx,
+		wishlistID,
+		userID,
 	)
-	return u.GetWishlist(ctx, userID)
-}
-func (u *WishlistUseCase) ClearWishlist(ctx context.Context, userID int64) (*models.Wishlist, error) {
-	if userID <= 0 {
-		return nil, domainerrors.ErrInvalidUserID
-	}
-	wishlist, err := u.getOrCreateWishlist(ctx, userID)
 	if err != nil {
-		return nil, err
+		u.log.ErrorContext(ctx,
+			"failed to delete wishlist",
+			"wishlist_id", wishlistID,
+			"user_id", userID,
+			"error", err,
+		)
+		return err
 	}
-	if err := u.wishlistRepo.ClearWishlist(ctx, int64(wishlist.ID)); err != nil {
-		return nil, err
-	}
-	u.log.Info(
-		"wishlist cleared",
-		"user_id", userID,
-	)
-	return u.GetWishlist(ctx, userID)
+	return nil
 }
-func (u *WishlistUseCase) MergeGuestWishlist(ctx context.Context, userID int64, productIDs []int64) (*models.Wishlist, error) {
-	if userID <= 0 {
-		return nil, domainerrors.ErrRecordNotFound
+func (u *WishlistUseCase) AddProductToWishlist(ctx context.Context, wishlistName string, userID uint, productID uint) (*models.Wishlist, error) {
+	wishlistName = strings.TrimSpace(wishlistName)
+	if wishlistName == "" || productID == 0 {
+		return nil, domainerrors.ErrInvalidInput
 	}
-	if len(productIDs) == 0 {
-		return u.GetWishlist(ctx, userID)
+	err := u.wishlistRepo.AddProductToWishlist(
+		ctx,
+		wishlistName,
+		userID,
+		productID,
+	)
+	if err != nil {
+		u.log.ErrorContext(ctx,
+			"failed to add product to wishlist",
+			"user_id", userID,
+			"product_id", productID,
+			"wishlist_name", wishlistName,
+			"error", err,
+		)
+		return nil, err
 	}
-	uniqueProductIDs := make([]int64, 0, len(productIDs))
-	seen := make(map[int64]struct{}, len(productIDs))
-	for _, productID := range productIDs {
-		if productID <= 0 {
-			return nil, domainerrors.ErrInvalidProductID
+	return u.wishlistRepo.GetWishlistByName(ctx, userID, wishlistName)
+}
+func (u *WishlistUseCase) RemoveWishlistItem(ctx context.Context, wishlistID uint, userID uint, itemID uint) (*models.Wishlist, error) {
+	if wishlistID == 0 || itemID == 0 {
+		return nil, domainerrors.ErrInvalidInput
+	}
+	err := u.wishlistRepo.RemoveWishlistItem(
+		ctx,
+		wishlistID,
+		userID,
+		itemID,
+	)
+	if err != nil {
+		u.log.ErrorContext(ctx,
+			"failed to remove wishlist item",
+			"wishlist_id", wishlistID,
+			"item_id", itemID,
+			"user_id", userID,
+			"error", err,
+		)
+		return nil, err
+	}
+	return u.wishlistRepo.GetWishlistByID(ctx, wishlistID, userID)
+}
+func (u *WishlistUseCase) ClearWishlist(ctx context.Context, wishlistID uint, userID uint) (*models.Wishlist, error) {
+	if wishlistID == 0 {
+		return nil, domainerrors.ErrInvalidInput
+	}
+	err := u.wishlistRepo.ClearWishlist(ctx, wishlistID, userID)
+	if err != nil {
+		u.log.ErrorContext(ctx,
+			"failed to clear wishlist",
+			"wishlist_id", wishlistID,
+			"user_id", userID,
+			"error", err,
+		)
+		return nil, err
+	}
+	return u.wishlistRepo.GetWishlistByID(ctx, wishlistID, userID)
+}
+func (u *WishlistUseCase) MergeWishlistItems(ctx context.Context, wishlistName string, userID uint, productIDs []uint) (*models.Wishlist, uint, uint, error) {
+	wishlistName = strings.TrimSpace(wishlistName)
+	if wishlistName == "" || len(productIDs) == 0 {
+		return nil, 0, 0, domainerrors.ErrInvalidInput
+	}
+	// Remove duplicate product IDs.
+	uniqueIDs := make([]uint, 0, len(productIDs))
+	seen := make(map[uint]struct{}, len(productIDs))
+	for _, id := range productIDs {
+		if id == 0 {
+			return nil, 0, 0, domainerrors.ErrInvalidInput
 		}
-		if _, exists := seen[productID]; exists {
+		if _, exists := seen[id]; exists {
 			continue
 		}
-		seen[productID] = struct{}{}
-		uniqueProductIDs = append(uniqueProductIDs, productID)
+		seen[id] = struct{}{}
+		uniqueIDs = append(uniqueIDs, id)
 	}
-	for _, productID := range uniqueProductIDs {
-		if err := u.ValidateProduct(ctx, productID); err != nil {
-			return nil, err
-
-		}
-	}
-	wishlist, err := u.getOrCreateWishlist(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	err = u.wishlistRepo.WithTransaction(ctx, func(txRepo interfaces.WishlistRepository) error {
-		for _, productID := range uniqueProductIDs {
-			_, err := txRepo.GetWishlistItemByProductID(ctx, int64(wishlist.ID), productID)
-			if err == nil {
-				continue
-			}
-			if !errors.Is(err, domainerrors.ErrRecordNotFound) {
-				return err
-			}
-			item := &models.WishlistItem{
-				WishlistID: wishlist.ID,
-				ProductID:  uint(productID),
-			}
-			if err := txRepo.CreateWishlistItem(ctx, item); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	u.log.Info(
-		"guest wishlist merged",
-		"user_id", userID,
-		"product_count", len(uniqueProductIDs),
+	accepted, skipped, err := u.wishlistRepo.MergeWishlistItems(
+		ctx,
+		wishlistName,
+		userID,
+		uniqueIDs,
 	)
-	return u.GetWishlist(ctx, userID)
+	if err != nil {
+		u.log.ErrorContext(ctx,
+			"failed to merge wishlist items",
+			"user_id", userID,
+			"error", err,
+		)
+		return nil, 0, 0, err
+	}
+	skipped += uint(len(productIDs) - len(uniqueIDs))
+	wishlist, err := u.wishlistRepo.GetWishlistByName(ctx, userID, wishlistName)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	return wishlist, accepted, skipped, nil
 }
+
+var _ interfaces.WishlistUseCase = (*WishlistUseCase)(nil)

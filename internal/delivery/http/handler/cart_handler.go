@@ -138,7 +138,7 @@ func (h *CartHandler) AddItem(c *gin.Context) {
 		if errors.Is(err, domainerrors.ErrInvalidQuantity) {
 			c.JSON(http.StatusBadRequest, response.APIResponse{
 				Success: false,
-				Message: "quantity must be greater than zero",
+				Message: "quantity must be greater than zero or less than 5",
 			})
 			return
 		}

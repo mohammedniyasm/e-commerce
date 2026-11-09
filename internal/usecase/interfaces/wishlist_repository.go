@@ -7,12 +7,16 @@ import (
 )
 
 type WishlistRepository interface {
-	GetWishlistByUserID(ctx context.Context, userID int64) (*models.Wishlist, error)
 	CreateWishlist(ctx context.Context, wishlist *models.Wishlist) error
-	GetWishlistItems(ctx context.Context, wishlistID int64) ([]models.WishlistItem, error)
-	GetWishlistItemByProductID(ctx context.Context, wishlistID int64, productID int64) (*models.WishlistItem, error)
-	CreateWishlistItem(ctx context.Context, item *models.WishlistItem) error
-	RemoveWishlistItem(ctx context.Context, wishlistID int64, itemID int64) error
-	ClearWishlist(ctx context.Context, wishlistID int64) error
-	WithTransaction(ctx context.Context, fn func(txRepo WishlistRepository) error) error
+	UpdateWishlist(ctx context.Context, wishlistID uint, userID uint, name string) error
+	DeleteWishlist(ctx context.Context, wishlistID uint, userID uint) error
+	GetWishlistByID(ctx context.Context, userID uint, wishlistID uint) (*models.Wishlist, error)
+	GetWishlistByName(ctx context.Context, userID uint, wishlistName string) (*models.Wishlist, error)
+	GetWishlistsByUserID(ctx context.Context, userID uint) ([]models.Wishlist, error)
+
+	AddProductToWishlist(ctx context.Context, wishlistname string, userID uint, productID uint) error
+	RemoveWishlistItem(ctx context.Context, wishlistID uint, userID uint, itemID uint) error
+	ClearWishlist(ctx context.Context, wishlistID uint, userID uint) error
+
+	MergeWishlistItems(ctx context.Context, wishlistName string, userID uint, productIDs []uint) (uint, uint, error)
 }

@@ -21,6 +21,7 @@ type User struct {
 	IsBlocked       bool     `gorm:"not null;default:false"`
 	GoogleID        *string  `gorm:"size:255" json:"google_id"`
 	LastSeen        *time.Time
+	ReferralCode    string `gorm:"type:varchar(20);uniqueIndex;not null"`
 	CreatedAt       time.Time
 	UpdatedAt       *time.Time
 }

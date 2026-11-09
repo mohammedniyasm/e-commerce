@@ -15,7 +15,7 @@ type UserRepository interface {
 	FindByGoogleID(ctx context.Context, googleID string) (*models.User, error)
 
 	ListUsers(ctx context.Context, search string, offset int, limit int) ([]models.User, int64, error)
-
+	ListAdminIDs(ctx context.Context) ([]uint, error)
 	UpdateEmailVerifiedAt(ctx context.Context, userID uint, verifiedAt time.Time) error
 	UpdateProfileImage(ctx context.Context, userID uint, profileImage string) error
 	UpdatePassword(ctx context.Context, userID uint, hashedPassword string) error
@@ -23,6 +23,6 @@ type UserRepository interface {
 	LinkGoogleID(ctx context.Context, userID uint, googleID string) error
 	UpdateEmail(ctx context.Context, userID uint, email string) error
 	SetBlocked(ctx context.Context, userID uint, blocked bool) error
-
+	FindByReferralCode(ctx context.Context, referralCode string) (*models.User, error)
 	Delete(ctx context.Context, userID uint) error
 }

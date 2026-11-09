@@ -130,6 +130,20 @@ func (r *UserRepository) ListUsers(ctx context.Context, search string, offset in
 	}
 	return users, total, nil
 }
+func (r *UserRepository) ListAdminIDs(ctx context.Context) ([]uint, error) {
+	var adminIDs []uint
+
+	err := r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("role = ?", "admin").
+		Pluck("id", &adminIDs).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	return adminIDs, nil
+}
 func (r *UserRepository) SetBlocked(ctx context.Context, userID uint, blocked bool) error {
 	result := r.db.
 		WithContext(ctx).
@@ -159,4 +173,17 @@ func (r *UserRepository) Delete(ctx context.Context, userID uint) error {
 	}
 
 	return nil
+}
+func (r *UserRepository) FindByReferralCode(ctx context.Context, referralCode string) (*models.User, error) {
+	var user models.User
+	err := r.db.WithContext(ctx).
+		Where("referral_code = ?", referralCode).
+		First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainerrors.ErrUserNotFound
+		}
+		return nil, err
+	}
+	return &user, nil
 }

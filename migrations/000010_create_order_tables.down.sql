@@ -1,0 +1,8 @@
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS order_status_history;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS order_addresses;
+DROP TABLE IF EXISTS orders;
+
+DROP TYPE IF EXISTS payment_status;
+DROP TYPE IF EXISTS order_status;

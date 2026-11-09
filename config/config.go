@@ -17,6 +17,7 @@ type Config struct {
 	Email    EmailConfig
 	Google   GoogleConfig
 	MinIO    MinIOConfig
+	Razorpay RazorpayConfig
 }
 type ServerConfig struct {
 	Port string
@@ -70,6 +71,11 @@ type MinIOConfig struct {
 	SecretKey string
 	UseSSL    bool
 	Bucket    string
+}
+type RazorpayConfig struct {
+	KeyID         string
+	KeySecret     string
+	WebhookSecret string
 }
 
 func LoadConfig() (Config, error) {
@@ -171,6 +177,11 @@ func LoadConfig() (Config, error) {
 			SecretKey: os.Getenv("MINIO_SECRET_KEY"),
 			UseSSL:    useSSL,
 			Bucket:    os.Getenv("MINIO_BUCKET"),
+		},
+		Razorpay: RazorpayConfig{
+			KeyID:         os.Getenv("RAZORPAY_KEY_ID"),
+			KeySecret:     os.Getenv("RAZORPAY_KEY_SECRET"),
+			WebhookSecret: os.Getenv("RAZORPAY_WEBHOOK_SECRET"),
 		},
 	}, nil
 }

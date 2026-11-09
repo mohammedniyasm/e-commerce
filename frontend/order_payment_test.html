@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Order + Razorpay Test Console</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c232d; --line: #2b3440;
+    --text: #e6edf3; --muted: #8b98a8; --accent: #58a6ff; --accent2: #3b82f6;
+    --ok: #3fb950; --warn: #d29922; --err: #f85149; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 20px 24px 8px; max-width: 1100px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 12px 24px 60px; display: grid; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .card h2 { margin: 0 0 12px; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+  .step { background: var(--accent2); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 12px; font-weight: 600; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, select, textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; font-family: var(--mono); font-size: 13px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  button { background: var(--accent2); color: #fff; border: 0; border-radius: 6px; padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { filter: brightness(1.12); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); font-weight: 500; }
+  button.green { background: #238636; }
+  .banner { padding: 10px 12px; border-radius: 6px; font-size: 13px; border: 1px solid; }
+  .banner.warn { background: #2a2110; border-color: #5a4310; color: #e3b341; }
+  .banner.err { background: #2d1315; border-color: #6e2328; color: #ff9b94; }
+  .banner.ok { background: #10261a; border-color: #1f5a33; color: #7ee787; }
+  .banner.info { background: #0f2036; border-color: #1f4577; color: #9ecbff; }
+  .banner code, .hint code { font-family: var(--mono); background: rgba(255,255,255,.07); padding: 1px 5px; border-radius: 4px; }
+  .cols { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+  .status { display: inline-block; font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 4px; background: var(--panel2); border: 1px solid var(--line); }
+  .status.s2 { color: var(--ok); border-color: #1f5a33; }
+  .status.s4, .status.s5 { color: var(--err); border-color: #6e2328; }
+  .status.s0 { color: var(--warn); }
+  pre { margin: 8px 0 0; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px; font: 12px/1.5 var(--mono); overflow: auto; max-height: 340px; white-space: pre-wrap; word-break: break-word; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+  dt { color: var(--muted); font-size: 12px; align-self: center; }
+  dd { margin: 0; font-family: var(--mono); font-size: 13px; word-break: break-all; }
+  .pill { font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--panel2); border: 1px solid var(--line); }
+  .pill.ok { color: var(--ok); } .pill.warn { color: var(--warn); } .pill.err { color: var(--err); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--mono); }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; }
+  .click { cursor: pointer; } .click:hover { background: var(--panel2); }
+  .empty { color: var(--muted); font-style: italic; }
+  #log { max-height: 260px; }
+  .tag { color: var(--accent); }
+  details summary { cursor: pointer; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Order + Razorpay Test Console</h1>
+  <p>Developer test harness for <code>POST /orders</code> → <code>POST /payments/razorpay/order</code> → Razorpay Checkout → <code>POST /payments/razorpay/verify</code>. Not a production storefront.</p>
+</header>
+
+<main>
+  <div id="originBanner"></div>
+
+  <!-- CONFIG -->
+  <section class="card">
+    <h2>API configuration</h2>
+    <div class="grid">
+      <div>
+        <label for="baseUrl">Backend base URL</label>
+        <input id="baseUrl" value="http://localhost:8080/api/v1/user" spellcheck="false" />
+        <div class="hint">Order &amp; payment routes live under the <code>/user</code> group.</div>
+      </div>
+      <div>
+        <label for="token">User access token (JWT)</label>
+        <input id="token" placeholder="eyJhbGciOi…" spellcheck="false" autocomplete="off" />
+        <div class="hint">Sent as <code>Authorization: Bearer &lt;token&gt;</code></div>
+      </div>
+      <div>
+        <label for="rzpKey">Razorpay Test Key ID</label>
+        <input id="rzpKey" placeholder="rzp_test_xxxxxxxxxxxx" spellcheck="false" autocomplete="off" />
+        <div class="hint">Key ID only. Never enter the Key Secret here.</div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="ghost" id="btnSave">Save to this browser</button>
+      <button class="ghost" id="btnClearSaved">Clear saved</button>
+      <button class="ghost" id="btnLoadCart">Load my cart (GET /cart)</button>
+      <button class="ghost" id="btnLoadAddr">Load my addresses (GET /addresses)</button>
+    </div>
+    <div id="helperOut" style="margin-top:12px"></div>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="card">
+    <h2><span class="step">1</span> Place order <span class="pill">POST /orders</span></h2>
+    <div class="grid">
+      <div>
+        <label for="cartIds">Cart item IDs (comma / space separated)</label>
+        <input id="cartIds" placeholder="e.g. 12, 13" />
+        <div class="hint">These are <b>cart item</b> IDs (<code>items[].id</code> from GET /cart), not variant/product IDs. No duplicates.</div>
+      </div>
+      <div>
+        <label for="addressId">Delivery address ID</label>
+        <input id="addressId" type="number" min="1" placeholder="e.g. 3" />
+      </div>
+      <div>
+        <label for="payMethod">Payment method</label>
+        <select id="payMethod">
+          <option value="online">online (Razorpay)</option>
+          <option value="cod">cod</option>
+        </select>
+        <div class="hint">Backend accepts only <code>online</code> or <code>cod</code>.</div>
+      </div>
+      <div>
+        <label for="coupon">Coupon code (optional)</label>
+        <input id="coupon" placeholder="optional" />
+      </div>
+    </div>
+    <div class="row">
+      <button id="btnPlace">Place Order</button>
+    </div>
+    <div class="cols" style="margin-top:14px">
+      <div>
+        <div>Response <span id="placeStatus"></span></div>
+        <pre id="placeRaw" class="empty">No request yet.</pre>
+      </div>
+      <div>
+        <div>Order details</div>
+        <div id="orderDetails" class="empty" style="margin-top:8px">No order yet.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card">
+    <h2><span class="step">2</span> Create Razorpay order <span class="pill">POST /payments/razorpay/order</span></h2>
+    <div class="grid">
+      <div>
+        <label for="orderIdIn">Order ID (UUID)</label>
+        <input id="orderIdIn" placeholder="auto-filled after Place Order" spellcheck="false" />
+        <div class="hint">Body is <code>{"order_id": "&lt;uuid&gt;"}</code> — the UUID, not the order number.</div>
+      </div>
+      <div>
+        <label>Payment window</label>
+        <div id="countdown" class="pill" style="display:inline-block">—</div>
+        <div class="hint">Backend rejects create/verify if order is not <code>pending/pending</code> or &gt;10 min after <code>placed_at</code>.</div>
+      </div>
+    </div>
+    <div class="row">
+      <button id="btnCreateRzp" disabled>Create Razorpay Order</button>
+      <button class="ghost" id="btnRefreshOrder" disabled>Refresh order status (GET /orders/:id)</button>
+    </div>
+    <div class="cols" style="margin-top:14px">
+      <div>
+        <div>Response <span id="rzpStatus"></span></div>
+        <pre id="rzpRaw" class="empty">No request yet.</pre>
+      </div>
+      <div>
+        <div>Razorpay order</div>
+        <dl style="margin-top:8px">
+          <dt>razorpay_order_id</dt><dd id="rzpOrderId" class="empty">—</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 3 + 4 -->
+  <section class="card">
+    <h2><span class="step">3</span> Razorpay Checkout &amp; <span class="step">4</span> verify <span class="pill">POST /payments/razorpay/verify</span></h2>
+    <div class="row" style="margin-top:0">
+      <button id="btnPay" class="green" disabled>Pay Now</button>
+      <button id="btnVerify" class="ghost" disabled>Verify payment (manual retry)</button>
+      <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="autoVerify" checked style="width:auto" /> auto-verify after checkout success</label>
+    </div>
+    <div style="margin-top:12px">
+      <label>Payment methods to show in Checkout</label>
+      <div class="row" style="margin-top:4px" id="methodBox">
+        <label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" data-m="card" checked style="width:auto" /> Card</label>
+        <label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" data-m="upi" checked style="width:auto" /> UPI</label>
+        <label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" data-m="netbanking" checked style="width:auto" /> Netbanking</label>
+        <label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" data-m="wallet" checked style="width:auto" /> Wallet</label>
+        <label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" data-m="emi" checked style="width:auto" /> EMI</label>
+        <label style="display:flex;gap:6px;align-items:center;margin:0;color:var(--text)"><input type="checkbox" data-m="paylater" checked style="width:auto" /> Pay Later</label>
+      </div>
+      <div class="hint">This can only <b>hide</b> methods. A method that isn't enabled in Razorpay Dashboard → Settings → Payment Methods (Test Mode) won't appear even if ticked.</div>
+    </div>
+    <div class="hint" style="margin-top:10px">UPI test: <code>success@razorpay</code> (fail: <code>failure@razorpay</code>). Test card:<code>4111 1111 1111 1111</code>, any future expiry, any CVV, OTP <code>1234</code> (or use Razorpay's test UPI <code>success@razorpay</code>).</div>
+    <div id="verifyHint" style="margin-top:12px"></div>
+    <div class="cols" style="margin-top:14px">
+      <div>
+        <div>Checkout callback payload</div>
+        <pre id="cbRaw" class="empty">Waiting for checkout…</pre>
+      </div>
+      <div>
+        <div>Verify response <span id="verStatus"></span></div>
+        <pre id="verRaw" class="empty">No request yet.</pre>
+      </div>
+    </div>
+    <div id="finalOrder" style="margin-top:14px"></div>
+  </section>
+
+  <!-- LOG -->
+  <section class="card">
+    <h2>Request log</h2>
+    <div class="row" style="margin:0 0 8px"><button class="ghost" id="btnClearLog">Clear</button></div>
+    <pre id="log" class="empty">Nothing yet.</pre>
+  </section>
+</main>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const state = { order: null, razorpayOrderId: null, payment: null };
+  const LS = 'order_payment_test_cfg';
+
+  // ---------- storage (best-effort) ----------
+  function lsGet() { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch { return {}; } }
+  function lsSet(v) { try { localStorage.setItem(LS, JSON.stringify(v)); return true; } catch { return false; } }
+  function lsDel() { try { localStorage.removeItem(LS); } catch {} }
+  (function restore() {
+    const c = lsGet();
+    if (c.baseUrl) $('baseUrl').value = c.baseUrl;
+    if (c.token) $('token').value = c.token;
+    if (c.rzpKey) $('rzpKey').value = c.rzpKey;
+  })();
+  $('btnSave').onclick = () => {
+    const ok = lsSet({ baseUrl: $('baseUrl').value.trim(), token: $('token').value.trim(), rzpKey: $('rzpKey').value.trim() });
+    banner('helperOut', ok ? 'ok' : 'warn', ok ? 'Saved in this browser (localStorage).' : 'Could not save (storage blocked).');
+  };
+  $('btnClearSaved').onclick = () => { lsDel(); banner('helperOut', 'info', 'Saved config cleared.'); };
+
+  // ---------- helpers ----------
+  function banner(id, kind, html) { $(id).innerHTML = `<div class="banner ${kind}">${html}</div>`; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  function base() { return $('baseUrl').value.trim().replace(/\/+$/, ''); }
+  function setPre(id, text) { const el = $(id); el.textContent = text; el.classList.remove('empty'); }
+  function setStatus(id, status, ms) {
+    const el = $(id);
+    const cls = 's' + Math.floor(status / 100);
+    el.innerHTML = `<span class="status ${cls}">${status === 0 ? 'NETWORK ERROR' : 'HTTP ' + status}${ms != null ? ' · ' + ms + ' ms' : ''}</span>`;
+  }
+  function log(line) {
+    const el = $('log');
+    const t = new Date().toLocaleTimeString();
+    el.classList.remove('empty');
+    el.textContent = (el.classList.contains('fresh') ? el.textContent + '\n' : '') + `[${t}] ${line}`;
+    el.classList.add('fresh');
+    el.scrollTop = el.scrollHeight;
+  }
+  $('btnClearLog').onclick = () => { const el = $('log'); el.textContent = 'Nothing yet.'; el.classList.add('empty'); el.classList.remove('fresh'); };
+
+  async function api(method, path, body) {
+    const headers = { 'Accept': 'application/json' };
+    const token = $('token').value.trim();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const init = { method, headers };
+    if (body !== undefined) { headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
+    const url = base() + path;
+    const t0 = performance.now();
+    let res, text;
+    try {
+      res = await fetch(url, init);
+      text = await res.text();
+    } catch (e) {
+      const ms = Math.round(performance.now() - t0);
+      log(`${method} ${url} → NETWORK/CORS ERROR (${e.message})`);
+      return { status: 0, ms, data: null, text: String(e), networkError: e };
+    }
+    const ms = Math.round(performance.now() - t0);
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch {}
+    log(`${method} ${url} → ${res.status} (${ms} ms)${body ? ' body=' + JSON.stringify(body) : ''}`);
+    return { status: res.status, ms, data, text };
+  }
+  function pretty(r) {
+    if (r.status === 0) return 'Request failed before reaching the server.\n\n' + r.text;
+    return r.data !== null ? JSON.stringify(r.data, null, 2) : (r.text || '(empty body)');
+  }
+  function networkHelp(target, r) {
+    banner(target, 'err',
+      `<b>Network / CORS failure.</b> Your backend's CORS middleware only allows origin <code>http://localhost:5173</code> and methods <code>GET,PUT,POST,PATCH,OPTIONS</code>. ` +
+      `Serve this file from that origin, e.g. <code>python3 -m http.server 5173</code> then open <code>http://localhost:5173/order_payment_test.html</code>. ` +
+      `Also check the server is running and the base URL is right.`);
+  }
+
+  // origin warning
+  (function () {
+    if (location.origin !== 'http://localhost:5173') {
+      banner('originBanner', 'warn',
+        `<b>Heads-up:</b> this page is running from <code>${esc(location.origin)}</code>. Your backend CORS (<code>middleware/cors.go</code>) only allows <code>http://localhost:5173</code>, so browser requests will be blocked. ` +
+        `Run <code>python3 -m http.server 5173</code> in this file's folder and open <code>http://localhost:5173/order_payment_test.html</code>.`);
+    }
+  })();
+
+  // ---------- optional helpers: cart + addresses ----------
+  $('btnLoadCart').onclick = async () => {
+    const r = await api('GET', '/cart');
+    if (r.status === 0) return networkHelp('helperOut', r);
+    const items = r.data && r.data.data && r.data.data.items;
+    if (!r.data || !r.data.success || !Array.isArray(items)) return banner('helperOut', 'err', `HTTP ${r.status}: ${esc(r.data?.message || r.text)}`);
+    if (!items.length) return banner('helperOut', 'warn', 'Cart is empty. Add items via POST /cart/items first.');
+    let h = `<div class="banner info">Cart — click a row to toggle its ID in the order form.</div><table style="margin-top:8px"><tr><th>cart item id</th><th>product</th><th>sku</th><th>qty</th><th>line total</th><th>available</th></tr>`;
+    for (const it of items) h += `<tr class="click" data-id="${it.id}"><td>${it.id}</td><td>${esc(it.product_name)}</td><td>${esc(it.sku)}</td><td>${it.quantity}</td><td>${it.line_total}</td><td>${it.is_available ? 'yes' : 'NO — ' + esc(it.availability_reason || '')}</td></tr>`;
+    $('helperOut').innerHTML = h + '</table>';
+    $('helperOut').querySelectorAll('tr.click').forEach((tr) => tr.onclick = () => {
+      const id = tr.dataset.id;
+      const cur = parseIds($('cartIds').value).ids;
+      const next = cur.includes(+id) ? cur.filter((x) => x !== +id) : [...cur, +id];
+      $('cartIds').value = next.join(', ');
+    });
+  };
+  $('btnLoadAddr').onclick = async () => {
+    const r = await api('GET', '/addresses');
+    if (r.status === 0) return networkHelp('helperOut', r);
+    let list = r.data && r.data.data;
+    if (list && !Array.isArray(list)) list = list.addresses || list.items;
+    if (!r.data || !r.data.success || !Array.isArray(list)) return banner('helperOut', 'err', `HTTP ${r.status}: ${esc(r.data?.message || r.text)}`);
+    if (!list.length) return banner('helperOut', 'warn', 'No addresses saved. Create one via POST /addresses first.');
+    let h = `<div class="banner info">Addresses — click a row to use its ID.</div><table style="margin-top:8px"><tr><th>id</th><th>name</th><th>city</th><th>postal</th><th>default</th></tr>`;
+    for (const a of list) h += `<tr class="click" data-id="${a.id}"><td>${a.id}</td><td>${esc(a.name)}</td><td>${esc(a.city)}</td><td>${esc(a.postal_code)}</td><td>${a.is_default ? '✓' : ''}</td></tr>`;
+    $('helperOut').innerHTML = h + '</table>';
+    $('helperOut').querySelectorAll('tr.click').forEach((tr) => tr.onclick = () => { $('addressId').value = tr.dataset.id; });
+  };
+
+  // ---------- Step 1: place order ----------
+  function parseIds(raw) {
+    const parts = raw.split(/[\s,;]+/).filter(Boolean);
+    const ids = [], bad = [];
+    for (const p of parts) { /^\d+$/.test(p) && +p > 0 ? ids.push(+p) : bad.push(p); }
+    return { ids, bad };
+  }
+  $('btnPlace').onclick = async () => {
+    const errs = [];
+    if (!base()) errs.push('Base URL is required.');
+    if (!$('token').value.trim()) errs.push('Access token is required (all order routes are behind AuthMiddleware).');
+    const { ids, bad } = parseIds($('cartIds').value);
+    if (!ids.length) errs.push('Enter at least one cart item ID.');
+    if (bad.length) errs.push('Invalid cart item IDs: ' + bad.join(', '));
+    if (new Set(ids).size !== ids.length) errs.push('Duplicate cart item IDs — backend rejects duplicates.');
+    const addr = parseInt($('addressId').value, 10);
+    if (!(addr > 0)) errs.push('Address ID must be a positive integer.');
+    if (errs.length) { setPre('placeRaw', 'Validation failed:\n- ' + errs.join('\n- ')); $('placeStatus').innerHTML = ''; return; }
+
+    const body = { cart_item_ids: ids, address_id: addr, payment_method: $('payMethod').value };
+    const coupon = $('coupon').value.trim();
+    if (coupon) body.coupon_code = coupon;
+
+    $('btnPlace').disabled = true;
+    const r = await api('POST', '/orders', body);
+    $('btnPlace').disabled = false;
+    setStatus('placeStatus', r.status, r.ms);
+    setPre('placeRaw', pretty(r));
+    if (r.status === 0) return networkHelp('orderDetails', r);
+
+    const d = r.data && r.data.data;
+    if (r.status === 201 && r.data.success && d && d.order_id) {
+      state.order = { ...d, payment_method: body.payment_method, placedAtLocal: d.created_at };
+      state.razorpayOrderId = null; state.payment = null;
+      renderOrder(d);
+      $('orderIdIn').value = d.order_id;
+      $('rzpOrderId').textContent = '—'; $('rzpOrderId').classList.add('empty');
+      setPre('rzpRaw', 'No request yet.'); $('rzpRaw').classList.add('empty'); $('rzpStatus').innerHTML = '';
+      $('finalOrder').innerHTML = ''; $('verifyHint').innerHTML = '';
+      syncButtons(); startCountdown(d.created_at);
+    } else {
+      $('orderDetails').classList.add('empty');
+      $('orderDetails').innerHTML = `Order not created. ${esc(r.data?.message || '')}${r.data?.error ? ' — <b>' + esc(r.data.error) + '</b>' : ''}`;
+    }
+  };
+
+  function renderOrder(d) {
+    const el = $('orderDetails'); el.classList.remove('empty');
+    const money = (n) => '₹' + Number(n).toFixed(2);
+    el.innerHTML = `<dl>
+      <dt>order_id</dt><dd>${esc(d.order_id)}</dd>
+      <dt>order_number</dt><dd>${esc(d.order_number)}</dd>
+      <dt>order_status</dt><dd><span class="pill">${esc(d.order_status)}</span></dd>
+      <dt>payment_status</dt><dd><span class="pill ${d.payment_status === 'paid' ? 'ok' : 'warn'}">${esc(d.payment_status)}</span></dd>
+      <dt>subtotal</dt><dd>${money(d.subtotal)}</dd>
+      <dt>discount_amount</dt><dd>${money(d.discount_amount)}</dd>
+      <dt>shipping_amount</dt><dd>${money(d.shipping_amount)}</dd>
+      <dt>total_amount</dt><dd><b>${money(d.total_amount)}</b></dd>
+      <dt>created_at</dt><dd>${esc(d.created_at)}</dd>
+      ${d.estimated_delivery_start ? `<dt>est. delivery</dt><dd>${esc(d.estimated_delivery_start)} → ${esc(d.estimated_delivery_end || '')}</dd>` : ''}
+    </dl>`;
+  }
+
+  // ---------- payment window countdown ----------
+  let cdTimer = null;
+  function startCountdown(iso) {
+    clearInterval(cdTimer);
+    const start = new Date(iso).getTime();
+    if (isNaN(start)) { $('countdown').textContent = 'unknown'; return; }
+    const tick = () => {
+      const left = start + 10 * 60 * 1000 - Date.now();
+      const el = $('countdown');
+      if (left <= 0) { el.textContent = 'EXPIRED (10 min window passed)'; el.className = 'pill err'; clearInterval(cdTimer); return; }
+      const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
+      el.textContent = `${m}:${String(s).padStart(2, '0')} left`; el.className = 'pill ' + (left < 120000 ? 'warn' : 'ok');
+    };
+    tick(); cdTimer = setInterval(tick, 1000);
+  }
+
+  function currentOrderId() { return $('orderIdIn').value.trim(); }
+  function syncButtons() {
+    const oid = currentOrderId();
+    const online = !state.order || state.order.payment_method === 'online';
+    $('btnCreateRzp').disabled = !oid || !online;
+    $('btnRefreshOrder').disabled = !oid;
+    $('btnPay').disabled = !state.razorpayOrderId;
+    $('btnVerify').disabled = !state.payment;
+    if (state.order && state.order.payment_method === 'cod') {
+      banner('verifyHint', 'info', 'COD order: no Razorpay flow. It is created as <code>confirmed</code> with payment <code>pending</code>; payment status is updated by admin (PATCH /admin/orders/:id/payment-status).');
+    }
+  }
+  $('orderIdIn').addEventListener('input', syncButtons);
+
+  // ---------- refresh order ----------
+  $('btnRefreshOrder').onclick = async () => {
+    const oid = currentOrderId();
+    const r = await api('GET', '/orders/' + encodeURIComponent(oid));
+    if (r.status === 0) return networkHelp('finalOrder', r);
+    const d = r.data && r.data.data;
+    if (!d) return banner('finalOrder', 'err', `HTTP ${r.status}: ${esc(r.data?.message || r.text)}`);
+    // GET /orders/:id returns OrderResponse (id, not order_id)
+    $('finalOrder').innerHTML = `<div class="banner info">Latest from GET /orders/:id → order_status <code>${esc(d.order_status)}</code>, payment_status <code>${esc(d.payment_status)}</code>, total ₹${Number(d.total_amount).toFixed(2)}</div>`;
+  };
+
+  // ---------- Step 2: create razorpay order ----------
+  $('btnCreateRzp').onclick = async () => {
+    const oid = currentOrderId();
+    if (!/^[0-9a-fA-F-]{36}$/.test(oid)) { setPre('rzpRaw', 'order_id must be a UUID (36 chars).'); return; }
+    $('btnCreateRzp').disabled = true;
+    const r = await api('POST', '/payments/razorpay/order', { order_id: oid });
+    $('btnCreateRzp').disabled = false;
+    setStatus('rzpStatus', r.status, r.ms);
+    setPre('rzpRaw', pretty(r));
+    if (r.status === 0) return networkHelp('verifyHint', r);
+    const rid = r.data && r.data.data && r.data.data.razorpay_order_id;
+    if (r.status === 200 && r.data.success && rid) {
+      state.razorpayOrderId = rid;
+      $('rzpOrderId').textContent = rid; $('rzpOrderId').classList.remove('empty');
+    } else {
+      state.razorpayOrderId = null;
+      $('rzpOrderId').textContent = '—'; $('rzpOrderId').classList.add('empty');
+      banner('verifyHint', 'warn',
+        'The backend returns a generic <code>500 "failed to create payment order"</code> for <i>every</i> failure (not found, not pending, window expired, Razorpay API error). ' +
+        'Check the Go server log for the real cause, and confirm: order is <code>pending/pending</code>, payment method was <code>online</code>, &lt;10 min since placement, and <code>RAZORPAY_KEY_ID/SECRET</code> are set in <code>.env</code>.');
+    }
+    syncButtons();
+  };
+
+  // ---------- Step 3: Razorpay checkout ----------
+  $('btnPay').onclick = () => {
+    const key = $('rzpKey').value.trim();
+    if (!key) { banner('verifyHint', 'err', 'Enter your Razorpay Test Key ID first.'); return; }
+    if (!/^rzp_test_/.test(key)) banner('verifyHint', 'warn', 'Key ID does not start with <code>rzp_test_</code> — make sure you are using test mode.');
+    if (!state.razorpayOrderId) { banner('verifyHint', 'err', 'Create the Razorpay order first.'); return; }
+    if (typeof window.Razorpay !== 'function') { banner('verifyHint', 'err', 'Razorpay SDK did not load (checkout.razorpay.com blocked or offline).'); return; }
+
+    const orderNo = state.order ? state.order.order_number : '';
+    const method = {};
+    document.querySelectorAll('#methodBox input[data-m]').forEach((cb) => { method[cb.dataset.m] = cb.checked; });
+    if (!Object.values(method).some(Boolean)) { banner('verifyHint', 'err', 'Select at least one payment method.'); return; }
+    const rzp = new window.Razorpay({
+      key,
+      method,
+      order_id: state.razorpayOrderId,      // amount/currency come from the Razorpay order the backend created
+      name: 'Order/Payment Test',
+      description: orderNo ? 'Test payment for ' + orderNo : 'Test payment',
+      theme: { color: '#3b82f6' },
+      handler: function (resp) {
+        state.payment = resp;
+        setPre('cbRaw', JSON.stringify(resp, null, 2));
+        log('Razorpay checkout success: ' + resp.razorpay_payment_id);
+        syncButtons();
+        if ($('autoVerify').checked) verify();
+      },
+      modal: { ondismiss: () => { log('Checkout closed by user'); } }
+    });
+    rzp.on('payment.failed', (resp) => {
+      setPre('cbRaw', 'payment.failed\n' + JSON.stringify(resp.error, null, 2));
+      banner('verifyHint', 'err', `Payment failed: ${esc(resp.error.description || resp.error.reason || 'unknown')}`);
+      log('Razorpay payment.failed: ' + (resp.error && resp.error.code));
+    });
+    rzp.open();
+  };
+
+  // ---------- Step 4: verify ----------
+  async function verify() {
+    const p = state.payment, oid = currentOrderId();
+    if (!p || !oid) return;
+    const body = {
+      order_id: oid,
+      razorpay_order_id: p.razorpay_order_id,
+      razorpay_payment_id: p.razorpay_payment_id,
+      razorpay_signature: p.razorpay_signature,
+    };
+    $('btnVerify').disabled = true;
+    const r = await api('POST', '/payments/razorpay/verify', body);
+    $('btnVerify').disabled = false;
+    setStatus('verStatus', r.status, r.ms);
+    setPre('verRaw', pretty(r));
+    if (r.status === 0) return networkHelp('verifyHint', r);
+
+    if (r.status === 200 && r.data && r.data.success) {
+      banner('verifyHint', 'ok', '<b>Payment verified.</b> Fetching the order to confirm status…');
+      $('btnRefreshOrder').click();
+    } else if (r.status === 401 && r.data && r.data.message === 'unauthorized') {
+      banner('verifyHint', 'err',
+        '<b>Likely backend bug, not a bad token.</b> <code>VerifyRazorpayPayment</code> in <code>payment_handler.go</code> reads <code>c.Get("userID")</code> and asserts <code>uint</code>, ' +
+        'but <code>AuthMiddleware</code> stores the user under <code>"user_id"</code> as a <code>string</code>. The key never matches, so this endpoint always returns 401 <code>"unauthorized"</code>. ' +
+        'Fix: use <code>getCartUserID(c)</code> (as <code>CreateRazorpayOrder</code> does) and pass <code>uint(userID)</code>. The Razorpay payment itself succeeded — only verification is blocked.');
+    } else if (r.status === 400) {
+      banner('verifyHint', 'warn',
+        'Backend returns a generic <code>400 "payment verification failed"</code> for every failure. Possible causes: invalid signature (wrong <code>RAZORPAY_KEY_SECRET</code>), order not pending/pending, &gt;10 min since placement, ' +
+        'Razorpay payment not <code>captured</code> (test payments may be only <code>authorized</code> if auto-capture is off), amount/currency mismatch, or gateway order ID mismatch. Check the Go server log.');
+    } else {
+      banner('verifyHint', 'err', `HTTP ${r.status}: ${esc(r.data?.message || r.text)}`);
+    }
+  }
+  $('btnVerify').onclick = verify;
+
+  syncButtons();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wallet Top-up + Razorpay Test Console</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --line: #2b3440;
+    --text: #e6edf3; --muted: #8b98a8; --accent: #58a6ff; --accent2: #3b82f6;
+    --ok: #3fb950; --warn: #d29922; --err: #f85149; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 20px 24px 8px; max-width: 1100px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { max-width: 1100px; margin: 0 auto; padding: 12px 24px 60px; display: grid; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .card h2 { margin: 0 0 12px; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+  .step { background: var(--accent2); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 12px; font-weight: 600; flex: none; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: var(--mono); font-size: 13px; }
+  input:focus { outline: none; border-color: var(--accent); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  button { background: var(--accent2); color: #fff; border: 0; border-radius: 6px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { filter: brightness(1.1); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 500; }
+  button.danger { background: #8e2a2a; }
+  button.chip { padding: 4px 10px; font-weight: 500; background: transparent; border: 1px solid var(--line); color: var(--accent); }
+  pre { margin: 10px 0 0; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; font: 12px/1.5 var(--mono); max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+  pre.empty { color: var(--muted); }
+  code { font-family: var(--mono); background: var(--bg); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .banner { padding: 9px 12px; border-radius: 6px; margin-top: 10px; border: 1px solid; font-size: 13px; }
+  .banner.ok { border-color: #1f6f33; background: #12261a; }
+  .banner.warn { border-color: #7a5a14; background: #2a2210; }
+  .banner.err { border-color: #8e2a2a; background: #2a1213; }
+  .banner.info { border-color: #1f4a7a; background: #101d2b; }
+  .status { font: 12px var(--mono); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--line); }
+  .status.s2 { color: var(--ok); border-color: #1f6f33; } .status.s4 { color: var(--warn); border-color: #7a5a14; }
+  .status.s5, .status.s0 { color: var(--err); border-color: #8e2a2a; }
+  .balance { font-size: 30px; font-weight: 700; letter-spacing: -.5px; }
+  .split { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 760px) { .split { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; }
+  td.credit { color: var(--ok); } td.debit { color: var(--err); }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; font-size: 13px; margin-top: 8px; }
+  .kv dt { color: var(--muted); } .kv dd { margin: 0; font-family: var(--mono); word-break: break-all; }
+  .cards { font-size: 12.5px; color: var(--muted); }
+  .cards b { color: var(--text); font-family: var(--mono); font-weight: 500; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Wallet Top-up + Razorpay Test Console</h1>
+  <p>Tests <code>POST /user/wallet/top-up/order</code> → Razorpay Checkout → <code>POST /user/wallet/top-up/verify</code>. Test mode only.</p>
+</header>
+<main>
+  <div id="originBanner"></div>
+
+  <!-- Config -->
+  <section class="card">
+    <h2>Setup</h2>
+    <div class="grid">
+      <div>
+        <label>User API base URL</label>
+        <input id="baseUrl" value="http://localhost:8080/api/v1/user" spellcheck="false" />
+        <div class="hint">Wallet routes live under <code>/api/v1/user</code>.</div>
+      </div>
+      <div>
+        <label>Access token (JWT)</label>
+        <input id="token" placeholder="paste access_token, or log in below" spellcheck="false" autocomplete="off" />
+      </div>
+    </div>
+    <details style="margin-top:12px">
+      <summary style="cursor:pointer;color:var(--accent)">Log in to get a token</summary>
+      <div class="grid" style="margin-top:10px">
+        <div><label>Email</label><input id="email" type="email" autocomplete="off" /></div>
+        <div><label>Password</label><input id="password" type="password" autocomplete="off" /></div>
+      </div>
+      <div class="hint">Posts to <code>{base without /user}/auth/login</code>. The login route is rate-limited to 5 per 60s.</div>
+      <div class="row"><button id="btnLogin" class="ghost">Log in</button></div>
+    </details>
+    <div class="row">
+      <button id="btnSave" class="ghost">Save config in browser</button>
+      <button id="btnClearSaved" class="ghost">Clear saved</button>
+    </div>
+    <div id="setupOut"></div>
+  </section>
+
+  <!-- Wallet -->
+  <section class="card">
+    <h2>Wallet</h2>
+    <div class="split">
+      <div>
+        <label>Current balance</label>
+        <div class="balance" id="balance">—</div>
+        <div class="row" style="margin-top:8px"><button id="btnWallet" class="ghost">Refresh balance</button><button id="btnTxns" class="ghost">Load transactions</button></div>
+      </div>
+      <div id="balanceDelta" class="hint" style="align-self:end"></div>
+    </div>
+    <div id="txnOut"></div>
+  </section>
+
+  <!-- Step 1 -->
+  <section class="card">
+    <h2><span class="step">1</span> Create top-up order</h2>
+    <div style="max-width:320px">
+      <label>Amount (₹)</label>
+      <input id="amount" type="number" min="1" step="0.01" value="500" />
+      <div class="row" style="margin-top:8px;gap:6px">
+        <button class="chip" data-amt="1">₹1</button><button class="chip" data-amt="100">₹100</button>
+        <button class="chip" data-amt="500">₹500</button><button class="chip" data-amt="1000">₹1000</button>
+        <button class="chip" data-amt="10.55">₹10.55</button>
+      </div>
+      <div class="hint">Backend converts to paise with rounding. Try ₹10.55 to check decimals.</div>
+    </div>
+    <div class="row"><button id="btnOrder">Create order</button><span id="orderStatus"></span></div>
+    <dl class="kv" id="orderKv" style="display:none"></dl>
+    <pre id="orderRaw" class="empty">No request yet.</pre>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="card">
+    <h2><span class="step">2</span> Pay with Razorpay Checkout</h2>
+    <div class="cards">
+      Test card: <b>4111 1111 1111 1111</b> · any future expiry · any CVV · OTP <b>1234</b> if asked<br/>
+      Test UPI success: <b>success@razorpay</b> · failure: <b>failure@razorpay</b>
+    </div>
+    <div class="row">
+      <button id="btnPay" disabled>Open Checkout</button>
+      <label style="margin:0;display:flex;gap:6px;align-items:center;color:var(--text)"><input type="checkbox" id="autoVerify" checked style="width:auto" /> Auto-verify on success</label>
+    </div>
+    <div id="payHint"></div>
+    <pre id="cbRaw" class="empty">Checkout callback will show here.</pre>
+  </section>
+
+  <!-- Step 3 -->
+  <section class="card">
+    <h2><span class="step">3</span> Verify payment &amp; credit wallet</h2>
+    <div class="row" style="margin-top:0">
+      <button id="btnVerify" disabled>Verify</button>
+      <button id="btnReplay" class="ghost" disabled title="Same payload again. Expect success and NO second credit.">Replay verify (idempotency)</button>
+      <button id="btnTamper" class="danger" disabled title="Sends a corrupted signature. Expect 400.">Verify with bad signature</button>
+      <span id="verifyStatus"></span>
+    </div>
+    <div id="verifyHint"></div>
+    <pre id="verifyRaw" class="empty">No request yet.</pre>
+  </section>
+
+  <section class="card">
+    <h2>Request log <button id="btnClearLog" class="ghost" style="margin-left:auto;padding:3px 10px">Clear</button></h2>
+    <pre id="log" class="empty">Nothing yet.</pre>
+  </section>
+
+  <section class="card">
+    <h2>Webhook note</h2>
+    <div class="hint" style="font-size:13px">
+      Your server also has <code>POST /api/v1/wallet/razorpay/webhook</code> (listens for <code>payment.captured</code>, credits the same top-up row). Razorpay can't reach <code>localhost</code>, so to test it expose port 8080 (e.g. <code>ngrok http 8080</code>) and register
+      <code>https://&lt;tunnel&gt;/api/v1/wallet/razorpay/webhook</code> in the Razorpay Dashboard with the secret from <code>RAZORPAY_WEBHOOK_SECRET</code>.
+      Whichever of verify or webhook arrives first credits the wallet; the other should be a no-op.
+    </div>
+  </section>
+</main>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const LS = 'wallet_topup_test_cfg';
+  const state = { order: null, payment: null, balanceBefore: null };
+
+  // ---- storage (best effort) ----
+  const lsGet = () => { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch { return {}; } };
+  const lsSet = (v) => { try { localStorage.setItem(LS, JSON.stringify(v)); return true; } catch { return false; } };
+  const c0 = lsGet();
+  if (c0.baseUrl) $('baseUrl').value = c0.baseUrl;
+  if (c0.token) $('token').value = c0.token;
+  $('btnSave').onclick = () => banner('setupOut', lsSet({ baseUrl: $('baseUrl').value.trim(), token: $('token').value.trim() }) ? 'ok' : 'warn', 'Saved in this browser.');
+  $('btnClearSaved').onclick = () => { try { localStorage.removeItem(LS); } catch {} banner('setupOut', 'info', 'Saved config cleared.'); };
+
+  // ---- helpers ----
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const base = () => $('baseUrl').value.trim().replace(/\/+$/, '');
+  const inr = (n) => '₹' + Number(n).toFixed(2);
+  function banner(id, kind, html) { $(id).innerHTML = `<div class="banner ${kind}">${html}</div>`; }
+  function setPre(id, t) { const el = $(id); el.textContent = t; el.classList.remove('empty'); }
+  function setStatus(id, status, ms) {
+    $(id).innerHTML = `<span class="status s${Math.floor(status / 100)}">${status === 0 ? 'NETWORK ERROR' : 'HTTP ' + status} · ${ms} ms</span>`;
+  }
+  function log(line) {
+    const el = $('log'); const fresh = el.classList.contains('fresh');
+    el.classList.remove('empty');
+    el.textContent = (fresh ? el.textContent + '\n' : '') + `[${new Date().toLocaleTimeString()}] ${line}`;
+    el.classList.add('fresh'); el.scrollTop = el.scrollHeight;
+  }
+  $('btnClearLog').onclick = () => { const el = $('log'); el.textContent = 'Nothing yet.'; el.className = 'empty'; };
+
+  async function api(method, path, body, { absolute = false, auth = true } = {}) {
+    const headers = { Accept: 'application/json' };
+    const tok = $('token').value.trim();
+    if (auth && tok) headers.Authorization = 'Bearer ' + tok;
+    const init = { method, headers };
+    if (body !== undefined) { headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
+    const url = absolute ? path : base() + path;
+    const t0 = performance.now();
+    let res, text;
+    try { res = await fetch(url, init); text = await res.text(); }
+    catch (e) { log(`${method} ${url} → NETWORK/CORS ERROR (${e.message})`); return { status: 0, ms: Math.round(performance.now() - t0), data: null, text: String(e) }; }
+    const ms = Math.round(performance.now() - t0);
+    let data = null; try { data = text ? JSON.parse(text) : null; } catch {}
+    log(`${method} ${url} → ${res.status} (${ms} ms)`);
+    return { status: res.status, ms, data, text };
+  }
+  const pretty = (r) => r.status === 0 ? 'Request failed before reaching the server.\n\n' + r.text : (r.data !== null ? JSON.stringify(r.data, null, 2) : r.text || '(empty body)');
+  function netHelp(target) {
+    banner(target, 'err', `<b>Network / CORS failure.</b> Your CORS middleware only allows origin <code>http://localhost:5173</code>. Serve this file with <code>python3 -m http.server 5173</code> and open <code>http://localhost:5173/wallet_topup_test.html</code>. Also check the server is running and the base URL is right.`);
+  }
+  if (location.origin !== 'http://localhost:5173') {
+    banner('originBanner', 'warn', `<b>Heads-up:</b> running from <code>${esc(location.origin)}</code>, but backend CORS (<code>middleware/cors.go</code>) only allows <code>http://localhost:5173</code>. Run <code>python3 -m http.server 5173</code> in this file's folder and open <code>http://localhost:5173/wallet_topup_test.html</code>.`);
+  }
+  const needToken = () => { if (!$('token').value.trim()) { banner('setupOut', 'err', 'Access token required. Paste one or log in.'); return true; } return false; };
+
+  // ---- login ----
+  $('btnLogin').onclick = async () => {
+    const url = base().replace(/\/user$/, '') + '/auth/login';
+    const r = await api('POST', url, { email: $('email').value.trim(), password: $('password').value }, { absolute: true, auth: false });
+    if (r.status === 0) return netHelp('setupOut');
+    const d = r.data && r.data.data;
+    const tok = d && (d.access_token || (d.data && d.data.access_token)) || (r.data && r.data.access_token);
+    if (r.status === 200 && tok) { $('token').value = tok; banner('setupOut', 'ok', 'Logged in. Token filled in.'); loadWallet(); }
+    else banner('setupOut', 'err', `Login failed (HTTP ${r.status}): ${esc(r.data?.message || r.text)}`);
+  };
+
+  // ---- wallet ----
+  async function loadWallet() {
+    if (needToken()) return null;
+    const r = await api('GET', '/wallet');
+    if (r.status === 0) { netHelp('txnOut'); return null; }
+    const bal = r.data && r.data.data && r.data.data.balance;
+    if (r.status === 200 && bal !== undefined) { $('balance').textContent = inr(bal); return Number(bal); }
+    banner('txnOut', 'err', `Wallet fetch failed (HTTP ${r.status}): ${esc(r.data?.message || r.text)}`);
+    return null;
+  }
+  $('btnWallet').onclick = loadWallet;
+  $('btnTxns').onclick = async () => {
+    if (needToken()) return;
+    const r = await api('GET', '/wallet/transactions?limit=10&page=1&sort=');
+    if (r.status === 0) return netHelp('txnOut');
+    const list = r.data && r.data.data && r.data.data.transactions;
+    if (!Array.isArray(list)) return banner('txnOut', 'err', `HTTP ${r.status}: ${esc(r.data?.message || r.text)}`);
+    if (!list.length) return banner('txnOut', 'info', 'No transactions yet.');
+    $('txnOut').innerHTML = `<table><tr><th>id</th><th>type</th><th>source</th><th>amount</th><th>description</th><th>time</th></tr>` +
+      list.map((t) => `<tr><td>${t.id}</td><td class="${esc(t.transaction_type)}">${esc(t.transaction_type)}</td><td>${esc(t.source)}</td><td>${inr(t.amount)}</td><td>${esc(t.description || '')}</td><td>${esc(new Date(t.created_at).toLocaleString())}</td></tr>`).join('') + `</table>`;
+  };
+
+  // ---- step 1: create order ----
+  document.querySelectorAll('button.chip').forEach((b) => b.onclick = () => { $('amount').value = b.dataset.amt; });
+  $('btnOrder').onclick = async () => {
+    if (needToken()) return;
+    const amount = parseFloat($('amount').value);
+    if (!(amount > 0)) return setPre('orderRaw', 'Enter an amount greater than 0.');
+    $('btnOrder').disabled = true;
+    state.balanceBefore = await loadWallet();
+    const r = await api('POST', '/wallet/top-up/order', { amount });
+    $('btnOrder').disabled = false;
+    setStatus('orderStatus', r.status, r.ms);
+    setPre('orderRaw', pretty(r));
+    if (r.status === 0) return netHelp('payHint');
+    const d = r.data && r.data.data;
+    if (r.status === 201 && r.data.success && d && d.gateway_order_id) {
+      state.order = d; state.payment = null;
+      const kv = $('orderKv'); kv.style.display = '';
+      kv.innerHTML = `<dt>gateway_order_id</dt><dd>${esc(d.gateway_order_id)}</dd><dt>amount (paise)</dt><dd>${d.amount} → ${inr(d.amount / 100)}</dd><dt>currency</dt><dd>${esc(d.currency)}</dd><dt>razorpay_key_id</dt><dd>${esc(d.razorpay_key_id)}</dd>`;
+      $('payHint').innerHTML = ''; $('verifyHint').innerHTML = ''; $('verifyStatus').innerHTML = '';
+      setPre('cbRaw', 'Checkout callback will show here.'); $('cbRaw').classList.add('empty');
+      $('balanceDelta').textContent = '';
+    } else {
+      state.order = null; $('orderKv').style.display = 'none';
+      banner('payHint', 'warn', `Order not created: <b>${esc(r.data?.message || 'unknown error')}</b>. 400 = bad amount, 401 = bad/expired token, 500 = Razorpay API error (check <code>RAZORPAY_KEY_ID/SECRET</code> in .env and the server log).`);
+    }
+    sync();
+  };
+
+  // ---- step 2: checkout ----
+  $('btnPay').onclick = () => {
+    const o = state.order;
+    if (!o) return banner('payHint', 'err', 'Create the order first.');
+    if (typeof window.Razorpay !== 'function') return banner('payHint', 'err', 'Razorpay SDK did not load (checkout.razorpay.com blocked or offline).');
+    if (!/^rzp_test_/.test(o.razorpay_key_id)) banner('payHint', 'warn', 'Key ID is not <code>rzp_test_*</code>. This would be LIVE mode. Be careful.');
+    const rzp = new window.Razorpay({
+      key: o.razorpay_key_id,          // key comes straight from the backend response
+      order_id: o.gateway_order_id,    // amount/currency are fixed by the Razorpay order
+      name: 'Wallet Top-up Test',
+      description: 'Add ' + inr(o.amount / 100) + ' to wallet',
+      theme: { color: '#3b82f6' },
+      handler: (resp) => {
+        state.payment = resp;
+        setPre('cbRaw', JSON.stringify(resp, null, 2));
+        log('Checkout success: ' + resp.razorpay_payment_id);
+        sync();
+        if ($('autoVerify').checked) verify();
+      },
+      modal: { ondismiss: () => log('Checkout closed by user') },
+    });
+    rzp.on('payment.failed', (resp) => {
+      setPre('cbRaw', 'payment.failed\n' + JSON.stringify(resp.error, null, 2));
+      banner('payHint', 'err', `Payment failed: ${esc(resp.error.description || resp.error.reason || 'unknown')}. The top-up row stays <code>pending</code> and the wallet is untouched.`);
+    });
+    rzp.open();
+  };
+
+  // ---- step 3: verify ----
+  // Backend DTO: gateway_order_id, gateway_payment_id, razorpay_signature
+  async function verify({ tamper = false, label = 'Verify' } = {}) {
+    const p = state.payment;
+    if (!p) return;
+    const sig = tamper ? p.razorpay_signature.replace(/.$/, (c) => (c === '0' ? '1' : '0')) : p.razorpay_signature;
+    const body = { gateway_order_id: p.razorpay_order_id, gateway_payment_id: p.razorpay_payment_id, razorpay_signature: sig };
+    const r = await api('POST', '/wallet/top-up/verify', body);
+    setStatus('verifyStatus', r.status, r.ms);
+    setPre('verifyRaw', `${label}\nrequest: ${JSON.stringify(body, null, 2)}\n\nresponse:\n${pretty(r)}`);
+    if (r.status === 0) return netHelp('verifyHint');
+    const after = await loadWallet();
+    if (r.status === 200 && r.data.success) {
+      const delta = (after != null && state.balanceBefore != null) ? after - state.balanceBefore : null;
+      const expected = state.order.amount / 100;
+      const ok = delta !== null && Math.abs(delta - expected) < 0.005;
+      banner('verifyHint', ok ? 'ok' : 'warn',
+        delta === null ? 'Verified. Refresh the balance to confirm.' :
+        `Verified. Balance ${inr(state.balanceBefore)} → ${inr(after)} (Δ ${inr(delta)}, expected ${inr(expected)}). ${ok ? 'Correct, credited exactly once.' : 'Δ does not match the top-up. If you replayed verify or the webhook fired first, that is expected only when Δ equals the amount once.'}`);
+      $('balanceDelta').textContent = delta !== null ? `Δ since order created: ${inr(delta)}` : '';
+    } else {
+      banner('verifyHint', tamper ? 'info' : 'err', tamper
+        ? (r.status === 500 ? 'Got 500. The handler maps an invalid signature to a generic 500, since only ErrInvalidInput gives 400. Wallet should be unchanged. Check above.' : `Rejected with HTTP ${r.status}. Wallet should be unchanged.`)
+        : `Verify failed (HTTP ${r.status}): ${esc(r.data?.message || r.text)}`);
+    }
+  }
+  $('btnVerify').onclick = () => verify({ label: 'Verify' });
+  $('btnReplay').onclick = () => verify({ label: 'Replay verify (same payload)' });
+  $('btnTamper').onclick = () => verify({ tamper: true, label: 'Verify with tampered signature' });
+
+  function sync() {
+    $('btnPay').disabled = !state.order;
+    ['btnVerify', 'btnReplay', 'btnTamper'].forEach((id) => $(id).disabled = !state.payment);
+  }
+  sync();
+  if ($('token').value.trim()) loadWallet();
+})();
+</script>
+</body>
+</html>
