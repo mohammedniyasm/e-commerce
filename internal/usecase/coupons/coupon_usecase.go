@@ -297,6 +297,10 @@ func (u *CouponUseCase) ListCouponUsagesByUserID(ctx context.Context, userID uin
 	)
 }
 func validateCoupon(coupon *models.Coupon) error {
+	if coupon == nil {
+		return domainerrors.ErrInvalidCoupon
+	}
+	coupon.Code = strings.TrimSpace(coupon.Code)
 	if coupon.Code == "" {
 		return domainerrors.ErrInvalidCouponCode
 	}

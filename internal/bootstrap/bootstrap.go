@@ -70,7 +70,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	googleTokenVerifier := authinfra.NewGoogleTokenVerifier(cfg.Google.ClientID)
 
 	userRepository := postgres.NewUserRepository(db)
-	authUseCase := auth.NewAuthUseCase(userRepository, *otpStore, jwtService, refreshSessionStore, accessTokenBlacklistStore, emailSender, googleTokenVerifier, unitOfWork, log)
+	authUseCase := auth.NewAuthUseCase(userRepository, otpStore, jwtService, refreshSessionStore, accessTokenBlacklistStore, emailSender, googleTokenVerifier, unitOfWork, log)
 	authHandler := handler.NewAuthHandler(authUseCase, cfg.Cookie)
 
 	profileUsecase := profile.NewProfileUseCase(userRepository, otpStore, emailSender, objectStorage, log)
@@ -201,7 +201,7 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 
 	couponWorker := coupon.NewWorker(couponRepository, notificationRepo, couponUsageRepository, notificationUseCase, 4*time.Hour, log)
 	refferalWorker := referralworker.NewWorker(refferalRepository, unitOfWork, 4*time.Hour, log)
-	orderExpiryWorker := orderworker.NewWorker(orderRepository, orderUsecase, 30*time.Second, log)
+	orderExpiryWorker := orderworker.NewWorker(orderRepository, orderUsecase, 30*time.Minute, log)
 
 	workerManager.Register(couponWorker)
 	workerManager.Register(refferalWorker)

@@ -90,7 +90,7 @@ func (u *ShipmentUseCase) CreateShipment(ctx context.Context, shipment *models.S
 	if err != nil {
 		return err
 	}
-	if order.OrderStatus == "confirmed" || order.OrderStatus == "processing" || order.OrderStatus == "confirmed" {
+	if order.OrderStatus == "confirmed" || order.OrderStatus == "processing" {
 		shipment.ShippingStatus = "pending"
 		shipment.Type = models.ShipmentTypeDelivery
 		if err := u.shipmentRepo.Create(ctx, shipment); err != nil {

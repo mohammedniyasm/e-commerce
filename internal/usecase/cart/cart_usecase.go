@@ -112,7 +112,6 @@ func validateVariant(variant *models.ProductVariant, quantity int) error {
 	if quantity > variant.Stock {
 		return domainerrors.ErrInsufficientStock
 	}
-
 	return nil
 }
 func (u *CartUseCase) AddItem(ctx context.Context, userID int64, variantID int64, quantity int) (*models.Cart, error) {

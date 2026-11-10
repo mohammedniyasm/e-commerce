@@ -186,6 +186,34 @@ func (h *ProductVariantHandler) ListVariantsByProductID(c *gin.Context) {
 		Data:    variantResponses,
 	})
 }
+func (h *ProductVariantHandler) IncreaseStock(c *gin.Context) {
+	var req request.IncreaseStock
+	productID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || productID <= 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid product id",
+		})
+		return
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid request",
+			// Error:   err.Error(),
+		})
+		return
+	}
+	err = h.variantUseCase.IncreaseStock(c.Request.Context(), uint(productID), uint(req.Stock))
+	if err != nil {
+		h.handleVariantError(
+			c,
+			err,
+			"failed to update product quantity",
+		)
+	}
+
+}
 func (h *ProductVariantHandler) handleVariantError(c *gin.Context, err error, message string) {
 
 	switch {

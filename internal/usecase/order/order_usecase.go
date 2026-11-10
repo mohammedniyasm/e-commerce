@@ -63,13 +63,11 @@ func isValidOrderTransition(currentStatus, nextStatus string) bool {
 			"processing",
 		},
 	}
-
 	for _, allowedStatus := range allowedTransitions[currentStatus] {
 		if allowedStatus == nextStatus {
 			return true
 		}
 	}
-
 	return false
 }
 func (u *OrderUseCase) GetByID(ctx context.Context, orderID uuid.UUID) (*models.Order, error) {
