@@ -11,6 +11,8 @@ require (
 	github.com/minio/minio-go/v7 v7.3.0
 	github.com/razorpay/razorpay-go v1.4.1
 	github.com/redis/go-redis/v9 v9.22.0
+	github.com/stretchr/testify v1.12.1
+	github.com/xuri/excelize/v2 v2.11.1
 	golang.org/x/crypto v0.58.0
 	google.golang.org/api v0.299.0
 	gorm.io/driver/postgres v1.6.3
@@ -63,12 +65,12 @@ require (
 	github.com/richardlehane/mscfb v1.0.9 // indirect
 	github.com/richardlehane/msoleps v1.0.6 // indirect
 	github.com/rs/xid v1.6.0 // indirect
+	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/xuri/efp v0.0.3-0.20260924042702-217b81952dec // indirect
-	github.com/xuri/excelize/v2 v2.11.1 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect

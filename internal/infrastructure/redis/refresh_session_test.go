@@ -13,6 +13,9 @@ func TestRefreshSessionStore_SaveAndGet(t *testing.T) {
 		Addr: "localhost:6379",
 	})
 	ctx := context.Background()
+	if err := client.Ping(ctx).Err(); err != nil {
+		t.Skipf("skipping test: redis server not reachable: %v", err)
+	}
 	store := NewRefreshSessionStore(client, 1*time.Minute)
 
 	jti := "test-jti-123"
@@ -24,12 +27,12 @@ func TestRefreshSessionStore_SaveAndGet(t *testing.T) {
 		t.Fatalf("failed to save refresh session: %v", err)
 	}
 
-	// value, err := client.Get(ctx, "refresh_session:"+jti).Result()
-	// if err != nil {
-	// 	t.Fatalf("failed to read directly from redis: %v", err)
-	// }
+	value, err := client.Get(ctx, "refresh_session:"+jti).Result()
+	if err != nil {
+		t.Fatalf("failed to read directly from redis: %v", err)
+	}
 
-	// t.Logf("stored value: %s", value)
+	t.Logf("stored value: %s", value)
 	gotUserID, err := store.Get(ctx, jti)
 	if err != nil {
 		t.Fatalf("failed to get refresh session: %v", err)
@@ -38,7 +41,6 @@ func TestRefreshSessionStore_SaveAndGet(t *testing.T) {
 		t.Fatalf("expected user ID %d, got %d", userID, gotUserID)
 	}
 
-	// Cleanup
 	_ = store.Delete(ctx, jti)
 }
 func TestRefreshSessionStore_Delete(t *testing.T) {
@@ -47,6 +49,9 @@ func TestRefreshSessionStore_Delete(t *testing.T) {
 	})
 
 	ctx := context.Background()
+	if err := client.Ping(ctx).Err(); err != nil {
+		t.Skipf("skipping test: redis server not reachable: %v", err)
+	}
 
 	store := NewRefreshSessionStore(
 		client,

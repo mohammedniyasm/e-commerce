@@ -6,7 +6,6 @@ import (
 	"ecommerce/internal/delivery/http/validator"
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
-	"ecommerce/internal/infrastructure/redis"
 	"ecommerce/internal/usecase/interfaces"
 	"encoding/hex"
 	"errors"
@@ -20,7 +19,7 @@ import (
 
 type AuthUseCase struct {
 	userRepo             interfaces.UserRepository
-	otpStore             redis.OTPStore
+	otpStore             interfaces.OTPstore
 	jwtService           interfaces.JWTService
 	refreshSessionStore  interfaces.RefreshSessionStore
 	accessTokenBlacklist interfaces.AccessTokenBlacklist
@@ -30,7 +29,7 @@ type AuthUseCase struct {
 	log                  *slog.Logger
 }
 
-func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore redis.OTPStore, jwtService interfaces.JWTService, refreshSessionStore interfaces.RefreshSessionStore, accessTokenBlacklist interfaces.AccessTokenBlacklist, emailSender interfaces.EmailSender, googleTokenVerifier interfaces.GoogleTokenVerifier, uow interfaces.UnitOfWork, log *slog.Logger) *AuthUseCase {
+func NewAuthUseCase(userRepo interfaces.UserRepository, otpStore interfaces.OTPstore, jwtService interfaces.JWTService, refreshSessionStore interfaces.RefreshSessionStore, accessTokenBlacklist interfaces.AccessTokenBlacklist, emailSender interfaces.EmailSender, googleTokenVerifier interfaces.GoogleTokenVerifier, uow interfaces.UnitOfWork, log *slog.Logger) *AuthUseCase {
 	return &AuthUseCase{
 		userRepo:             userRepo,
 		otpStore:             otpStore,
