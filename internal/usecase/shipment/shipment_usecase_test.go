@@ -1,6 +1,22 @@
 package shipment
 
-import "testing"
+import (
+	"context"
+	"errors"
+	"io"
+	"log/slog"
+	"testing"
+
+	domainerrors "ecommerce/internal/domain/errors"
+	"ecommerce/internal/domain/models"
+	"ecommerce/internal/mocks"
+	"ecommerce/internal/usecase/interfaces"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+)
 
 func TestIsValidReturnTransition(t *testing.T) {
 	tests := []struct {
@@ -478,4 +494,310 @@ func TestIsValidShippingTransition(t *testing.T) {
 			}
 		})
 	}
+}
+
+type shipmentFixture struct {
+	uc                 *ShipmentUseCase
+	shipmentRepo       *mocks.MockShipmentRepository
+	orderRepo          *mocks.MockOrderRepository
+	uow                *mocks.MockUnitOfWork
+	txShipment         *mocks.MockShipmentRepository
+	txOrder            *mocks.MockOrderRepository
+	txHistory          *mocks.MockOrderStatusHistoryRepository
+	txReturn           *mocks.MockReturnRequestRepository
+	txReferral         *mocks.MockReferralRepository
+	txWallet           *mocks.MockWalletRepository
+	txUser             *mocks.MockUserRepository
+	txNotification     *mocks.MockNotificationRepository
+	txOrderItem        *mocks.MockOrderItemRepository
+	txOrderAddress     *mocks.MockOrderAddressRepository
+	txReferralSettings *mocks.MockReferralSettingsRepository
+	txPayment          *mocks.MockPaymentRepository
+	txCoupon           *mocks.MockCouponRepository
+	txCouponUsage      *mocks.MockCouponUsageRepository
+	txWalletTopUp      *mocks.MockWalletTopUpRepository
+	txAddress          *mocks.MockAddressRepository
+	txProductVariant   *mocks.MockProductVariantRepository
+	txCart             *mocks.MockCartRepository
+}
+
+func newShipmentFixture(t *testing.T) *shipmentFixture {
+	t.Helper()
+	shipmentRepo := mocks.NewMockShipmentRepository(t)
+	orderRepo := mocks.NewMockOrderRepository(t)
+	uow := mocks.NewMockUnitOfWork(t)
+	txShipment := mocks.NewMockShipmentRepository(t)
+	txOrder := mocks.NewMockOrderRepository(t)
+	txHistory := mocks.NewMockOrderStatusHistoryRepository(t)
+	txReturn := mocks.NewMockReturnRequestRepository(t)
+	txReferral := mocks.NewMockReferralRepository(t)
+	txWallet := mocks.NewMockWalletRepository(t)
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	return &shipmentFixture{
+		uc:                 NewShipmentUseCase(shipmentRepo, orderRepo, uow, log),
+		shipmentRepo:       shipmentRepo,
+		orderRepo:          orderRepo,
+		uow:                uow,
+		txShipment:         txShipment,
+		txOrder:            txOrder,
+		txHistory:          txHistory,
+		txReturn:           txReturn,
+		txReferral:         txReferral,
+		txWallet:           txWallet,
+		txUser:             mocks.NewMockUserRepository(t),
+		txNotification:     mocks.NewMockNotificationRepository(t),
+		txOrderItem:        mocks.NewMockOrderItemRepository(t),
+		txOrderAddress:     mocks.NewMockOrderAddressRepository(t),
+		txReferralSettings: mocks.NewMockReferralSettingsRepository(t),
+		txPayment:          mocks.NewMockPaymentRepository(t),
+		txCoupon:           mocks.NewMockCouponRepository(t),
+		txCouponUsage:      mocks.NewMockCouponUsageRepository(t),
+		txWalletTopUp:      mocks.NewMockWalletTopUpRepository(t),
+		txAddress:          mocks.NewMockAddressRepository(t),
+		txProductVariant:   mocks.NewMockProductVariantRepository(t),
+		txCart:             mocks.NewMockCartRepository(t),
+	}
+}
+
+func (f *shipmentFixture) expectTX(ctx context.Context) {
+	f.uow.EXPECT().WithinTransaction(ctx, mock.AnythingOfType("func(interfaces.TransactionRepositories) error")).
+		RunAndReturn(func(_ context.Context, fn func(interfaces.TransactionRepositories) error) error {
+			return fn(interfaces.TransactionRepositories{
+				User:               f.txUser,
+				Notification:       f.txNotification,
+				Order:              f.txOrder,
+				OrderItem:          f.txOrderItem,
+				OrderAddress:       f.txOrderAddress,
+				OrderStatusHistory: f.txHistory,
+				Shipment:           f.txShipment,
+				ReturnRequest:      f.txReturn,
+				Referral:           f.txReferral,
+				ReferralSettings:   f.txReferralSettings,
+				Wallet:             f.txWallet,
+				Payment:            f.txPayment,
+				Coupon:             f.txCoupon,
+				CouponUsage:        f.txCouponUsage,
+				WalletTopUp:        f.txWalletTopUp,
+				Address:            f.txAddress,
+				ProductVariant:     f.txProductVariant,
+				Cart:               f.txCart,
+			})
+		}).Once()
+}
+
+func TestShipmentUseCase_CRUDAndQueries(t *testing.T) {
+	ctx := context.Background()
+	orderID := uuid.New()
+
+	t.Run("CreateShipment", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		assert.ErrorIs(t, f.uc.CreateShipment(ctx, nil), domainerrors.ErrInvalidShipment)
+		f.orderRepo.EXPECT().GetByID(ctx, uuid.Nil).Return(nil, domainerrors.ErrRecordNotFound).Once()
+		assert.ErrorIs(t, f.uc.CreateShipment(ctx, &models.Shipment{}), domainerrors.ErrRecordNotFound)
+
+		f.orderRepo.EXPECT().GetByID(ctx, orderID).Return(&models.Order{
+			ID:          orderID,
+			OrderStatus: "pending",
+		}, nil).Once()
+		assert.ErrorIs(t, f.uc.CreateShipment(ctx, &models.Shipment{OrderID: orderID}), domainerrors.ErrOrderNeedToConfirm)
+
+		f.orderRepo.EXPECT().GetByID(ctx, orderID).Return(&models.Order{
+			ID:          orderID,
+			OrderStatus: "confirmed",
+		}, nil).Once()
+		f.shipmentRepo.EXPECT().GetByOrderID(ctx, orderID).Return(nil, domainerrors.ErrRecordNotFound).Maybe()
+		f.shipmentRepo.EXPECT().Create(ctx, mock.MatchedBy(func(s *models.Shipment) bool {
+			return s.OrderID == orderID
+		})).Return(nil).Once()
+
+		require.NoError(t, f.uc.CreateShipment(ctx, &models.Shipment{OrderID: orderID}))
+	})
+
+	t.Run("GetShipmentByID GetShipmentByOrderID GetTrackingHistory", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		_, err := f.uc.GetShipmentByID(ctx, 0)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidShipmentID)
+
+		ship := &models.Shipment{ID: 3, OrderID: orderID}
+		f.shipmentRepo.EXPECT().GetByID(ctx, uint(3)).Return(ship, nil).Once()
+		got, err := f.uc.GetShipmentByID(ctx, 3)
+		require.NoError(t, err)
+		assert.Equal(t, ship, got)
+
+		_, err = f.uc.GetShipmentByOrderID(ctx, uuid.Nil)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidOrderID)
+
+		f.shipmentRepo.EXPECT().GetByOrderID(ctx, orderID).Return(ship, nil).Once()
+		got, err = f.uc.GetShipmentByOrderID(ctx, orderID)
+		require.NoError(t, err)
+		assert.Equal(t, ship, got)
+
+		_, err = f.uc.GetTrackingHistory(ctx, 0)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidShipmentID)
+
+		hist := []models.ShipmentTrackingHistory{{ID: 1, ShipmentID: 3}}
+		f.shipmentRepo.EXPECT().GetByID(ctx, uint(3)).Return(ship, nil).Maybe()
+		f.shipmentRepo.EXPECT().GetTrackingHistory(ctx, uint(3)).Return(hist, nil).Once()
+		gotHist, err := f.uc.GetTrackingHistory(ctx, 3)
+		require.NoError(t, err)
+		assert.Equal(t, hist, gotHist)
+	})
+
+	t.Run("UpdateShipment", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		assert.ErrorIs(t, f.uc.UpdateShipment(ctx, nil), domainerrors.ErrInvalidShipment)
+		assert.ErrorIs(t, f.uc.UpdateShipment(ctx, &models.Shipment{}), domainerrors.ErrInvalidShipmentID)
+
+		courier := "BlueDart"
+		existing := &models.Shipment{ID: 4, OrderID: orderID, ShippingStatus: "pending"}
+		f.shipmentRepo.EXPECT().GetByID(ctx, uint(4)).Return(existing, nil).Once()
+		f.shipmentRepo.EXPECT().Update(ctx, mock.MatchedBy(func(s *models.Shipment) bool {
+			return s.CourierName != nil && *s.CourierName == "BlueDart"
+		})).Return(nil).Once()
+
+		require.NoError(t, f.uc.UpdateShipment(ctx, &models.Shipment{ID: 4, CourierName: &courier}))
+	})
+
+	t.Run("GetCustomerShipment and GetCustomerTrackingHistory", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		_, err := f.uc.GetCustomerShipment(ctx, 0, orderID)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidUserID)
+		_, err = f.uc.GetCustomerShipment(ctx, 1, uuid.Nil)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidOrderID)
+
+		f.orderRepo.EXPECT().GetByID(ctx, orderID).Return(&models.Order{ID: orderID, UserID: 99}, nil).Once()
+		_, err = f.uc.GetCustomerShipment(ctx, 1, orderID)
+		assert.ErrorIs(t, err, domainerrors.ErrRecordNotFound)
+
+		ship := &models.Shipment{ID: 8, OrderID: orderID}
+		f.orderRepo.EXPECT().GetByID(ctx, orderID).Return(&models.Order{ID: orderID, UserID: 1}, nil).Once()
+		f.shipmentRepo.EXPECT().GetByOrderID(ctx, orderID).Return(ship, nil).Once()
+		got, err := f.uc.GetCustomerShipment(ctx, 1, orderID)
+		require.NoError(t, err)
+		assert.Equal(t, ship, got)
+
+		_, err = f.uc.GetCustomerTrackingHistory(ctx, 0, orderID)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidUserID)
+
+		hist := []models.ShipmentTrackingHistory{{ID: 10, ShipmentID: 8}}
+		f.orderRepo.EXPECT().GetByID(ctx, orderID).Return(&models.Order{ID: orderID, UserID: 1}, nil).Once()
+		f.shipmentRepo.EXPECT().GetByOrderID(ctx, orderID).Return(ship, nil).Once()
+		f.shipmentRepo.EXPECT().GetTrackingHistory(ctx, uint(8)).Return(hist, nil).Once()
+		gotHist, err := f.uc.GetCustomerTrackingHistory(ctx, 1, orderID)
+		require.NoError(t, err)
+		assert.Equal(t, hist, gotHist)
+	})
+}
+
+func TestShipmentUseCase_UpdateShippingStatus(t *testing.T) {
+	ctx := context.Background()
+	orderID := uuid.New()
+
+	t.Run("validation and invalid transition", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		assert.ErrorIs(t, f.uc.UpdateShippingStatus(ctx, 0, "shipped", nil, nil), domainerrors.ErrInvalidShipmentID)
+		assert.ErrorIs(t, f.uc.UpdateShippingStatus(ctx, 1, "bad_status", nil, nil), domainerrors.ErrInvalidShippingStatus)
+
+		f.expectTX(ctx)
+		f.txShipment.EXPECT().GetByID(ctx, uint(5)).Return(&models.Shipment{
+			ID:             5,
+			OrderID:        orderID,
+			Type:           models.ShipmentTypeDelivery,
+			ShippingStatus: "delivered",
+		}, nil).Once()
+		err := f.uc.UpdateShippingStatus(ctx, 5, "cancelled", nil, nil)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidShippingTransition)
+	})
+
+	t.Run("delivery shipped to out_for_delivery", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		desc := "Left hub"
+		loc := "Kochi"
+		ship := &models.Shipment{ID: 5, OrderID: orderID, Type: models.ShipmentTypeDelivery, ShippingStatus: "in_transit"}
+
+		f.shipmentRepo.EXPECT().GetByID(ctx, uint(5)).Return(ship, nil).Maybe()
+		f.expectTX(ctx)
+		f.txShipment.EXPECT().GetByID(ctx, uint(5)).Return(ship, nil).Maybe()
+		f.txShipment.EXPECT().UpdateShippingStatus(ctx, uint(5), "out_for_delivery", &desc, &loc).Return(nil).Once()
+
+		require.NoError(t, f.uc.UpdateShippingStatus(ctx, 5, "out_for_delivery", &desc, &loc))
+	})
+
+	t.Run("delivery out_for_delivery to delivered marks order delivered", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		ship := &models.Shipment{ID: 6, OrderID: orderID, Type: models.ShipmentTypeDelivery, ShippingStatus: "out_for_delivery"}
+		ord := &models.Order{ID: orderID, UserID: 2, OrderStatus: "shipped", PaymentStatus: "paid", TotalAmount: 500}
+
+		f.shipmentRepo.EXPECT().GetByID(ctx, uint(6)).Return(ship, nil).Maybe()
+		f.expectTX(ctx)
+		f.txShipment.EXPECT().GetByID(ctx, uint(6)).Return(ship, nil).Maybe()
+		f.txShipment.EXPECT().UpdateShippingStatus(ctx, uint(6), "delivered", (*string)(nil), (*string)(nil)).Return(nil).Once()
+		f.txOrder.EXPECT().LockByID(ctx, orderID).Return(ord, nil).Maybe()
+		f.txOrder.EXPECT().GetByID(ctx, orderID).Return(ord, nil).Maybe()
+		f.txOrder.EXPECT().Update(ctx, mock.AnythingOfType("*models.Order")).Return(nil).Maybe()
+		f.txOrder.EXPECT().UpdateOrderStatus(ctx, orderID, "delivered", mock.Anything).Return(nil).Maybe()
+		f.txHistory.EXPECT().Create(ctx, mock.AnythingOfType("*models.OrderStatusHistory")).Return(nil).Maybe()
+		f.txReferral.EXPECT().GetByReferrerID(ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, int64(0), nil).Maybe()
+		f.txReferral.EXPECT().GetReferrals(ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, int64(0), nil).Maybe()
+
+		require.NoError(t, f.uc.UpdateShippingStatus(ctx, 6, "delivered", nil, nil))
+	})
+
+	t.Run("return shipment updates return request status", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		retID := uint(12)
+		ship := &models.Shipment{
+			ID:              7,
+			OrderID:         orderID,
+			ReturnRequestID: &retID,
+			Type:            models.ShipmentTypeReturn,
+			ShippingStatus:  "out_for_delivery",
+		}
+		retReq := &models.ReturnRequest{ID: 12, OrderID: orderID, Status: ReturnStatusInTransit}
+
+		f.expectTX(ctx)
+		f.txShipment.EXPECT().GetByID(ctx, uint(7)).Return(ship, nil).Once()
+		f.txShipment.EXPECT().UpdateShippingStatus(ctx, uint(7), "delivered", (*string)(nil), (*string)(nil)).Return(nil).Once()
+		f.txReturn.EXPECT().GetByID(ctx, retID).Return(retReq, nil).Once()
+		f.txReturn.EXPECT().Update(ctx, mock.AnythingOfType("*models.ReturnRequest")).Return(nil).Once()
+
+		require.NoError(t, f.uc.UpdateShippingStatus(ctx, 7, "delivered", nil, nil))
+	})
+
+	t.Run("return_to_customer delivered closes return request", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		retID := uint(15)
+		ship := &models.Shipment{
+			ID:              8,
+			OrderID:         orderID,
+			ReturnRequestID: &retID,
+			Type:            models.ShipmentTypeReturnToCustomer,
+			ShippingStatus:  "out_for_delivery",
+		}
+		retReq := &models.ReturnRequest{ID: 15, OrderID: orderID, Status: ReturnStatusInspectionFailed}
+
+		f.shipmentRepo.EXPECT().GetByID(ctx, uint(8)).Return(ship, nil).Maybe()
+		f.expectTX(ctx)
+		f.txShipment.EXPECT().GetByID(ctx, uint(8)).Return(ship, nil).Maybe()
+		f.txShipment.EXPECT().UpdateShippingStatus(ctx, uint(8), "delivered", (*string)(nil), (*string)(nil)).Return(nil).Once()
+		f.txReturn.EXPECT().LockByID(ctx, retID).Return(retReq, nil).Maybe()
+		f.txReturn.EXPECT().GetByID(ctx, retID).Return(retReq, nil).Maybe()
+		f.txReturn.EXPECT().Update(ctx, mock.MatchedBy(func(r *models.ReturnRequest) bool {
+			return r.Status == ReturnStatusClosed
+		})).Return(nil).Once()
+
+		require.NoError(t, f.uc.UpdateShippingStatus(ctx, 8, "delivered", nil, nil))
+	})
+
+	t.Run("tx error propagates", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		txErr := errors.New("tx failed")
+		f.shipmentRepo.EXPECT().GetByID(ctx, uint(5)).Return(&models.Shipment{
+			ID: 5, OrderID: orderID, Type: models.ShipmentTypeDelivery, ShippingStatus: "pending",
+		}, nil).Maybe()
+		f.uow.EXPECT().WithinTransaction(ctx, mock.Anything).Return(txErr).Once()
+
+		assert.ErrorIs(t, f.uc.UpdateShippingStatus(ctx, 5, "packed", nil, nil), txErr)
+	})
 }

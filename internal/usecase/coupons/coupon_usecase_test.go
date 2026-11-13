@@ -1,13 +1,20 @@
 package couponuseCase
 
 import (
+	"context"
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
+	"ecommerce/internal/mocks"
 	"errors"
+	"io"
+	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func newCoupon() *models.Coupon {
@@ -262,4 +269,185 @@ func TestCalculateDiscount(t *testing.T) {
 			}
 		})
 	}
+}
+
+type couponFixture struct {
+	uc              *CouponUseCase
+	couponRepo      *mocks.MockCouponRepository
+	orderRepo       *mocks.MockOrderRepository
+	couponUsageRepo *mocks.MockCouponUsageRepository
+}
+
+func newCouponFixture(t *testing.T) *couponFixture {
+	t.Helper()
+	couponRepo := mocks.NewMockCouponRepository(t)
+	orderRepo := mocks.NewMockOrderRepository(t)
+	couponUsageRepo := mocks.NewMockCouponUsageRepository(t)
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	return &couponFixture{
+		uc:              NewCouponUseCase(couponRepo, orderRepo, couponUsageRepo, log),
+		couponRepo:      couponRepo,
+		orderRepo:       orderRepo,
+		couponUsageRepo: couponUsageRepo,
+	}
+}
+
+func TestCouponUseCase_CRUDAndToggle(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("CreateCoupon validation duplicate and success", func(t *testing.T) {
+		f := newCouponFixture(t)
+
+		nilRes, err := f.uc.CreateCoupon(ctx, nil)
+		assert.Nil(t, nilRes)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidCoupon)
+
+		emptyCode := newCoupon()
+		emptyCode.Code = "   "
+		_, err = f.uc.CreateCoupon(ctx, emptyCode)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidCouponCode)
+
+		dup := newCoupon()
+		f.couponRepo.EXPECT().GetByCode(ctx, "HELLO10").Return(&models.Coupon{ID: uuid.New()}, nil).Once()
+		_, err = f.uc.CreateCoupon(ctx, dup)
+		assert.ErrorIs(t, err, domainerrors.ErrCouponAlreadyExists)
+
+		valid := newCoupon()
+		valid.Code = " hello10 "
+		f.couponRepo.EXPECT().GetByCode(ctx, "HELLO10").Return(nil, domainerrors.ErrRecordNotFound).Once()
+		f.couponRepo.EXPECT().Create(ctx, mock.MatchedBy(func(c *models.Coupon) bool {
+			return c.Code == "HELLO10"
+		})).Return(nil).Once()
+
+		got, err := f.uc.CreateCoupon(ctx, valid)
+		require.NoError(t, err)
+		assert.Equal(t, "HELLO10", got.Code)
+	})
+
+	t.Run("GetCoupon UpdateCoupon DeleteCoupon ToggleCouponActive ListCoupons", func(t *testing.T) {
+		f := newCouponFixture(t)
+		_, err := f.uc.GetCoupon(ctx, uuid.Nil)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidCouponID)
+
+		c := newCoupon()
+		f.couponRepo.EXPECT().GetByID(ctx, c.ID).Return(c, nil).Once()
+		got, err := f.uc.GetCoupon(ctx, c.ID)
+		require.NoError(t, err)
+		assert.Equal(t, c.ID, got.ID)
+
+		assert.ErrorIs(t, f.uc.DeleteCoupon(ctx, uuid.Nil), domainerrors.ErrInvalidCouponID)
+		f.couponRepo.EXPECT().Delete(ctx, c.ID).Return(nil).Once()
+		require.NoError(t, f.uc.DeleteCoupon(ctx, c.ID))
+
+		assert.ErrorIs(t, f.uc.ToggleCouponActive(ctx, uuid.Nil), domainerrors.ErrInvalidCouponID)
+		c.IsActive = true
+		f.couponRepo.EXPECT().GetByID(ctx, c.ID).Return(c, nil).Once()
+		f.couponRepo.EXPECT().SetActive(ctx, c.ID, false).Return(nil).Once()
+		require.NoError(t, f.uc.ToggleCouponActive(ctx, c.ID))
+
+		updatedInput := newCoupon()
+		updatedInput.ID = c.ID
+		updatedInput.Code = "SAVE20"
+		updatedInput.DiscountValue = 20
+		f.couponRepo.EXPECT().GetByID(ctx, c.ID).Return(c, nil).Once()
+		f.couponRepo.EXPECT().GetByCode(ctx, "SAVE20").Return(nil, domainerrors.ErrRecordNotFound).Once()
+		f.couponRepo.EXPECT().Update(ctx, mock.MatchedBy(func(cp *models.Coupon) bool {
+			return cp.Code == "SAVE20" && cp.DiscountValue == 20
+		})).Return(nil).Once()
+		updated, err := f.uc.UpdateCoupon(ctx, updatedInput)
+		require.NoError(t, err)
+		assert.Equal(t, "SAVE20", updated.Code)
+
+		f.couponRepo.EXPECT().List(ctx, "SAVE", (*bool)(nil), 10, 1, (*string)(nil)).
+			Return([]models.Coupon{*c}, int64(1), nil).Once()
+		list, total, err := f.uc.ListCoupons(ctx, " SAVE ", nil, 0, 0, nil)
+		require.NoError(t, err)
+		assert.Len(t, list, 1)
+		assert.Equal(t, int64(1), total)
+	})
+}
+
+func TestCouponUseCase_ValidateRedeemAndUsages(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("ValidateCoupon", func(t *testing.T) {
+		f := newCouponFixture(t)
+		_, _, err := f.uc.ValidateCoupon(ctx, "  ", 1, 500)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidInput)
+
+		_, _, err = f.uc.ValidateCoupon(ctx, "HELLO10", 0, 500)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidInput)
+
+		c := newCoupon()
+		f.couponRepo.EXPECT().GetByCode(ctx, "HELLO10").Return(c, nil).Once()
+		f.couponUsageRepo.EXPECT().CountByCouponID(ctx, c.ID).Return(int64(1), nil).Once()
+		f.couponUsageRepo.EXPECT().CountByCouponAndUser(ctx, c.ID, uint(7)).Return(int64(0), nil).Once()
+
+		gotCoupon, discount, err := f.uc.ValidateCoupon(ctx, " hello10 ", 7, 1000)
+		require.NoError(t, err)
+		assert.Equal(t, c.ID, gotCoupon.ID)
+		assert.Equal(t, 100.0, discount)
+	})
+
+	t.Run("RedeemCoupon", func(t *testing.T) {
+		f := newCouponFixture(t)
+		c := newCoupon()
+		orderID := uuid.New()
+
+		f.orderRepo.EXPECT().GetByID(ctx, orderID).Return(&models.Order{ID: orderID, UserID: 7, Subtotal: 1000, TotalAmount: 900}, nil).Once()
+		f.couponRepo.EXPECT().GetByID(ctx, uuid.Nil).Return(nil, domainerrors.ErrRecordNotFound).Once()
+		assert.ErrorIs(t, f.uc.RedeemCoupon(ctx, uuid.Nil, 7, orderID), domainerrors.ErrRecordNotFound)
+
+		f.orderRepo.EXPECT().GetByID(ctx, uuid.Nil).Return(nil, domainerrors.ErrRecordNotFound).Once()
+		assert.ErrorIs(t, f.uc.RedeemCoupon(ctx, c.ID, 7, uuid.Nil), domainerrors.ErrRecordNotFound)
+
+		f.orderRepo.EXPECT().GetByID(ctx, orderID).Return(&models.Order{
+			ID:          orderID,
+			UserID:      7,
+			Subtotal:    1000,
+			TotalAmount: 900,
+		}, nil).Once()
+		f.couponRepo.EXPECT().GetByID(ctx, c.ID).Return(c, nil).Once()
+		assert.Error(t, f.uc.RedeemCoupon(ctx, c.ID, 0, orderID))
+
+		f.orderRepo.EXPECT().GetByID(ctx, orderID).Return(&models.Order{
+			ID:          orderID,
+			UserID:      7,
+			Subtotal:    1000,
+			TotalAmount: 900,
+		}, nil).Once()
+		f.couponRepo.EXPECT().GetByID(ctx, c.ID).Return(c, nil).Once()
+		f.couponRepo.EXPECT().GetByCode(ctx, "HELLO10").Return(c, nil).Once()
+		f.couponUsageRepo.EXPECT().CountByCouponID(ctx, c.ID).Return(int64(0), nil).Once()
+		f.couponUsageRepo.EXPECT().CountByCouponAndUser(ctx, c.ID, uint(7)).Return(int64(0), nil).Once()
+		f.couponUsageRepo.EXPECT().Create(ctx, mock.MatchedBy(func(u *models.CouponUsage) bool {
+			return u.CouponID == c.ID && u.UserID == 7 && u.OrderID == orderID
+		})).Return(nil).Once()
+
+		require.NoError(t, f.uc.RedeemCoupon(ctx, c.ID, 7, orderID))
+	})
+
+	t.Run("ListCouponUsagesByCouponID and ListCouponUsagesByUserID", func(t *testing.T) {
+		f := newCouponFixture(t)
+		cID := uuid.New()
+
+		_, _, err := f.uc.ListCouponUsagesByCouponID(ctx, uuid.Nil, 10, 1)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidCouponID)
+
+		f.couponUsageRepo.EXPECT().ListByCouponID(ctx, cID, 10, 1).Return([]models.CouponUsage{{ID: 1}}, int64(1), nil).Once()
+		got, total, err := f.uc.ListCouponUsagesByCouponID(ctx, cID, 0, 0)
+		require.NoError(t, err)
+		assert.Len(t, got, 1)
+		assert.Equal(t, int64(1), total)
+
+		_, _, err = f.uc.ListCouponUsagesByUserID(ctx, 0, 10, 1)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidUserID)
+
+		f.couponUsageRepo.EXPECT().ListByUserID(ctx, uint(7), 10, 1).Return([]models.CouponUsage{{ID: 2}}, int64(1), nil).Once()
+		gotU, totalU, err := f.uc.ListCouponUsagesByUserID(ctx, 7, 0, 0)
+		require.NoError(t, err)
+		assert.Len(t, gotU, 1)
+		assert.Equal(t, int64(1), totalU)
+	})
 }

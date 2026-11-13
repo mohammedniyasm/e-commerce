@@ -81,6 +81,7 @@ func (u *OrderUseCase) GetByID(ctx context.Context, orderID uuid.UUID) (*models.
 	return order, nil
 }
 func (u *OrderUseCase) GetByOrderNumber(ctx context.Context, orderNumber string) (*models.Order, error) {
+	orderNumber = strings.TrimSpace(orderNumber)
 	if orderNumber == "" {
 		return nil, domainerrors.ErrInvalidOrderNumber
 	}

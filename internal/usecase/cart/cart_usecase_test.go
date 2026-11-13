@@ -5,12 +5,14 @@ import (
 	domainerrors "ecommerce/internal/domain/errors"
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/mocks"
+	"ecommerce/internal/usecase/interfaces"
 	"errors"
 	"io"
 	"log/slog"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -447,4 +449,165 @@ func TestAddItem_GetCartError(t *testing.T) {
 
 	require.ErrorIs(t, err, dbErr)
 	require.Nil(t, result)
+}
+
+func TestCartUseCase_UpdateQuantity(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("validation errors", func(t *testing.T) {
+		cartRepo := mocks.NewMockCartRepository(t)
+		variantRepo := mocks.NewMockProductVariantRepository(t)
+		uc := NewCartUseCase(cartRepo, variantRepo, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+		_, err := uc.UpdateQuantity(ctx, 0, 1, 2)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidUserID)
+
+		_, err = uc.UpdateQuantity(ctx, 1, 0, 2)
+		assert.ErrorIs(t, err, domainerrors.ErrRecordNotFound)
+
+		_, err = uc.UpdateQuantity(ctx, 1, 1, -1)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidQuantity)
+	})
+
+	t.Run("success updates quantity and returns cart", func(t *testing.T) {
+		cartRepo := mocks.NewMockCartRepository(t)
+		variantRepo := mocks.NewMockProductVariantRepository(t)
+		uc := NewCartUseCase(cartRepo, variantRepo, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+		cart := &models.Cart{ID: 10, UserID: 1}
+		variant := newProductVariant()
+		items := []models.CartItem{{ID: 5, CartID: 10, VariantID: 1, Quantity: 1, Variant: *variant}}
+		updatedItems := []models.CartItem{{ID: 5, CartID: 10, VariantID: 1, Quantity: 3, Variant: *variant}}
+
+		cartRepo.EXPECT().GetCartByUserID(ctx, int64(1)).Return(cart, nil).Twice()
+		cartRepo.EXPECT().GetCartItems(ctx, int64(10)).Return(items, nil).Once()
+		variantRepo.EXPECT().GetByID(ctx, int64(1)).Return(variant, nil).Maybe()
+		cartRepo.EXPECT().UpdateCartItemQuantity(ctx, int64(10), int64(5), 3).Return(nil).Once()
+		cartRepo.EXPECT().GetCartItems(ctx, int64(10)).Return(updatedItems, nil).Once()
+
+		got, err := uc.UpdateQuantity(ctx, 1, 5, 3)
+		require.NoError(t, err)
+		require.Len(t, got.Items, 1)
+		assert.Equal(t, 3, got.Items[0].Quantity)
+	})
+}
+
+func TestCartUseCase_RemoveAndClear(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("RemoveItem", func(t *testing.T) {
+		cartRepo := mocks.NewMockCartRepository(t)
+		variantRepo := mocks.NewMockProductVariantRepository(t)
+		uc := NewCartUseCase(cartRepo, variantRepo, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+		_, err := uc.RemoveItem(ctx, 0, 5)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidUserID)
+
+		_, err = uc.RemoveItem(ctx, 1, 0)
+		assert.ErrorIs(t, err, domainerrors.ErrRecordNotFound)
+
+		cart := &models.Cart{ID: 10, UserID: 1}
+		cartRepo.EXPECT().GetCartByUserID(ctx, int64(1)).Return(cart, nil).Twice()
+		cartRepo.EXPECT().GetCartItems(ctx, int64(10)).Return([]models.CartItem{{ID: 5, CartID: 10}}, nil).Maybe()
+		cartRepo.EXPECT().RemoveCartItem(ctx, int64(10), int64(5)).Return(nil).Once()
+		cartRepo.EXPECT().GetCartItems(ctx, int64(10)).Return([]models.CartItem{}, nil).Maybe()
+
+		got, err := uc.RemoveItem(ctx, 1, 5)
+		require.NoError(t, err)
+		assert.Equal(t, uint(10), got.ID)
+	})
+
+	t.Run("ClearCart", func(t *testing.T) {
+		cartRepo := mocks.NewMockCartRepository(t)
+		variantRepo := mocks.NewMockProductVariantRepository(t)
+		uc := NewCartUseCase(cartRepo, variantRepo, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+		_, err := uc.ClearCart(ctx, 0)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidUserID)
+
+		cart := &models.Cart{ID: 10, UserID: 1}
+		cartRepo.EXPECT().GetCartByUserID(ctx, int64(1)).Return(cart, nil).Twice()
+		cartRepo.EXPECT().ClearCart(ctx, int64(10)).Return(nil).Once()
+		cartRepo.EXPECT().GetCartItems(ctx, int64(10)).Return([]models.CartItem{}, nil).Maybe()
+
+		got, err := uc.ClearCart(ctx, 1)
+		require.NoError(t, err)
+		assert.Empty(t, got.Items)
+	})
+}
+
+func TestCartUseCase_GuestCartAndMerge(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("ValidateGuestCart", func(t *testing.T) {
+		cartRepo := mocks.NewMockCartRepository(t)
+		variantRepo := mocks.NewMockProductVariantRepository(t)
+		uc := NewCartUseCase(cartRepo, variantRepo, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+		gotEmpty, err := uc.ValidateGuestCart(ctx, nil)
+		require.NoError(t, err)
+		assert.Empty(t, gotEmpty)
+
+		v := newProductVariant()
+		variantRepo.EXPECT().GetByIDs(ctx, []int64{1, 99}).Return([]models.ProductVariant{*v}, nil).Maybe()
+		variantRepo.EXPECT().GetByID(ctx, int64(1)).Return(v, nil).Maybe()
+		variantRepo.EXPECT().GetByID(ctx, int64(99)).Return(nil, domainerrors.ErrRecordNotFound).Maybe()
+
+		results, err := uc.ValidateGuestCart(ctx, []interfaces.GuestCartItemInput{
+			{VariantID: 1, Quantity: 2},
+			{VariantID: 99, Quantity: 1},
+		})
+		require.NoError(t, err)
+		require.Len(t, results, 2)
+		assert.True(t, results[0].IsAvailable)
+		assert.Equal(t, 1000.0, results[0].CurrentPrice)
+		assert.False(t, results[1].IsAvailable)
+	})
+
+	t.Run("MergeGuestCart", func(t *testing.T) {
+		cartRepo := mocks.NewMockCartRepository(t)
+		txRepo := mocks.NewMockCartRepository(t)
+		variantRepo := mocks.NewMockProductVariantRepository(t)
+		uc := NewCartUseCase(cartRepo, variantRepo, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+		_, err := uc.MergeGuestCart(ctx, 0, []interfaces.GuestCartItemInput{{VariantID: 1, Quantity: 1}})
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidUserID)
+
+		v := newProductVariant()
+		cart := &models.Cart{ID: 10, UserID: 1}
+		cartRepo.EXPECT().GetCartByUserID(ctx, int64(1)).Return(cart, nil).Once()
+		cartRepo.EXPECT().WithTransaction(ctx, mock.AnythingOfType("func(interfaces.CartRepository) error")).
+			RunAndReturn(func(_ context.Context, fn func(interfaces.CartRepository) error) error {
+				return fn(txRepo)
+			}).Once()
+
+		variantRepo.EXPECT().GetByIDs(ctx, []int64{1}).Return([]models.ProductVariant{*v}, nil).Maybe()
+		variantRepo.EXPECT().GetByID(ctx, int64(1)).Return(v, nil).Maybe()
+		txRepo.EXPECT().GetCartItems(ctx, int64(10)).Return([]models.CartItem{}, nil).Maybe()
+		txRepo.EXPECT().GetCartItemByVariantID(ctx, int64(10), int64(1)).Return(nil, domainerrors.ErrRecordNotFound).Maybe()
+		txRepo.EXPECT().CreateCartItem(ctx, mock.MatchedBy(func(item *models.CartItem) bool {
+			return item.CartID == 10 && item.VariantID == 1 && item.Quantity == 2
+		})).Return(nil).Once()
+		cartRepo.EXPECT().GetCartByUserID(ctx, int64(1)).Return(cart, nil).Maybe()
+		cartRepo.EXPECT().GetCartItems(ctx, int64(10)).Return([]models.CartItem{
+			{ID: 1, CartID: 10, VariantID: 1, Quantity: 2, Variant: *v},
+		}, nil).Maybe()
+
+		got, err := uc.MergeGuestCart(ctx, 1, []interfaces.GuestCartItemInput{{VariantID: 1, Quantity: 2}})
+		require.NoError(t, err)
+		require.Len(t, got.Items, 1)
+	})
+
+	t.Run("MergeGuestCart error propagates", func(t *testing.T) {
+		cartRepo := mocks.NewMockCartRepository(t)
+		variantRepo := mocks.NewMockProductVariantRepository(t)
+		uc := NewCartUseCase(cartRepo, variantRepo, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+		cart := &models.Cart{ID: 10, UserID: 1}
+		txErr := errors.New("tx aborted")
+		cartRepo.EXPECT().GetCartByUserID(ctx, int64(1)).Return(cart, nil).Once()
+		cartRepo.EXPECT().WithTransaction(ctx, mock.AnythingOfType("func(interfaces.CartRepository) error")).Return(txErr).Once()
+		_, err := uc.MergeGuestCart(ctx, 1, []interfaces.GuestCartItemInput{{VariantID: 1, Quantity: 1}})
+		assert.ErrorIs(t, err, txErr)
+	})
 }
