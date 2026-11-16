@@ -1,0 +1,29 @@
+.admin-shell {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--admin-bg, #f8f9fa);
+  font-family: var(--font-family-base, 'Inter', sans-serif);
+  color: var(--admin-text-primary, #191c1d);
+}
+
+.admin-main-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 24px;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .admin-content {
+    padding: 16px;
+  }
+}

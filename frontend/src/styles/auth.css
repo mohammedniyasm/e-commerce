@@ -1,0 +1,284 @@
+/* Shared Authentication Screen Styles */
+
+.auth-card-header {
+  margin-bottom: 28px;
+}
+
+.auth-card-title {
+  margin: 0 0 8px 0;
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: -0.9px;
+  line-height: 1.2;
+  color: var(--color-text, #191c1d);
+}
+
+@media (min-width: 640px) {
+  .auth-card-title {
+    font-size: 36px;
+  }
+}
+
+.auth-card-subtitle {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #585f6c);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.auth-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm, 4px);
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.auth-success-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm, 4px);
+  color: #166534;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+/* Phone input container with +91 prefix badge */
+.auth-phone-field {
+  display: flex;
+  width: 100%;
+}
+
+.auth-phone-prefix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  height: 48px;
+  background-color: var(--color-surface, #f8f9fa);
+  border: 1px solid var(--color-border, #c6c6cd);
+  border-right: none;
+  border-top-left-radius: var(--radius-sm, 4px);
+  border-bottom-left-radius: var(--radius-sm, 4px);
+  color: var(--color-text-secondary, #585f6c);
+  font-size: 14px;
+  font-weight: 500;
+  user-select: none;
+}
+
+.auth-phone-input {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+/* Password Checklist */
+.auth-password-checklist {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  padding: 10px 12px;
+  background-color: var(--color-surface, #f8f9fa);
+  border: 1px solid var(--color-border-subtle, #e5e7eb);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 11px;
+}
+
+@media (min-width: 480px) {
+  .auth-password-checklist {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.auth-password-rule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted, #71717a);
+  transition: color 0.15s ease;
+}
+
+.auth-password-rule.is-valid {
+  color: #166534;
+  font-weight: 500;
+}
+
+.auth-password-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-border, #c6c6cd);
+  flex-shrink: 0;
+}
+
+.auth-password-rule.is-valid .auth-password-dot {
+  background-color: #22c55e;
+}
+
+/* Divider */
+.auth-divider-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 24px 0 20px 0;
+}
+
+.auth-divider-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--color-border-subtle, #e1e3e4);
+}
+
+.auth-divider-text {
+  position: relative;
+  z-index: 1;
+  padding: 0 16px;
+  background-color: #ffffff;
+  color: var(--color-text-secondary, #585f6c);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+/* Switch link */
+.auth-switch-link-wrapper {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-secondary, #585f6c);
+}
+
+.auth-switch-link {
+  color: var(--color-black, #000000);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-left: 4px;
+  transition: opacity 0.2s ease;
+}
+
+.auth-switch-link:hover {
+  opacity: 0.8;
+}
+
+.auth-forgot-link {
+  display: inline-block;
+  align-self: flex-end;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary, #585f6c);
+  text-decoration: none;
+  margin-top: -6px;
+  margin-bottom: 4px;
+  transition: color 0.15s ease;
+}
+
+.auth-forgot-link:hover {
+  color: var(--color-black, #000000);
+  text-decoration: underline;
+}
+
+/* OTP 6-digit box styles */
+.auth-otp-container {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
+  margin: 8px 0;
+}
+
+.auth-otp-input {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text, #191c1d);
+  background-color: #ffffff;
+  border: 1px solid var(--color-border, #c6c6cd);
+  border-radius: var(--radius-sm, 4px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  caret-color: var(--color-primary, #000000);
+}
+
+.auth-otp-input:focus {
+  outline: none;
+  border-color: var(--color-primary, #000000);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15);
+}
+
+.auth-otp-input.has-error {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.auth-resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary, #585f6c);
+}
+
+.auth-resend-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-black, #000000);
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.auth-resend-button:disabled {
+  color: var(--color-text-muted, #9ca3af);
+  text-decoration: none;
+  cursor: not-allowed;
+}
+
+/* Success Card */
+.auth-success-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.auth-success-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #f0fdf4;
+  border: 2px solid #22c55e;
+  color: #166534;
+  margin-bottom: 24px;
+}

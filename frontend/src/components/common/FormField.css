@@ -1,0 +1,138 @@
+/* Form Field Layout */
+.drape-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.drape-form-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--store-text-secondary);
+  user-select: none;
+}
+
+.drape-form-label__required {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-bold);
+}
+
+.drape-form-field__control {
+  position: relative;
+  width: 100%;
+}
+
+/* Input Wrapper & Inputs */
+.drape-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid var(--store-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-input);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.drape-input-wrapper--md {
+  height: 48px;
+}
+
+.drape-input-wrapper--sm {
+  height: 38px;
+}
+
+.drape-input-wrapper:focus-within {
+  border-color: #000000;
+  box-shadow: 0 0 0 1px #000000;
+}
+
+.drape-input-wrapper--error {
+  border-color: var(--color-danger);
+}
+
+.drape-input-wrapper--error:focus-within {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger);
+}
+
+.drape-input-wrapper--disabled {
+  background-color: var(--store-pill-bg);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.drape-input {
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-lg);
+  color: var(--store-text-primary);
+}
+
+.drape-input::placeholder {
+  color: var(--store-text-placeholder);
+  font-weight: var(--font-weight-normal);
+}
+
+.drape-input-wrapper--has-left-icon .drape-input {
+  padding-left: 44px;
+}
+
+.drape-input-wrapper--has-right-icon .drape-input {
+  padding-right: 44px;
+}
+
+.drape-input__icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--store-text-secondary);
+  pointer-events: none;
+}
+
+.drape-input__icon--left {
+  left: 14px;
+}
+
+.drape-input__icon--right {
+  right: 14px;
+  pointer-events: auto;
+}
+
+/* Helper & Error texts */
+.drape-form-hint {
+  font-size: var(--font-size-sm);
+  color: var(--store-text-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.drape-form-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.drape-form-error__icon {
+  flex-shrink: 0;
+}

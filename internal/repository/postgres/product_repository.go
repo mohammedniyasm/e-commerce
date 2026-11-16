@@ -575,7 +575,7 @@ func (r *ProductRepository) GetRelatedProducts(ctx context.Context, productID in
 		Preload("Variants", "is_active = ?", true).
 		Preload(
 			"Images",
-			"variant_id IS NULL AND is_primary = ?",
+			"is_primary = ?",
 			true,
 		).
 		Order(clause.Expr{

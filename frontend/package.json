@@ -1,0 +1,34 @@
+{
+  "name": "drape-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:components": "node test/run-component-tests.mjs",
+    "test:auth": "node test/run-auth-tests.mjs",
+    "test:smoke": "node test/run-auth-smoke-test.mjs",
+    "test:storefront": "node test/run-storefront-tests.mjs",
+    "test:phase5": "node test/run-phase5-tests.mjs",
+    "test:phase6:m1": "node test/run-phase6-m1-tests.mjs",
+    "test:phase6": "node test/run-phase6-m1-tests.mjs && node test/run-phase6-complete-tests.mjs",
+    "test:phase7": "node test/run-phase7-tests.mjs",
+    "test:phase8": "node test/run-phase8-tests.mjs",
+    "test:phase9": "node test/run-phase9-tests.mjs",
+    "test:phase10": "node test/run-phase10-tests.mjs",
+    "test": "node test/run-component-tests.mjs && node test/run-auth-tests.mjs && node test/run-auth-smoke-test.mjs && node test/run-storefront-tests.mjs && node test/run-phase5-tests.mjs && node test/run-phase6-m1-tests.mjs && node test/run-phase6-complete-tests.mjs && node test/run-phase7-tests.mjs && node test/run-phase8-tests.mjs && node test/run-phase9-tests.mjs && node test/run-phase10-tests.mjs"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "lucide-react": "^1.16.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-router-dom": "^7.12.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^7.3.1"
+  }
+}

@@ -1,0 +1,51 @@
+/* Admin Returns Page */
+
+.admin-returns-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.drape-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.drape-reason-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: 280px;
+}
+
+.drape-reason-title {
+  font-weight: 500;
+  font-size: 0.8125rem;
+  color: var(--color-text, #111827);
+}
+
+.drape-reason-desc {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #6b7280);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-modal-info-block {
+  background: var(--color-surface-subtle, #f9fafb);
+  border: 1px solid var(--color-border, #e5e7eb);
+  padding: 0.875rem 1rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.admin-modal-info-block strong {
+  color: var(--color-text, #111827);
+}

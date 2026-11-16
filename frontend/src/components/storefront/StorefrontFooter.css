@@ -1,0 +1,133 @@
+.storefront-footer {
+  width: 100%;
+  background-color: #ffffff;
+  border-top: 1px solid var(--color-border, #c6c6cd);
+  padding: 48px 0 28px 0;
+  margin-top: auto;
+}
+
+.storefront-footer__inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+@media (min-width: 768px) {
+  .storefront-footer__inner {
+    padding: 0 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .storefront-footer__inner {
+    padding: 0 64px;
+  }
+}
+
+.storefront-footer__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  padding-bottom: 40px;
+}
+
+@media (min-width: 640px) {
+  .storefront-footer__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .storefront-footer__grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 48px;
+  }
+}
+
+.storefront-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.storefront-footer__heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--color-black, #000000);
+  margin: 0;
+}
+
+.storefront-footer__text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-secondary, #45464c);
+  letter-spacing: 0.13px;
+  margin: 0;
+}
+
+.storefront-footer__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.storefront-footer__list a {
+  font-size: 13px;
+  color: var(--color-text-secondary, #45464c);
+  text-decoration: none;
+  transition: color 0.15s ease;
+  letter-spacing: 0.13px;
+}
+
+.storefront-footer__list a:hover {
+  color: var(--color-black, #000000);
+  text-decoration: underline;
+}
+
+.storefront-footer__contact {
+  font-style: normal;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary, #45464c);
+  line-height: 1.5;
+  letter-spacing: 0.13px;
+}
+
+.storefront-footer__contact p {
+  margin: 0;
+}
+
+.storefront-footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border-subtle, #f0f0f2);
+  font-size: 11px;
+  color: var(--color-text-secondary, #585f6c);
+}
+
+.storefront-footer__copyright {
+  margin: 0;
+}
+
+.storefront-footer__badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.storefront-footer__dot {
+  opacity: 0.4;
+}

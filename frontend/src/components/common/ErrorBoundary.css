@@ -1,0 +1,99 @@
+.drape-error-boundary {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  background-color: var(--store-bg);
+}
+
+.drape-error-card {
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  padding: var(--space-10) var(--space-8);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--store-border);
+  box-shadow: var(--shadow-dropdown);
+  background: #ffffff;
+}
+
+.drape-error-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-danger);
+  margin-bottom: var(--space-4);
+}
+
+.drape-error-eyebrow {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wider);
+  color: var(--store-text-muted);
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+
+.drape-error-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--store-text-primary);
+  margin-bottom: var(--space-3);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.drape-error-desc {
+  font-size: var(--font-size-md);
+  color: var(--store-text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--space-8);
+}
+
+.drape-error-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.drape-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--store-btn-primary-bg);
+  color: var(--store-btn-primary-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+  cursor: pointer;
+}
+
+.drape-btn-primary:hover {
+  background-color: var(--store-btn-primary-hover);
+}
+
+.drape-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  background-color: transparent;
+  color: var(--store-text-primary);
+  border: 1px solid var(--store-border);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.drape-btn-outline:hover {
+  background-color: var(--store-pill-bg);
+}

@@ -1,0 +1,189 @@
+.account-addresses-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6, 1.5rem);
+}
+
+.account-addresses-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4, 1rem);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-4, 1rem);
+  border-bottom: 1px solid var(--color-slate-200, #E2E8F0);
+}
+
+.account-addresses-title {
+  font-family: var(--font-serif, 'Cormorant Garamond', Georgia, serif);
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--color-slate-900, #0F172A);
+  margin: 0;
+}
+
+.account-addresses-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-slate-500, #64748B);
+  margin-top: 0.25rem;
+}
+
+/* Addresses Grid */
+.addresses-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4, 1rem);
+}
+
+.address-card {
+  background: #FFFFFF;
+  border: 1px solid var(--color-slate-200, #E2E8F0);
+  border-radius: var(--radius-sm, 4px);
+  padding: var(--space-5, 1.25rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.address-card.is-default {
+  border-color: var(--color-slate-900, #0F172A);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.address-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.address-card__title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.address-card__icon {
+  color: var(--color-slate-500, #64748B);
+}
+
+.address-card__recipient {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-slate-900, #0F172A);
+}
+
+.address-card__body {
+  margin-bottom: var(--space-4, 1rem);
+  flex-grow: 1;
+}
+
+.address-card__lines {
+  font-size: 0.875rem;
+  color: var(--color-slate-600, #475569);
+  line-height: 1.55;
+  margin-bottom: 0.5rem;
+}
+
+.address-card__phone {
+  font-size: 0.8125rem;
+  color: var(--color-slate-500, #64748B);
+}
+
+.address-card__phone-label {
+  font-weight: 600;
+}
+
+.address-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-slate-100, #F1F5F9);
+  padding-top: var(--space-3, 0.75rem);
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.address-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Address Form in Modal */
+.address-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 1rem);
+}
+
+.address-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3, 0.75rem);
+}
+
+.address-form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-3, 0.75rem);
+}
+
+.address-default-toggle {
+  margin-top: 0.25rem;
+}
+
+.address-default-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-slate-700, #334155);
+  cursor: pointer;
+}
+
+.address-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3, 0.75rem);
+  margin-top: var(--space-4, 1rem);
+}
+
+/* Delete Modal */
+.address-delete-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 1rem);
+}
+
+.address-delete-desc {
+  font-size: 0.875rem;
+  color: var(--color-slate-600, #475569);
+  line-height: 1.5;
+}
+
+.address-delete-preview {
+  background: var(--color-slate-50, #F8FAFC);
+  border: 1px solid var(--color-slate-200, #E2E8F0);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm, 4px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--color-slate-700, #334155);
+}
+
+@media (max-width: 768px) {
+  .addresses-grid {
+    grid-template-columns: 1fr;
+  }
+  .address-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .address-form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

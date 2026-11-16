@@ -1,0 +1,86 @@
+/* Admin Coupons Page */
+
+.admin-coupons-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.drape-coupon-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.drape-coupon-code {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.05em;
+  color: var(--color-text, #111827);
+}
+
+.drape-coupon-sub {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-gold, #c5a880);
+}
+
+.drape-conditions-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.8125rem;
+}
+
+.text-muted {
+  color: var(--color-text-secondary, #6b7280);
+  font-size: 0.75rem;
+}
+
+.admin-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-text, #111827);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-link-btn:hover {
+  color: var(--color-gold, #c5a880);
+}
+
+.admin-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .admin-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text, #111827);
+}
+
+.admin-checkbox-row input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.admin-usages-table-wrapper {
+  max-height: 320px;
+  overflow-y: auto;
+}

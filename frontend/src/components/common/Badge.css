@@ -1,0 +1,146 @@
+.drape-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+/* Sizes */
+.drape-badge--sm {
+  font-size: var(--font-size-2xs);
+  padding: 2px var(--space-2);
+}
+
+.drape-badge--md {
+  font-size: var(--font-size-xs);
+  padding: 4px var(--space-3);
+}
+
+/* Semantic Status Variants */
+.drape-badge--success {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-border);
+}
+
+.drape-badge--warning {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning-border);
+}
+
+.drape-badge--danger {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger-border);
+}
+
+.drape-badge--info {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info-border);
+}
+
+.drape-badge--neutral {
+  background-color: var(--store-pill-bg);
+  color: var(--store-text-primary);
+  border: 1px solid var(--store-border-subtle);
+}
+
+/* Category Filter Pill Variant (Matching Figma Category Filter Pills) */
+.drape-badge--filter {
+  background-color: var(--store-pill-bg);
+  color: var(--store-text-primary);
+  border: 1px solid transparent;
+  padding: 6px var(--space-4);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.drape-badge--filter:hover {
+  background-color: #e5e7eb;
+}
+
+.drape-badge--filter.drape-badge--active {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* Numeric Counter Variant (Shopping Bag Badge) */
+.drape-badge--counter {
+  background-color: #000000;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+}
+
+/* Status Pill with indicator dot */
+.drape-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.drape-status-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.drape-status-pill--success {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+.drape-status-pill--success .drape-status-pill__dot {
+  background-color: var(--color-success);
+}
+
+.drape-status-pill--warning {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+.drape-status-pill--warning .drape-status-pill__dot {
+  background-color: var(--color-warning);
+}
+
+.drape-status-pill--danger {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+.drape-status-pill--danger .drape-status-pill__dot {
+  background-color: var(--color-danger);
+}
+
+.drape-status-pill--info {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+}
+.drape-status-pill--info .drape-status-pill__dot {
+  background-color: var(--color-info);
+}
+
+.drape-status-pill--neutral {
+  background-color: var(--store-pill-bg);
+  color: var(--store-text-secondary);
+}
+.drape-status-pill--neutral .drape-status-pill__dot {
+  background-color: var(--store-text-secondary);
+}

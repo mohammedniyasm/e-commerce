@@ -1,0 +1,113 @@
+.account-nav {
+  width: 100%;
+}
+
+.account-nav__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: var(--store-surface);
+  border: 1px solid var(--store-border-subtle, #e5e7eb);
+  border-radius: 12px;
+  padding: 16px 12px;
+}
+
+.account-nav__section-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--store-text-muted, #9ca3af);
+  padding: 6px 12px 10px;
+  text-transform: uppercase;
+}
+
+.account-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--store-text-secondary, #45464c);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.account-nav__item:hover {
+  color: var(--store-text-primary, #191c1d);
+  background-color: var(--store-surface-secondary, #f8f9fa);
+}
+
+.account-nav__item.is-active {
+  color: var(--store-text-primary, #191c1d);
+  background-color: var(--store-surface-secondary, #f3f4f6);
+  font-weight: 600;
+}
+
+.account-nav__icon {
+  flex-shrink: 0;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.account-nav__item.is-active .account-nav__icon {
+  opacity: 1;
+}
+
+.account-nav__label {
+  flex: 1;
+}
+
+.account-nav__divider {
+  height: 1px;
+  background-color: var(--store-border-subtle, #e5e7eb);
+  margin: 8px 6px;
+}
+
+.account-nav__item--logout {
+  color: #b91c1c;
+}
+
+.account-nav__item--logout:hover {
+  color: #991b1b;
+  background-color: #fef2f2;
+}
+
+/* Horizontal pill scrollbar on tablet and mobile */
+@media (max-width: 900px) {
+  .account-nav__menu {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 8px;
+    gap: 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .account-nav__menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .account-nav__section-title {
+    display: none;
+  }
+
+  .account-nav__item {
+    white-space: nowrap;
+    padding: 8px 14px;
+    flex-shrink: 0;
+    width: auto;
+  }
+
+  .account-nav__divider {
+    width: 1px;
+    height: auto;
+    margin: 4px 2px;
+  }
+}

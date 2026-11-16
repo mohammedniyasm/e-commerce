@@ -1,0 +1,147 @@
+/**
+ * Drape Design Tokens
+ * Extracted directly from Figma design file (cdMBUWK1VSpC3yVKv3YyjE)
+ * Visual sources of truth: User Page (0:1) & Admin Page (33:14980)
+ */
+
+:root {
+  /* ========================================================
+     Typography & Font Stacks
+     ======================================================== */
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Font Sizes */
+  --font-size-2xs: 0.625rem;   /* 10px - Badges, counters */
+  --font-size-xs: 0.6875rem;   /* 11px - Eyebrows, uppercase subheads */
+  --font-size-sm: 0.75rem;     /* 12px - Trend indicators, options */
+  --font-size-base: 0.8125rem; /* 13px - Search, table captions */
+  --font-size-md: 0.875rem;    /* 14px - Body text */
+  --font-size-lg: 0.9375rem;   /* 15px - Input text, subtitles */
+  --font-size-xl: 1rem;        /* 16px - Card stat values */
+  --font-size-2xl: 1.25rem;    /* 20px - Section headers */
+  --font-size-3xl: 1.5rem;     /* 24px - Wordmark, Modal titles */
+  --font-size-4xl: 2.25rem;    /* 36px - Page titles, auth headers */
+
+  /* Letter Spacing */
+  --letter-spacing-tight: -0.9px;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.55px;
+  --letter-spacing-wider: 1.1px;
+  --letter-spacing-widest: 2.4px;
+
+  /* ========================================================
+     Storefront Visual System
+     ======================================================== */
+  --store-bg: #ffffff;
+  --store-surface: #ffffff;
+  --store-surface-secondary: #f8f9fa;
+  --store-text-primary: #191c1d;
+  --store-text-secondary: #45464c;
+  --store-text-muted: #585f6c;
+  --store-text-placeholder: #c6c6cd;
+  --store-border: #c6c6cd;
+  --store-border-subtle: rgba(198, 198, 205, 0.5);
+
+  --store-header-bg: rgba(255, 255, 255, 0.95);
+  --store-header-height: 64px;
+
+  --store-btn-primary-bg: #000000;
+  --store-btn-primary-text: #ffffff;
+  --store-btn-primary-hover: #1a1a1a;
+
+  --store-pill-bg: #f3f4f5;
+  --store-pill-text: #191c1d;
+  --store-pill-active-bg: #000000;
+  --store-pill-active-text: #ffffff;
+
+  /* ========================================================
+     Admin Portal Visual System
+     ======================================================== */
+  --admin-bg: #f8f9fa;
+  --admin-surface: #ffffff;
+  --admin-sidebar-bg: #ffffff;
+  --admin-sidebar-width: 260px;
+  --admin-sidebar-border: #e7e8e9;
+  --admin-text-primary: #191c1d;
+  --admin-text-secondary: #45464c;
+  --admin-text-muted: #585f6c;
+  --admin-border: rgba(198, 198, 205, 0.5);
+  --admin-card-radius: 12px;
+  --admin-card-padding: 25px;
+
+  /* ========================================================
+     Semantic & Feedback Colors
+     ======================================================== */
+  --color-success: #059669;
+  --color-success-bg: #ecfdf5;
+  --color-success-border: #a7f3d0;
+
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fde68a;
+
+  --color-danger: #ef4444;
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fecaca;
+
+  --color-info: #3b82f6;
+  --color-info-bg: #eff6ff;
+  --color-info-border: #bfdbfe;
+
+  --color-accent-gold: #d7c4a3;
+
+  /* ========================================================
+     Spacing Scale
+     ======================================================== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ========================================================
+     Border Radius
+     ======================================================== */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-pill: 9999px;
+
+  /* ========================================================
+     Shadows
+     ======================================================== */
+  --shadow-input: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0px 1px 1px 0px rgba(0, 0, 0, 0.05);
+  --shadow-dropdown: 0px 4px 6px -1px rgba(0, 0, 0, 0.08), 0px 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* ========================================================
+     Transitions & Z-Index
+     ======================================================== */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --z-header: 40;
+  --z-drawer: 50;
+  --z-modal-backdrop: 60;
+  --z-modal: 70;
+  --z-toast: 100;
+}
