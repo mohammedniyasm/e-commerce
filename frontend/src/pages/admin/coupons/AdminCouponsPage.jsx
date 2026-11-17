@@ -216,91 +216,110 @@ export function AdminCouponsPage() {
     {
       key: 'code',
       header: 'Coupon Code',
-      render: (c) => (
-        <div className="drape-coupon-cell">
-          <span className="drape-coupon-code">{c.code}</span>
-          <span className="drape-coupon-sub">
-            {c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`}
-          </span>
-        </div>
-      ),
+      render: (val, record) => {
+        const c = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-coupon-cell">
+            <span className="drape-coupon-code">{c.code || val}</span>
+            <span className="drape-coupon-sub">
+              {c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'conditions',
       header: 'Conditions',
-      render: (c) => (
-        <div className="drape-conditions-cell">
-          <span>Min Order: {formatCurrency(c.min_order_amount || 0)}</span>
-          {c.max_discount_amount > 0 && (
-            <span className="text-muted">Max Cap: {formatCurrency(c.max_discount_amount)}</span>
-          )}
-        </div>
-      ),
+      render: (val, record) => {
+        const c = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-conditions-cell">
+            <span>Min Order: {formatCurrency(c.min_order_amount || 0)}</span>
+            {c.max_discount_amount > 0 && (
+              <span className="text-muted">Max Cap: {formatCurrency(c.max_discount_amount)}</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'validity',
       header: 'Validity',
-      render: (c) => (
-        <div className="drape-conditions-cell">
-          <span>Until: {c.valid_until ? formatDate(c.valid_until) : 'No Expiry'}</span>
-          <span className="text-muted">From: {formatDate(c.valid_from)}</span>
-        </div>
-      ),
+      render: (val, record) => {
+        const c = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-conditions-cell">
+            <span>Until: {c.valid_until ? formatDate(c.valid_until) : 'No Expiry'}</span>
+            <span className="text-muted">From: {formatDate(c.valid_from)}</span>
+          </div>
+        );
+      },
     },
     {
       key: 'usage',
       header: 'Usage',
       align: 'center',
-      render: (c) => (
-        <button
-          type="button"
-          onClick={() => handleOpenUsages(c)}
-          className="admin-link-btn"
-          title="View redemption history"
-        >
-          {c.usage_count || 0} / {c.usage_limit || '∞'}
-        </button>
-      ),
+      render: (val, record) => {
+        const c = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <button
+            type="button"
+            onClick={() => handleOpenUsages(c)}
+            className="admin-link-btn"
+            title="View redemption history"
+          >
+            {c.usage_count || 0} / {c.usage_limit || '∞'}
+          </button>
+        );
+      },
     },
     {
       key: 'status',
       header: 'Status',
       align: 'center',
-      render: (c) => (
-        <Badge variant={c.is_active ? 'success' : 'neutral'}>
-          {c.is_active ? 'Active' : 'Inactive'}
-        </Badge>
-      ),
+      render: (val, record) => {
+        const c = (typeof val === 'object' && val !== null) ? val : (record || {});
+        const isActive = c.is_active !== undefined ? c.is_active : val;
+        return (
+          <Badge variant={isActive ? 'success' : 'neutral'}>
+            {isActive ? 'Active' : 'Inactive'}
+          </Badge>
+        );
+      },
     },
     {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (c) => (
-        <div className="drape-table-actions">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Power size={13} />}
-            onClick={() => handleToggleActive(c)}
-            title={c.is_active ? 'Deactivate' : 'Activate'}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Edit2 size={13} />}
-            onClick={() => openEditModal(c)}
-            title="Edit Coupon"
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Trash2 size={13} />}
-            onClick={() => setCouponToDelete(c)}
-            title="Delete Coupon"
-          />
-        </div>
-      ),
+      render: (val, record) => {
+        const c = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-table-actions">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Power size={13} />}
+              onClick={() => handleToggleActive(c)}
+              title={c.is_active ? 'Deactivate' : 'Activate'}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Edit2 size={13} />}
+              onClick={() => openEditModal(c)}
+              title="Edit Coupon"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Trash2 size={13} />}
+              onClick={() => setCouponToDelete(c)}
+              title="Delete Coupon"
+            />
+          </div>
+        );
+      },
     },
   ];
 

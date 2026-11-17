@@ -30,15 +30,32 @@ export function ToastProvider({ children }) {
     [removeToast],
   );
 
+  const showToast = useCallback(
+    (arg1, arg2) => {
+      if (typeof arg1 === 'object' && arg1 !== null) {
+        return addToast({
+          type: arg1.type || 'info',
+          message: arg1.message || arg1.title || '',
+          duration: arg1.duration || 4000,
+        });
+      }
+      const type = typeof arg2 === 'string' ? arg2 : 'info';
+      return addToast({ type, message: String(arg1 || ''), duration: 4000 });
+    },
+    [addToast],
+  );
+
   const toast = useMemo(
     () => ({
+      showToast,
+      addToast,
       success: (msg, duration) => addToast({ type: 'success', message: msg, duration }),
       error: (msg, duration) => addToast({ type: 'error', message: msg, duration }),
       warning: (msg, duration) => addToast({ type: 'warning', message: msg, duration }),
       info: (msg, duration) => addToast({ type: 'info', message: msg, duration }),
       dismiss: removeToast,
     }),
-    [addToast, removeToast],
+    [showToast, addToast, removeToast],
   );
 
   return (

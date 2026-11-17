@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Heart } from 'lucide-react';
+import { useWishlist } from '../../context/WishlistContext';
 import { formatCurrencyINR } from '../../utils/formatters';
 import { StatusPill } from '../common/Badge';
 import './ProductCard.css';
 
 export function ProductCard({ product }) {
   if (!product) return null;
+
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   const {
     id,
@@ -19,6 +22,7 @@ export function ProductCard({ product }) {
     in_stock = true,
   } = product;
 
+  const isWishlisted = isInWishlist(id);
   const productUrl = slug ? `/products/${slug}` : `/products/id/${id}`;
   const imageUrl = primary_image?.image_url || '/placeholder-product.svg';
 
@@ -55,6 +59,26 @@ export function ProductCard({ product }) {
               )
             )}
           </div>
+
+          {/* Quick Wishlist Toggle */}
+          <button
+            type="button"
+            className={`drape-product-card__wishlist-btn ${isWishlisted ? 'is-wishlisted' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleWishlist(product);
+            }}
+            aria-label={isWishlisted ? `Remove ${name} from wishlist` : `Save ${name} to wishlist`}
+            title={isWishlisted ? 'In your curated wishlist' : 'Save to wishlist'}
+            data-testid={`wishlist-toggle-${id}`}
+          >
+            <Heart
+              size={16}
+              fill={isWishlisted ? '#b48325' : 'none'}
+              color={isWishlisted ? '#b48325' : 'currentColor'}
+            />
+          </button>
         </div>
       </Link>
 

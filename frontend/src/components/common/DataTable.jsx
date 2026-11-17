@@ -86,11 +86,30 @@ export function DataTable({
                   className={onRowClick ? 'drape-tr--clickable' : ''}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                 >
-                  {columns.map((col) => (
-                    <td key={col.key} style={{ textAlign: col.align || 'left' }}>
-                      {col.render ? col.render(row[col.key], row) : (row[col.key] ?? '—')}
-                    </td>
-                  ))}
+                  {columns.map((col) => {
+                    const cellValue = row[col.key];
+                    let renderedContent = '—';
+                    if (col.render) {
+                      try {
+                        renderedContent = col.render(cellValue !== undefined ? cellValue : row, row);
+                      } catch (_e1) {
+                        try {
+                          renderedContent = col.render(row, row);
+                        } catch (err) {
+                          console.error(`Error rendering column ${col.key}:`, err);
+                          renderedContent = cellValue ?? '—';
+                        }
+                      }
+                    } else {
+                      renderedContent = cellValue ?? '—';
+                    }
+
+                    return (
+                      <td key={col.key} style={{ textAlign: col.align || 'left' }}>
+                        {renderedContent}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}

@@ -125,25 +125,31 @@ export function AdminReportsPage() {
           key: 'orders_count',
           header: 'Total Orders',
           align: 'center',
-          render: (row) => row.orders_count || row.total_orders || 0,
+          render: (val, record) => {
+            const row = (typeof val === 'object' && val !== null) ? val : (record || {});
+            return row.orders_count || row.total_orders || (typeof val === 'number' ? val : 0);
+          },
         },
         {
           key: 'revenue',
           header: 'Revenue',
           align: 'right',
-          render: (row) => (
-            <span className="font-semibold">{formatCurrency(row.revenue || row.total_revenue || 0)}</span>
-          ),
+          render: (val, record) => {
+            const row = (typeof val === 'object' && val !== null) ? val : (record || {});
+            const rev = row.revenue || row.total_revenue || (typeof val === 'number' ? val : 0);
+            return <span className="font-semibold">{formatCurrency(rev)}</span>;
+          },
         },
         {
           key: 'average_order_value',
           header: 'Avg Order Value',
           align: 'right',
-          render: (row) =>
-            formatCurrency(
-              (row.revenue || row.total_revenue || 0) /
-                Math.max(1, row.orders_count || row.total_orders || 1)
-            ),
+          render: (val, record) => {
+            const row = (typeof val === 'object' && val !== null) ? val : (record || {});
+            const revenue = row.revenue || row.total_revenue || 0;
+            const orders = row.orders_count || row.total_orders || 1;
+            return formatCurrency(revenue / Math.max(1, orders));
+          },
         },
       ];
     }
@@ -158,9 +164,11 @@ export function AdminReportsPage() {
           key: 'total_value',
           header: 'Gross Value',
           align: 'right',
-          render: (row) => (
-            <span className="font-semibold">{formatCurrency(row.total_value || 0)}</span>
-          ),
+          render: (val, record) => {
+            const row = (typeof val === 'object' && val !== null) ? val : (record || {});
+            const valNum = row.total_value || (typeof val === 'number' ? val : 0);
+            return <span className="font-semibold">{formatCurrency(valNum)}</span>;
+          },
         },
       ];
     }
@@ -173,9 +181,11 @@ export function AdminReportsPage() {
         key: 'revenue',
         header: 'Total Revenue',
         align: 'right',
-        render: (row) => (
-          <span className="font-semibold">{formatCurrency(row.revenue || 0)}</span>
-        ),
+        render: (val, record) => {
+          const row = (typeof val === 'object' && val !== null) ? val : (record || {});
+          const rev = row.revenue || (typeof val === 'number' ? val : 0);
+          return <span className="font-semibold">{formatCurrency(rev)}</span>;
+        },
       },
     ];
   };

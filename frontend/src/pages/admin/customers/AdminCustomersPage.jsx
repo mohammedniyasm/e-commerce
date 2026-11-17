@@ -160,74 +160,96 @@ export function AdminCustomersPage() {
     {
       key: 'name',
       header: 'Customer',
-      render: (u) => (
-        <div className="drape-customer-cell">
-          <span className="font-semibold">{u.name}</span>
-          <span className="drape-customer-email">{u.email}</span>
-        </div>
-      ),
+      render: (val, user) => {
+        const u = (typeof val === 'object' && val !== null) ? val : (user || {});
+        return (
+          <div className="drape-customer-cell">
+            <span className="font-semibold">{u.name || (typeof val === 'string' ? val : 'Customer')}</span>
+            <span className="drape-customer-email">{u.email || '—'}</span>
+          </div>
+        );
+      },
     },
     {
       key: 'phone',
       header: 'Phone',
-      render: (u) => (
-        <span className="drape-phone-text">{u.phone || '—'}</span>
-      ),
+      render: (val, user) => {
+        const u = (typeof val === 'object' && val !== null) ? val : (user || {});
+        const phone = typeof val === 'string' ? val : u.phone;
+        return (
+          <span className="drape-phone-text">{phone || '—'}</span>
+        );
+      },
     },
     {
       key: 'verified',
       header: 'Email Verified',
       align: 'center',
-      render: (u) => (
-        <Badge variant={u.is_email_verified ? 'success' : 'neutral'}>
-          {u.is_email_verified ? 'Verified' : 'Unverified'}
-        </Badge>
-      ),
+      render: (val, user) => {
+        const u = (typeof val === 'object' && val !== null) ? val : (user || {});
+        const isVerified = typeof val === 'boolean' ? val : Boolean(u.is_email_verified);
+        return (
+          <Badge variant={isVerified ? 'success' : 'neutral'}>
+            {isVerified ? 'Verified' : 'Unverified'}
+          </Badge>
+        );
+      },
     },
     {
       key: 'status',
       header: 'Access',
       align: 'center',
-      render: (u) => (
-        <Badge variant={u.is_blocked ? 'danger' : 'success'}>
-          {u.is_blocked ? 'Blocked' : 'Active'}
-        </Badge>
-      ),
+      render: (val, user) => {
+        const u = (typeof val === 'object' && val !== null) ? val : (user || {});
+        const isBlocked = Boolean(u.is_blocked);
+        return (
+          <Badge variant={isBlocked ? 'danger' : 'success'}>
+            {isBlocked ? 'Blocked' : 'Active'}
+          </Badge>
+        );
+      },
     },
     {
       key: 'registered',
       header: 'Joined',
-      render: (u) => (
-        <span className="drape-joined-date">{formatDate(u.created_at)}</span>
-      ),
+      render: (val, user) => {
+        const u = (typeof val === 'object' && val !== null) ? val : (user || {});
+        const date = typeof val === 'string' ? val : u.created_at;
+        return (
+          <span className="drape-joined-date">{formatDate(date)}</span>
+        );
+      },
     },
     {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (u) => (
-        <div className="drape-table-actions">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Wallet size={13} />}
-            onClick={() => handleOpenWalletModal(u)}
-            title="View Wallet Balance & Transactions"
-          >
-            Wallet
-          </Button>
+      render: (val, user) => {
+        const u = (typeof val === 'object' && val !== null) ? val : (user || {});
+        return (
+          <div className="drape-table-actions">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Wallet size={13} />}
+              onClick={() => handleOpenWalletModal(u)}
+              title="View Wallet Balance & Transactions"
+            >
+              Wallet
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={u.is_blocked ? <Unlock size={13} /> : <Lock size={13} />}
-            onClick={() => setUserToToggleBlock(u)}
-            title={u.is_blocked ? 'Unblock customer' : 'Block customer'}
-          >
-            {u.is_blocked ? 'Unblock' : 'Block'}
-          </Button>
-        </div>
-      ),
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={u.is_blocked ? <Unlock size={13} /> : <Lock size={13} />}
+              onClick={() => setUserToToggleBlock(u)}
+              title={u.is_blocked ? 'Unblock customer' : 'Block customer'}
+            >
+              {u.is_blocked ? 'Unblock' : 'Block'}
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 

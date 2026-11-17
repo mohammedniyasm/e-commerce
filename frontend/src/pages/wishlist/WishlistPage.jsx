@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Heart, Plus, ShoppingBag, Trash2 } from 'lucide-react';
+import {
+  ArrowRight,
+  Heart,
+  Plus,
+  ShoppingBag,
+  Trash2,
+  FolderMinus,
+  RefreshCw,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
@@ -21,6 +29,8 @@ export function WishlistPage() {
     activeWishlistId,
     selectWishlist,
     createWishlist,
+    deleteWishlist,
+    clearWishlist,
     removeItem,
     isLoading,
   } = useWishlist();
@@ -28,9 +38,12 @@ export function WishlistPage() {
   const { showToast } = useToast();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [createError, setCreateError] = useState('');
   const [movingItemId, setMovingItemId] = useState(null);
+  const [removingItemId, setRemovingItemId] = useState(null);
 
   const items = currentWishlist?.items || [];
   const isEmpty = items.length === 0;
@@ -48,6 +61,31 @@ export function WishlistPage() {
       setIsCreateModalOpen(false);
     } catch (err) {
       setCreateError(err.message || 'Failed to create wishlist.');
+    }
+  }
+
+  async function handleRemoveProduct(item) {
+    setRemovingItemId(item.id || item.product_id);
+    try {
+      await removeItem(item.id, item.product_id);
+    } finally {
+      setRemovingItemId(null);
+    }
+  }
+
+  async function handleConfirmClearWishlist() {
+    try {
+      await clearWishlist(activeWishlistId || currentWishlist?.id);
+    } finally {
+      setIsClearModalOpen(false);
+    }
+  }
+
+  async function handleConfirmDeleteWishlist() {
+    try {
+      await deleteWishlist(activeWishlistId || currentWishlist?.id);
+    } finally {
+      setIsDeleteModalOpen(false);
     }
   }
 
@@ -85,27 +123,57 @@ export function WishlistPage() {
 
   return (
     <div className="wishlist-page" data-testid="wishlist-page">
+      {/* Header with Title and Collection Actions */}
       <div className="wishlist-header">
         <div className="wishlist-header__titles">
-          <h1 className="wishlist-title">My Wishlist</h1>
+          <div className="wishlist-header__eyebrow">CURATED SILHOUETTES</div>
+          <h1 className="wishlist-title">
+            My Wishlist{currentWishlist?.name && currentWishlist.name !== 'My Wishlist' ? ` — ${currentWishlist.name}` : ''}
+          </h1>
           <p className="wishlist-subtitle">
-            {isAuthenticated
-              ? 'Organize your favorite silhouettes across custom curated collections.'
-              : 'Save pieces to your temporary wishlist. Sign in to sync across devices.'}
+            {isEmpty
+              ? 'No pieces currently saved in this collection.'
+              : `${items.length} ${items.length === 1 ? 'piece' : 'pieces'} curated in this collection.`}
           </p>
         </div>
 
-        {isAuthenticated && (
-          <Button
-            variant="outline"
-            size="sm"
-            leftIcon={<Plus size={16} />}
-            onClick={() => setIsCreateModalOpen(true)}
-            data-testid="create-wishlist-btn"
-          >
-            NEW LIST
-          </Button>
-        )}
+        <div className="wishlist-header__actions">
+          {!isEmpty && (
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<Trash2 size={14} />}
+              onClick={() => setIsClearModalOpen(true)}
+              data-testid="clear-wishlist-btn"
+            >
+              CLEAR COLLECTION
+            </Button>
+          )}
+
+          {isAuthenticated && wishlists.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<FolderMinus size={14} />}
+              onClick={() => setIsDeleteModalOpen(true)}
+              data-testid="delete-wishlist-btn"
+            >
+              DELETE COLLECTION
+            </Button>
+          )}
+
+          {isAuthenticated && (
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus size={16} />}
+              onClick={() => setIsCreateModalOpen(true)}
+              data-testid="create-wishlist-btn"
+            >
+              NEW COLLECTION
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Multi-wishlist selector tabs */}
@@ -160,9 +228,9 @@ export function WishlistPage() {
 
             return (
               <article
-                key={item.id}
+                key={item.id || item.product_id}
                 className={`wishlist-card ${isUnavailable ? 'is-unavailable' : ''}`}
-                data-testid={`wishlist-card-${item.id}`}
+                data-testid={`wishlist-card-${item.id || item.product_id}`}
               >
                 {/* Image & Badges */}
                 <div className="wishlist-card__image-container">
@@ -182,12 +250,17 @@ export function WishlistPage() {
                   <button
                     type="button"
                     className="wishlist-card__remove-btn"
-                    onClick={() => removeItem(item.id, item.product_id)}
+                    onClick={() => handleRemoveProduct(item)}
                     aria-label={`Remove ${item.product_name} from wishlist`}
-                    title="Remove item"
-                    data-testid={`remove-item-${item.id}`}
+                    title="Remove piece"
+                    disabled={isLoading || removingItemId === (item.id || item.product_id)}
+                    data-testid={`remove-item-${item.id || item.product_id}`}
                   >
-                    <Trash2 size={16} />
+                    {removingItemId === (item.id || item.product_id) ? (
+                      <RefreshCw size={14} className="spin" />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
                   </button>
 
                   {isUnavailable && (
@@ -244,14 +317,16 @@ export function WishlistPage() {
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title="Create New Wishlist"
+        title="Create New Collection"
+        eyebrow="ATELIER WISHLISTS"
+        size="sm"
       >
         <form onSubmit={handleCreateSubmit} className="wishlist-modal-form">
           <FormField
-            label="Wishlist Name"
+            label="COLLECTION NAME"
             htmlFor="new-wishlist-name"
             error={createError}
-            hint="e.g. Summer Tailoring, Evening Silhouettes, Work Essentials"
+            hint="e.g. Summer Capsule, Evening Silhouettes, Work Essentials"
           >
             <Input
               id="new-wishlist-name"
@@ -274,10 +349,86 @@ export function WishlistPage() {
               CANCEL
             </Button>
             <Button type="submit" variant="primary" size="md">
-              CREATE WISHLIST
+              CREATE COLLECTION
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Clear Wishlist Confirmation Modal */}
+      <Modal
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
+        title="Clear Collection"
+        eyebrow="COLLECTION MANAGEMENT"
+        size="sm"
+      >
+        <div className="wishlist-modal-confirm" data-testid="clear-wishlist-modal">
+          <p className="wishlist-modal-confirm__desc">
+            Are you sure you wish to remove all pieces from{' '}
+            <strong>"{currentWishlist?.name || 'this collection'}"</strong>? This will clear all
+            curated pieces.
+          </p>
+          <div className="wishlist-modal-confirm__actions">
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={() => setIsClearModalOpen(false)}
+              disabled={isLoading}
+            >
+              KEEP PIECES
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={handleConfirmClearWishlist}
+              loading={isLoading}
+              data-testid="confirm-clear-wishlist-btn"
+            >
+              CLEAR COLLECTION
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Wishlist Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Collection"
+        eyebrow="COLLECTION MANAGEMENT"
+        size="sm"
+      >
+        <div className="wishlist-modal-confirm" data-testid="delete-wishlist-modal">
+          <p className="wishlist-modal-confirm__desc">
+            Are you sure you wish to permanently delete the collection{' '}
+            <strong>"{currentWishlist?.name || 'this collection'}"</strong>? All pieces within it
+            will be removed.
+          </p>
+          <div className="wishlist-modal-confirm__actions">
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={isLoading}
+            >
+              CANCEL
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={handleConfirmDeleteWishlist}
+              loading={isLoading}
+              data-testid="confirm-delete-wishlist-btn"
+            >
+              DELETE COLLECTION
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

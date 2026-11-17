@@ -145,72 +145,94 @@ export function AdminPaymentsPage() {
     {
       key: 'order_number',
       header: 'Order #',
-      render: (order) => (
-        <div className="drape-order-cell">
-          <Link
-            to={`/admin/orders/${order.id}`}
-            className="drape-order-id-link"
-          >
-            {order.order_number || `#${order.id}`}
-          </Link>
-          <span className="drape-order-date">{formatDate(order.created_at)}</span>
-        </div>
-      ),
+      render: (val, order) => {
+        const item = (typeof val === 'object' && val !== null) ? val : (order || {});
+        return (
+          <div className="drape-order-cell">
+            <Link
+              to={`/admin/orders/${item.id}`}
+              className="drape-order-id-link"
+            >
+              {item.order_number || `#${item.id}`}
+            </Link>
+            <span className="drape-order-date">{formatDate(item.created_at)}</span>
+          </div>
+        );
+      },
     },
     {
       key: 'customer',
       header: 'Customer',
-      render: (order) => (
-        <div className="drape-customer-cell">
-          <span className="drape-customer-name">
-            {order.user?.name || order.shipping_address?.name || 'Customer'}
-          </span>
-          <span className="drape-customer-email">
-            {order.user?.email || order.shipping_address?.phone || '—'}
-          </span>
-        </div>
-      ),
+      render: (val, order) => {
+        const item = (typeof val === 'object' && val !== null) ? val : (order || {});
+        return (
+          <div className="drape-customer-cell">
+            <span className="drape-customer-name">
+              {item.user?.name || item.shipping_address?.name || 'Customer'}
+            </span>
+            <span className="drape-customer-email">
+              {item.user?.email || item.shipping_address?.phone || '—'}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'method',
       header: 'Method',
-      render: (order) => (
-        <span className="font-semibold text-uppercase">
-          {order.payment_method || 'Online'}
-        </span>
-      ),
+      render: (val, order) => {
+        const item = (typeof val === 'object' && val !== null) ? val : (order || {});
+        return (
+          <span className="font-semibold text-uppercase">
+            {val && typeof val === 'string' ? val : (item.payment_method || 'Online')}
+          </span>
+        );
+      },
     },
     {
       key: 'amount',
       header: 'Amount',
       align: 'right',
-      render: (order) => (
-        <span className="drape-order-total">{formatCurrency(order.total_amount)}</span>
-      ),
+      render: (amount, order) => {
+        const item = (typeof amount === 'object' && amount !== null) ? amount : (order || {});
+        const total = typeof amount === 'number' ? amount : (item.total_amount || 0);
+        return (
+          <span className="drape-order-total">{formatCurrency(total)}</span>
+        );
+      },
     },
     {
       key: 'payment_status',
       header: 'Payment Status',
       align: 'center',
-      render: (order) => getPaymentBadge(order.payment_status),
+      render: (status, order) => {
+        const item = (typeof status === 'object' && status !== null) ? status : (order || {});
+        const val = typeof status === 'string' ? status : item.payment_status;
+        return getPaymentBadge(val);
+      },
     },
     {
       key: 'order_status',
       header: 'Order Status',
       align: 'center',
-      render: (order) => <Badge variant="neutral">{order.order_status}</Badge>,
+      render: (status, order) => {
+        const item = (typeof status === 'object' && status !== null) ? status : (order || {});
+        const val = typeof status === 'string' ? status : item.order_status;
+        return <Badge variant="neutral">{val}</Badge>;
+      },
     },
     {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (order) => {
+      render: (val, order) => {
+        const item = (typeof val === 'object' && val !== null) ? val : (order || {});
         const isCodPending =
-          String(order.payment_method || '').toLowerCase() === 'cod' &&
-          order.payment_status === 'pending';
+          String(item.payment_method || '').toLowerCase() === 'cod' &&
+          item.payment_status === 'pending';
         const isEligibleForRefund =
-          (order.order_status === 'cancelled' || order.order_status === 'returned') &&
-          order.payment_status !== 'refunded';
+          (item.order_status === 'cancelled' || item.order_status === 'returned') &&
+          item.payment_status !== 'refunded';
 
         return (
           <div className="drape-table-actions">
@@ -219,10 +241,10 @@ export function AdminPaymentsPage() {
                 variant="secondary"
                 size="sm"
                 icon={<DollarSign size={13} />}
-                onClick={() => handleMarkCodPaid(order.id)}
-                disabled={updatingCodId === order.id}
+                onClick={() => handleMarkCodPaid(item.id)}
+                disabled={updatingCodId === item.id}
               >
-                {updatingCodId === order.id ? 'Saving...' : 'Mark Paid'}
+                {updatingCodId === item.id ? 'Saving...' : 'Mark Paid'}
               </Button>
             )}
 
@@ -231,13 +253,13 @@ export function AdminPaymentsPage() {
                 variant="outline"
                 size="sm"
                 icon={<RotateCcw size={13} />}
-                onClick={() => setSelectedOrderForRefund(order)}
+                onClick={() => setSelectedOrderForRefund(item)}
               >
                 Refund
               </Button>
             )}
 
-            <Link to={`/admin/orders/${order.id}`}>
+            <Link to={`/admin/orders/${item.id}`}>
               <Button variant="ghost" size="sm" icon={<ExternalLink size={13} />}>
                 Order
               </Button>

@@ -137,76 +137,101 @@ export function AdminOrdersPage() {
     {
       key: 'order_number',
       header: 'Order #',
-      render: (order) => (
-        <div className="drape-order-cell">
-          <Link
-            to={`/admin/orders/${order.id}`}
-            className="drape-order-id-link"
-            title="View order details"
-          >
-            {order.order_number || `#${order.id}`}
-          </Link>
-          <span className="drape-order-date">{formatDate(order.created_at)}</span>
-        </div>
-      ),
+      render: (val, order) => {
+        const item = (typeof val === 'object' && val !== null) ? val : (order || {});
+        return (
+          <div className="drape-order-cell">
+            <Link
+              to={`/admin/orders/${item.id}`}
+              className="drape-order-id-link"
+              title="View order details"
+            >
+              {item.order_number || `#${item.id}`}
+            </Link>
+            <span className="drape-order-date">{formatDate(item.created_at)}</span>
+          </div>
+        );
+      },
     },
     {
       key: 'customer',
       header: 'Customer',
-      render: (order) => (
-        <div className="drape-customer-cell">
-          <span className="drape-customer-name">
-            {order.user?.name || order.shipping_address?.name || 'Customer'}
-          </span>
-          <span className="drape-customer-email">
-            {order.user?.email || order.shipping_address?.phone || '—'}
-          </span>
-        </div>
-      ),
+      render: (val, order) => {
+        const item = (typeof val === 'object' && val !== null) ? val : (order || {});
+        return (
+          <div className="drape-customer-cell">
+            <span className="drape-customer-name">
+              {item.user?.name || item.shipping_address?.name || 'Customer'}
+            </span>
+            <span className="drape-customer-email">
+              {item.user?.email || item.shipping_address?.phone || '—'}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'items_count',
       header: 'Items',
       align: 'center',
-      render: (order) => (
-        <span className="drape-items-count">
-          {order.items?.length || order.items_count || 1} {order.items?.length === 1 ? 'item' : 'items'}
-        </span>
-      ),
+      render: (val, order) => {
+        const item = (typeof val === 'object' && val !== null) ? val : (order || {});
+        const count = item.items?.length || item.items_count || 1;
+        return (
+          <span className="drape-items-count">
+            {count} {count === 1 ? 'item' : 'items'}
+          </span>
+        );
+      },
     },
     {
       key: 'total_amount',
       header: 'Total',
       align: 'right',
-      render: (order) => (
-        <span className="drape-order-total">{formatCurrency(order.total_amount)}</span>
-      ),
+      render: (amount, order) => {
+        const item = (typeof amount === 'object' && amount !== null) ? amount : (order || {});
+        const total = typeof amount === 'number' ? amount : (item.total_amount || 0);
+        return (
+          <span className="drape-order-total">{formatCurrency(total)}</span>
+        );
+      },
     },
     {
       key: 'payment_status',
       header: 'Payment',
       align: 'center',
-      render: (order) => getPaymentStatusBadge(order.payment_status),
+      render: (status, order) => {
+        const item = (typeof status === 'object' && status !== null) ? status : (order || {});
+        const val = typeof status === 'string' ? status : item.payment_status;
+        return getPaymentStatusBadge(val);
+      },
     },
     {
       key: 'order_status',
       header: 'Order Status',
       align: 'center',
-      render: (order) => getOrderStatusBadge(order.order_status),
+      render: (status, order) => {
+        const item = (typeof status === 'object' && status !== null) ? status : (order || {});
+        const val = typeof status === 'string' ? status : item.order_status;
+        return getOrderStatusBadge(val);
+      },
     },
     {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (order) => (
-        <div className="drape-table-actions">
-          <Link to={`/admin/orders/${order.id}`}>
-            <Button variant="ghost" size="sm" icon={<Eye size={14} />}>
-              Details
-            </Button>
-          </Link>
-        </div>
-      ),
+      render: (val, order) => {
+        const item = (typeof val === 'object' && val !== null) ? val : (order || {});
+        return (
+          <div className="drape-table-actions">
+            <Link to={`/admin/orders/${item.id}`}>
+              <Button variant="ghost" size="sm" icon={<Eye size={14} />}>
+                Details
+              </Button>
+            </Link>
+          </div>
+        );
+      },
     },
   ];
 

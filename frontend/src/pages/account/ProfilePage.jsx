@@ -18,6 +18,7 @@ import {
   Badge,
   Modal,
 } from '../../components/common';
+import { EmailVerificationModal } from '../../components/account/EmailVerificationModal';
 import { useToast } from '../../context/ToastContext';
 import {
   updateProfile,
@@ -39,8 +40,17 @@ import './ProfilePage.css';
 
 export function ProfilePage() {
   const context = useOutletContext() || {};
-  const { profile, refreshData = () => {} } = context;
+  const { profile, refreshData = () => {}, openVerifyEmailModal } = context;
   const { showToast } = useToast();
+  const [isLocalVerifyModalOpen, setIsLocalVerifyModalOpen] = useState(false);
+
+  const handleOpenVerifyModal = () => {
+    if (openVerifyEmailModal) {
+      openVerifyEmailModal();
+    } else {
+      setIsLocalVerifyModalOpen(true);
+    }
+  };
 
   // Personal Information state
   const [name, setName] = useState(profile?.name || '');
@@ -424,14 +434,27 @@ export function ProfilePage() {
               Email Address
             </h2>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleOpenEmailModal}
-            data-testid="change-email-btn"
-          >
-            CHANGE EMAIL
-          </Button>
+          <div className="account-card__header-actions">
+            {!profile?.email_verified_at && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenVerifyModal}
+                leftIcon={<ShieldCheck size={14} />}
+                data-testid="profile-verify-email-btn"
+              >
+                VERIFY EMAIL
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenEmailModal}
+              data-testid="change-email-btn"
+            >
+              CHANGE EMAIL
+            </Button>
+          </div>
         </div>
 
         <div className="account-card__body">
@@ -453,6 +476,28 @@ export function ProfilePage() {
             <p className="profile-email-desc">
               Your email is used for order confirmations, delivery tracking notifications, and atelier security updates.
             </p>
+
+            {!profile?.email_verified_at && (
+              <div className="profile-unverified-alert" data-testid="profile-unverified-alert">
+                <div className="profile-unverified-alert__icon">
+                  <AlertCircle size={20} />
+                </div>
+                <div className="profile-unverified-alert__content">
+                  <h4 className="profile-unverified-alert__title">Email Not Verified</h4>
+                  <p className="profile-unverified-alert__text">
+                    Your account email <strong>{profile?.email}</strong> is unverified. Verify now to secure your account and receive order delivery notifications.
+                  </p>
+                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleOpenVerifyModal}
+                  data-testid="profile-verify-email-now-btn"
+                >
+                  VERIFY EMAIL NOW
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -657,6 +702,14 @@ export function ProfilePage() {
           )}
         </div>
       </Modal>
+
+      {/* Local fallback Email Verification Modal */}
+      <EmailVerificationModal
+        isOpen={isLocalVerifyModalOpen}
+        onClose={() => setIsLocalVerifyModalOpen(false)}
+        email={profile?.email}
+        onVerified={refreshData}
+      />
     </div>
   );
 }

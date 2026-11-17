@@ -90,86 +90,106 @@ export function AdminReviewsPage() {
     {
       key: 'product',
       header: 'Product',
-      render: (rev) => (
-        <div className="drape-item-info">
-          {rev.product?.thumbnail && (
-            <img
-              src={rev.product.thumbnail}
-              alt={rev.product?.name || 'Product'}
-              className="admin-item-thumb"
-            />
-          )}
-          <div>
-            <span className="admin-item-name">
-              {rev.product?.name || `Product #${rev.product_id}`}
-            </span>
-            <span className="admin-review-date">{formatDate(rev.created_at)}</span>
+      render: (val, record) => {
+        const rev = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-item-info">
+            {rev.product?.thumbnail && (
+              <img
+                src={rev.product.thumbnail}
+                alt={rev.product?.name || 'Product'}
+                className="admin-item-thumb"
+              />
+            )}
+            <div>
+              <span className="admin-item-name">
+                {rev.product?.name || `Product #${rev.product_id}`}
+              </span>
+              <span className="admin-review-date">{formatDate(rev.created_at)}</span>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: 'customer',
       header: 'Customer',
-      render: (rev) => (
-        <div className="drape-customer-cell">
-          <span className="font-semibold">{rev.user?.name || 'Customer'}</span>
-          <span className="drape-customer-email">{rev.user?.email || '—'}</span>
-        </div>
-      ),
+      render: (val, record) => {
+        const rev = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-customer-cell">
+            <span className="font-semibold">{rev.user?.name || 'Customer'}</span>
+            <span className="drape-customer-email">{rev.user?.email || '—'}</span>
+          </div>
+        );
+      },
     },
     {
       key: 'rating',
       header: 'Rating',
       align: 'center',
-      render: (rev) => (
-        <div className="drape-rating-cell">
-          {renderStars(rev.rating)}
-          <span className="drape-rating-number">{rev.rating} / 5</span>
-        </div>
-      ),
+      render: (val, record) => {
+        const rev = (typeof val === 'object' && val !== null) ? val : (record || {});
+        const rating = typeof val === 'number' ? val : (rev.rating || 0);
+        return (
+          <div className="drape-rating-cell">
+            {renderStars(rating)}
+            <span className="drape-rating-number">{rating} / 5</span>
+          </div>
+        );
+      },
     },
     {
       key: 'comment',
       header: 'Review Content',
-      render: (rev) => (
-        <div className="drape-comment-cell">
-          {rev.title && <span className="drape-comment-title">{rev.title}</span>}
-          <p className="drape-comment-body">{rev.comment || 'No text provided.'}</p>
-        </div>
-      ),
+      render: (val, record) => {
+        const rev = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-comment-cell">
+            {rev.title && <span className="drape-comment-title">{rev.title}</span>}
+            <p className="drape-comment-body">{rev.comment || val || 'No text provided.'}</p>
+          </div>
+        );
+      },
     },
     {
       key: 'status',
       header: 'Status',
       align: 'center',
-      render: (rev) => (
-        <Badge variant={rev.is_visible ? 'success' : 'neutral'}>
-          {rev.is_visible ? 'Visible' : 'Hidden'}
-        </Badge>
-      ),
+      render: (val, record) => {
+        const rev = (typeof val === 'object' && val !== null) ? val : (record || {});
+        const isVisible = rev.is_visible !== undefined ? rev.is_visible : val;
+        return (
+          <Badge variant={isVisible ? 'success' : 'neutral'}>
+            {isVisible ? 'Visible' : 'Hidden'}
+          </Badge>
+        );
+      },
     },
     {
       key: 'actions',
       header: 'Moderation',
       align: 'right',
-      render: (rev) => (
-        <div className="drape-table-actions">
-          <Button
-            variant={rev.is_visible ? 'outline' : 'primary'}
-            size="sm"
-            icon={rev.is_visible ? <EyeOff size={13} /> : <Eye size={13} />}
-            onClick={() => handleToggleVisibility(rev)}
-            disabled={updatingId === rev.id}
-          >
-            {updatingId === rev.id
-              ? 'Saving...'
-              : rev.is_visible
-              ? 'Hide Review'
-              : 'Restore'}
-          </Button>
-        </div>
-      ),
+      render: (val, record) => {
+        const rev = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-table-actions">
+            <Button
+              variant={rev.is_visible ? 'outline' : 'primary'}
+              size="sm"
+              icon={rev.is_visible ? <EyeOff size={13} /> : <Eye size={13} />}
+              onClick={() => handleToggleVisibility(rev)}
+              disabled={updatingId === rev.id}
+            >
+              {updatingId === rev.id
+                ? 'Saving...'
+                : rev.is_visible
+                ? 'Hide Review'
+                : 'Restore'}
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 

@@ -183,3 +183,55 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Unverified Email Alert in Profile / Settings */
+.profile-unverified-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid var(--color-gold-600, #b48325);
+  border-radius: 8px;
+}
+
+.profile-unverified-alert__icon {
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.profile-unverified-alert__content {
+  flex: 1;
+}
+
+.profile-unverified-alert__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 0.25rem 0;
+}
+
+.profile-unverified-alert__text {
+  font-size: 0.8125rem;
+  color: #78350f;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.account-card__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .profile-unverified-alert {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

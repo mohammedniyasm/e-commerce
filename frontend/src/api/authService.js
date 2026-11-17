@@ -46,6 +46,22 @@ export function resetPassword({ new_password }) {
   return apiClient.post('/auth/reset-password', { new_password }, { skipAuth: true });
 }
 
+export function sendVerificationOTP({ email }) {
+  return apiClient.post('/auth/email/send-verification-otp', { email }, { requiresAuth: true });
+}
+
+export function verifyEmailOTP({ otp }) {
+  return apiClient.post(
+    '/auth/email/verify-email',
+    { otp },
+    { requiresAuth: true, skipSessionRefresh: true },
+  );
+}
+
+export function resendVerificationOTP({ email }) {
+  return apiClient.post('/auth/email/resend-otp', { email }, { requiresAuth: true });
+}
+
 export function loginAdmin(credentials) {
   return signIn('/admin/auth/login', credentials);
 }

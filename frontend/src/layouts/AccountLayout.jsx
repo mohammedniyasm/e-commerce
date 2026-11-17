@@ -4,6 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { ProfileHeaderRibbon } from '../components/account/ProfileHeaderRibbon';
 import { AccountNav } from '../components/account/AccountNav';
+import { EmailVerificationModal } from '../components/account/EmailVerificationModal';
+import {
+  UnverifiedAccountBanner,
+  UnverifiedAccountPopup,
+} from '../components/account/UnverifiedAccountBanner';
 import { Modal } from '../components/common/Modal';
 import { Button } from '../components/common/Button';
 import { getProfile } from '../api/profileService';
@@ -27,6 +32,7 @@ export function AccountLayout() {
   const [addresses, setAddresses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+  const [isVerifyEmailModalOpen, setIsVerifyEmailModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const loadAccountData = useCallback(async () => {
@@ -133,10 +139,18 @@ export function AccountLayout() {
         profile={profile}
         stats={stats}
         isLoading={isLoading}
+        onVerifyClick={() => setIsVerifyEmailModalOpen(true)}
       />
 
       {/* Main 2-Column Responsive Grid */}
       <div className="account-layout__container">
+        {/* Unverified Account Banner */}
+        <UnverifiedAccountBanner
+          profile={profile}
+          isLoading={isLoading}
+          onVerifyClick={() => setIsVerifyEmailModalOpen(true)}
+        />
+
         <aside className="account-layout__sidebar">
           <AccountNav onSignOutClick={() => setIsSignOutModalOpen(true)} />
         </aside>
@@ -150,10 +164,26 @@ export function AccountLayout() {
               addresses,
               isLoading,
               refreshData: loadAccountData,
+              openVerifyEmailModal: () => setIsVerifyEmailModalOpen(true),
             }}
           />
         </main>
       </div>
+
+      {/* Unverified Account Slide-In Popup Prompt */}
+      <UnverifiedAccountPopup
+        profile={profile}
+        isLoading={isLoading}
+        onVerifyClick={() => setIsVerifyEmailModalOpen(true)}
+      />
+
+      {/* Email Verification Modal */}
+      <EmailVerificationModal
+        isOpen={isVerifyEmailModalOpen}
+        onClose={() => setIsVerifyEmailModalOpen(false)}
+        email={profile?.email}
+        onVerified={loadAccountData}
+      />
 
       {/* Sign Out Modal matching Figma 33:14649 */}
       <Modal

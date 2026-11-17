@@ -152,27 +152,34 @@ export function AdminReturnsPage() {
     {
       key: 'id',
       header: 'Request #',
-      render: (req) => (
-        <div className="drape-order-cell">
-          <span className="font-semibold">REQ-{req.id}</span>
-          <span className="drape-order-date">{formatDate(req.created_at)}</span>
-        </div>
-      ),
+      render: (val, record) => {
+        const req = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-order-cell">
+            <span className="font-semibold">REQ-{req.id}</span>
+            <span className="drape-order-date">{formatDate(req.created_at)}</span>
+          </div>
+        );
+      },
     },
     {
       key: 'order',
       header: 'Order #',
-      render: (req) => (
-        <Link to={`/admin/orders/${req.order_id}`} className="drape-order-id-link">
-          {req.order?.order_number || `#${req.order_id}`}
-        </Link>
-      ),
+      render: (val, record) => {
+        const req = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <Link to={`/admin/orders/${req.order_id}`} className="drape-order-id-link">
+            {req.order?.order_number || `#${req.order_id}`}
+          </Link>
+        );
+      },
     },
     {
       key: 'type',
       header: 'Type',
       align: 'center',
-      render: (req) => {
+      render: (val, record) => {
+        const req = (typeof val === 'object' && val !== null) ? val : (record || {});
         const isExchange = String(req.type || '').toLowerCase() === 'exchange';
         return isExchange ? (
           <Badge variant="neutral" className="drape-type-badge">
@@ -188,34 +195,44 @@ export function AdminReturnsPage() {
     {
       key: 'product',
       header: 'Item',
-      render: (req) => (
-        <div className="drape-customer-cell">
-          <span className="font-semibold">{req.order_item?.product_name || req.product_name || `Item #${req.order_item_id}`}</span>
-          <span className="drape-customer-email">Qty: {req.quantity || 1}</span>
-        </div>
-      ),
+      render: (val, record) => {
+        const req = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-customer-cell">
+            <span className="font-semibold">{req.order_item?.product_name || req.product_name || `Item #${req.order_item_id}`}</span>
+            <span className="drape-customer-email">Qty: {req.quantity || 1}</span>
+          </div>
+        );
+      },
     },
     {
       key: 'reason',
       header: 'Reason',
-      render: (req) => (
-        <div className="drape-reason-cell">
-          <span className="drape-reason-title">{req.reason || 'Not specified'}</span>
-          {req.comments && <span className="drape-reason-desc">{req.comments}</span>}
-        </div>
-      ),
+      render: (val, record) => {
+        const req = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return (
+          <div className="drape-reason-cell">
+            <span className="drape-reason-title">{req.reason || 'Not specified'}</span>
+            {req.comments && <span className="drape-reason-desc">{req.comments}</span>}
+          </div>
+        );
+      },
     },
     {
       key: 'status',
       header: 'Status',
       align: 'center',
-      render: (req) => getStatusBadge(req.status),
+      render: (val, record) => {
+        const req = (typeof val === 'object' && val !== null) ? val : (record || {});
+        return getStatusBadge(req.status || val);
+      },
     },
     {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (req) => {
+      render: (val, record) => {
+        const req = (typeof val === 'object' && val !== null) ? val : (record || {});
         const isPending = req.status === 'pending';
         const isApproved = req.status === 'approved';
         const isExchange = String(req.type || '').toLowerCase() === 'exchange';

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -6,21 +7,42 @@ import {
   Plus,
   ShoppingBag,
   Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { formatCurrencyINR } from '../../utils/formatters';
 import { StatusPill } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
+import { Modal } from '../../components/common/Modal';
 import './CartPage.css';
 
 export function CartPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { cart, updateQuantity, removeItem, clearCart, isLoading } = useCart();
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [removingItemId, setRemovingItemId] = useState(null);
 
   const items = cart?.items || [];
   const isEmpty = items.length === 0;
+
+  async function handleRemoveItem(item) {
+    setRemovingItemId(item.id || item.variant_id);
+    try {
+      await removeItem(item.id, item.variant_id);
+    } finally {
+      setRemovingItemId(null);
+    }
+  }
+
+  async function handleConfirmClearCart() {
+    try {
+      await clearCart();
+    } finally {
+      setIsClearModalOpen(false);
+    }
+  }
 
   function handleProceedToCheckout() {
     if (cart.has_unavailable_items) {
@@ -36,12 +58,25 @@ export function CartPage() {
   return (
     <div className="cart-page" data-testid="cart-page">
       <div className="cart-header">
-        <h1 className="cart-title">Shopping Bag</h1>
-        <p className="cart-subtitle">
-          {isEmpty
-            ? 'Your shopping bag is empty'
-            : `${cart.total_quantity || items.length} item(s) selected`}
-        </p>
+        <div className="cart-header__text">
+          <h1 className="cart-title">Shopping Bag</h1>
+          <p className="cart-subtitle">
+            {isEmpty
+              ? 'Your shopping bag is empty'
+              : `${cart.total_quantity || items.length} item(s) selected`}
+          </p>
+        </div>
+        {!isEmpty && (
+          <Button
+            variant="ghost"
+            size="sm"
+            leftIcon={<Trash2 size={14} />}
+            onClick={() => setIsClearModalOpen(true)}
+            data-testid="header-clear-cart-btn"
+          >
+            CLEAR BAG
+          </Button>
+        )}
       </div>
 
       {isEmpty ? (
@@ -119,11 +154,17 @@ export function CartPage() {
                         <button
                           type="button"
                           className="cart-item-remove-btn"
-                          onClick={() => removeItem(item.id, item.variant_id)}
+                          onClick={() => handleRemoveItem(item)}
                           aria-label={`Remove ${item.product_name} from bag`}
-                          disabled={isLoading}
+                          disabled={isLoading || removingItemId === (item.id || item.variant_id)}
+                          data-testid={`remove-cart-item-${item.variant_id || item.id}`}
+                          title="Remove item from bag"
                         >
-                          <Trash2 size={16} />
+                          {removingItemId === (item.id || item.variant_id) ? (
+                            <RefreshCw size={14} className="spin" />
+                          ) : (
+                            <Trash2 size={16} />
+                          )}
                         </button>
                       </div>
 
@@ -206,11 +247,10 @@ export function CartPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  clearCart()
-                }
-                }
+                leftIcon={<Trash2 size={14} />}
+                onClick={() => setIsClearModalOpen(true)}
                 disabled={isLoading}
+                data-testid="bottom-clear-cart-btn"
               >
                 Clear Entire Bag
               </Button>
@@ -277,6 +317,40 @@ export function CartPage() {
           </aside>
         </div>
       )}
+
+      {/* Clear Bag Confirmation Modal */}
+      <Modal
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
+        title="Clear Shopping Bag"
+        eyebrow="BAG MANAGEMENT"
+        size="sm"
+      >
+        <div className="cart-clear-modal" data-testid="clear-cart-modal">
+          <p className="cart-clear-modal__desc">
+            Are you sure you wish to remove all items from your shopping bag? All selected silhouettes will be cleared.
+          </p>
+          <div className="cart-clear-modal__actions">
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setIsClearModalOpen(false)}
+              disabled={isLoading}
+            >
+              KEEP ITEMS
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleConfirmClearCart}
+              loading={isLoading}
+              data-testid="confirm-clear-cart-btn"
+            >
+              CLEAR BAG
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

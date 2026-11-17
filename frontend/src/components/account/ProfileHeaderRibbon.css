@@ -71,6 +71,38 @@
   color: var(--store-border, #d1d5db);
 }
 
+/* Verification badges in header ribbon */
+.profile-ribbon-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.profile-ribbon-badge--verified {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.profile-ribbon-badge--unverified {
+  background-color: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.profile-ribbon-badge--unverified:hover {
+  background-color: #fef3c7;
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+}
+
 /* 3 Stat Counters */
 .profile-header-ribbon__stats {
   display: flex;

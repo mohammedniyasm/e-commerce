@@ -2,8 +2,9 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   addProductToWishlist,
   clearGuestWishlist,
+  clearWishlist as clearWishlistApi,
   createWishlist,
-  deleteWishlist,
+  deleteWishlist as deleteWishlistApi,
   getGuestWishlist,
   getWishlistDetails,
   getWishlists,
@@ -23,7 +24,7 @@ export function WishlistProvider({ children }) {
 
   const [wishlists, setWishlists] = useState([]);
   const [activeWishlistId, setActiveWishlistId] = useState(null);
-  const [currentWishlist, setCurrentWishlist] = useState({ id: 0, name: 'Default', items: [] });
+  const [currentWishlist, setCurrentWishlist] = useState({ id: 0, name: 'My Wishlist', items: [] });
   const [guestItems, setGuestItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -78,7 +79,7 @@ export function WishlistProvider({ children }) {
             setGuestItems(local);
             setCurrentWishlist({
               id: 0,
-              name: 'Guest Wishlist',
+              name: 'My Wishlist',
               items: local.map((item, index) =>
                 typeof item === 'object'
                   ? { id: index + 1, product_id: item.id, ...item }
@@ -190,7 +191,7 @@ export function WishlistProvider({ children }) {
         saveGuestWishlist(nextGuest);
         setCurrentWishlist({
           id: 0,
-          name: 'Guest Wishlist',
+          name: 'My Wishlist',
           items: nextGuest.map((it, idx) => ({ id: idx + 1, product_id: it.id, ...it })),
         });
       }
@@ -206,13 +207,14 @@ export function WishlistProvider({ children }) {
   }
 
   // Create new named wishlist
+  // Create new named wishlist
   async function handleCreateWishlist(name) {
     if (!name?.trim()) return;
     setIsLoading(true);
     try {
       const created = await createWishlist({ name: name.trim() });
       const lists = await getWishlists();
-      setWishlists(lists);
+      setWishlists(lists || []);
       if (created?.id) {
         await selectWishlist(created.id);
       }
@@ -221,6 +223,107 @@ export function WishlistProvider({ children }) {
         message: `Created wishlist "${name.trim()}".`,
         type: 'success',
       });
+      return created;
+    } catch (err) {
+      showToast({
+        title: 'Creation Failed',
+        message: err.message || 'Unable to create wishlist.',
+        type: 'error',
+      });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Delete an entire wishlist collection
+  async function handleDeleteWishlist(wishlistId) {
+    const targetId = wishlistId || activeWishlistId || currentWishlist?.id;
+    if (!targetId) return;
+
+    setIsLoading(true);
+    try {
+      if (isAuthenticated) {
+        await deleteWishlistApi(targetId);
+        const remaining = await getWishlists();
+        const safeLists = remaining || [];
+        setWishlists(safeLists);
+
+        if (safeLists.length > 0) {
+          const nextActive = safeLists[0];
+          setActiveWishlistId(nextActive.id);
+          const details = await getWishlistDetails(nextActive.id);
+          if (details) setCurrentWishlist(details);
+        } else {
+          // If no wishlists left, create default
+          const defaultList = await createWishlist({ name: 'My Wishlist' });
+          if (defaultList) {
+            setWishlists([defaultList]);
+            setActiveWishlistId(defaultList.id);
+            setCurrentWishlist(defaultList);
+          } else {
+            setActiveWishlistId(null);
+            setCurrentWishlist({ id: 0, name: 'Default', items: [] });
+          }
+        }
+      } else {
+        clearGuestWishlist();
+        setGuestItems([]);
+        setCurrentWishlist({ id: 0, name: 'Guest Wishlist', items: [] });
+      }
+
+      showToast({
+        title: 'Wishlist Deleted',
+        message: 'The wishlist collection was successfully deleted.',
+        type: 'info',
+      });
+    } catch (err) {
+      showToast({
+        title: 'Delete Failed',
+        message: err.message || 'Unable to delete wishlist.',
+        type: 'error',
+      });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Clear all items from a wishlist
+  async function handleClearWishlist(wishlistId) {
+    const targetId = wishlistId || activeWishlistId || currentWishlist?.id;
+    setIsLoading(true);
+    try {
+      if (isAuthenticated && targetId) {
+        const updated = await clearWishlistApi(targetId);
+        if (updated) {
+          setCurrentWishlist(updated);
+        } else {
+          setCurrentWishlist((prev) => ({
+            ...prev,
+            items: [],
+          }));
+        }
+        const lists = await getWishlists();
+        if (lists) setWishlists(lists);
+      } else {
+        clearGuestWishlist();
+        setGuestItems([]);
+        setCurrentWishlist({ id: 0, name: 'Guest Wishlist', items: [] });
+      }
+
+      showToast({
+        title: 'Wishlist Cleared',
+        message: 'All items removed from this collection.',
+        type: 'info',
+      });
+    } catch (err) {
+      showToast({
+        title: 'Clear Failed',
+        message: err.message || 'Unable to clear wishlist items.',
+        type: 'error',
+      });
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -228,19 +331,74 @@ export function WishlistProvider({ children }) {
 
   // Remove specific item from wishlist
   async function removeItem(itemId, productId) {
-    if (isAuthenticated && currentWishlist.id) {
-      setIsLoading(true);
-      try {
-        await removeWishlistItem(currentWishlist.id, itemId);
-        setCurrentWishlist((prev) => ({
-          ...prev,
-          items: prev.items.filter((it) => it.id !== itemId),
-        }));
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    try {
+      if (isAuthenticated && currentWishlist?.id) {
+        // Resolve target item ID
+        let targetItemId = itemId;
+        if (!targetItemId || targetItemId <= 0) {
+          const matched = currentWishlist.items?.find(
+            (it) => it.product_id === productId || it.id === itemId,
+          );
+          if (matched) targetItemId = matched.id;
+        }
+
+        if (targetItemId) {
+          const updated = await removeWishlistItem(currentWishlist.id, targetItemId);
+          if (updated) {
+            setCurrentWishlist(updated);
+          } else {
+            setCurrentWishlist((prev) => ({
+              ...prev,
+              items: (prev?.items || []).filter((it) => it.id !== targetItemId),
+            }));
+          }
+        }
+
+        const lists = await getWishlists();
+        if (lists) setWishlists(lists);
+
+        showToast({
+          title: 'Removed from Wishlist',
+          message: 'Item removed from your collection.',
+          type: 'info',
+        });
+      } else {
+        // Guest mode removal
+        const targetId = productId || itemId;
+        const nextGuest = getGuestWishlist().filter((it) => {
+          if (typeof it === 'object') {
+            return it.id !== targetId && it.product_id !== targetId;
+          }
+          return it !== targetId;
+        });
+
+        saveGuestWishlist(nextGuest);
+        setGuestItems(nextGuest);
+        setCurrentWishlist({
+          id: 0,
+          name: 'My Wishlist',
+          items: nextGuest.map((it, idx) =>
+            typeof it === 'object'
+              ? { id: idx + 1, product_id: it.id || it.product_id, ...it }
+              : { id: idx + 1, product_id: it, product_name: 'Atelier Piece' },
+          ),
+        });
+
+        showToast({
+          title: 'Removed from Wishlist',
+          message: 'Item removed from your guest wishlist.',
+          type: 'info',
+        });
       }
-    } else {
-      toggleWishlist({ id: productId });
+    } catch (err) {
+      showToast({
+        title: 'Error',
+        message: err.message || 'Unable to remove item from wishlist.',
+        type: 'error',
+      });
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -253,6 +411,8 @@ export function WishlistProvider({ children }) {
       toggleWishlist,
       selectWishlist,
       createWishlist: handleCreateWishlist,
+      deleteWishlist: handleDeleteWishlist,
+      clearWishlist: handleClearWishlist,
       removeItem,
       isLoading,
     }),
@@ -265,7 +425,19 @@ export function WishlistProvider({ children }) {
 export function useWishlist() {
   const context = useContext(WishlistContext);
   if (!context) {
-    throw new Error('useWishlist must be used within a WishlistProvider');
+    return {
+      wishlists: [],
+      currentWishlist: { id: 0, name: 'My Wishlist', items: [] },
+      activeWishlistId: null,
+      isInWishlist: () => false,
+      toggleWishlist: async () => {},
+      selectWishlist: async () => {},
+      createWishlist: async () => {},
+      deleteWishlist: async () => {},
+      clearWishlist: async () => {},
+      removeItem: async () => {},
+      isLoading: false,
+    };
   }
   return context;
 }

@@ -1,0 +1,154 @@
+/* Email Verification Modal - Drape Luxury Atelier Aesthetic */
+
+.email-verify-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.5rem 0;
+}
+
+.email-verify-modal__header-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+}
+
+.email-verify-modal__icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-gold-50, #fcf8ee);
+  color: var(--color-gold-700, #966b1a);
+  border: 1px solid var(--color-gold-200, #eed99f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.email-verify-modal__icon-wrap--success {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.email-verify-modal__desc {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-neutral-600, #525252);
+  text-align: center;
+  margin: 0;
+}
+
+.email-verify-modal__email-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--color-neutral-50, #f9fafb);
+  border: 1px solid var(--color-neutral-200, #e5e7eb);
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+}
+
+.email-verify-modal__email-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-neutral-900, #111827);
+  letter-spacing: 0.01em;
+}
+
+.email-verify-modal__notice {
+  font-size: 0.8125rem;
+  color: var(--color-neutral-600, #4b5563);
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.email-verify-modal__field-wrap {
+  margin-top: 0.5rem;
+}
+
+.email-verify-modal__otp-input input {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.35em !important;
+  text-align: center !important;
+  font-family: var(--font-mono, monospace) !important;
+  padding: 0.75rem !important;
+}
+
+.email-verify-modal__resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  margin-top: -0.25rem;
+}
+
+.email-verify-modal__resend-text {
+  color: var(--color-neutral-500, #6b7280);
+}
+
+.email-verify-modal__resend-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-neutral-900, #111827);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: opacity 0.15s ease;
+}
+
+.email-verify-modal__resend-btn:disabled {
+  color: var(--color-neutral-400, #9ca3af);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.email-verify-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-neutral-200, #e5e7eb);
+}
+
+/* Success State */
+.email-verify-modal__success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.email-verify-modal__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-neutral-900, #111827);
+  margin: 0;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

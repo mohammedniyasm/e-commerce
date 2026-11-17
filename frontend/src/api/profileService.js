@@ -62,3 +62,9 @@ export async function deleteProfileImage() {
   });
   return response.data?.data || response.data;
 }
+
+export {
+  sendVerificationOTP,
+  verifyEmailOTP,
+  resendVerificationOTP,
+} from './authService';

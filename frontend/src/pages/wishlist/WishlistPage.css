@@ -264,3 +264,47 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Wishlist Header Actions & Modals */
+.wishlist-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wishlist-header__eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-gold-700, #966b1a);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.wishlist-modal-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.wishlist-modal-confirm__desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-stone-600, #57534e);
+  margin: 0;
+}
+
+.wishlist-modal-confirm__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .wishlist-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

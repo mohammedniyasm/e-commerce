@@ -24,6 +24,7 @@ export function AccountOverviewPage() {
     recentOrders = [],
     addresses = [],
     isLoading = false,
+    openVerifyEmailModal,
   } = context;
 
   const defaultAddress =
@@ -39,6 +40,27 @@ export function AccountOverviewPage() {
 
   return (
     <div className="account-overview-page" data-testid="account-overview-page">
+      {/* Overview Unverified Notice Banner */}
+      {!profile?.email_verified_at && (
+        <div className="account-overview-unverified-alert" data-testid="overview-unverified-alert">
+          <div className="account-overview-unverified-alert__icon">
+            <AlertCircle size={20} />
+          </div>
+          <div className="account-overview-unverified-alert__text">
+            <strong>Account Email Unverified</strong>
+            <span>Your email address ({profile?.email}) is not yet verified. Complete verification to activate all atelier features.</span>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={openVerifyEmailModal}
+            data-testid="overview-alert-verify-btn"
+          >
+            VERIFY EMAIL
+          </Button>
+        </div>
+      )}
+
       {/* SECTION 1: Personal Details (Figma 32:10998 Section 1) */}
       <section className="account-card" aria-labelledby="personal-details-heading">
         <div className="account-card__header">
@@ -71,10 +93,24 @@ export function AccountOverviewPage() {
               <span className="account-detail-label">EMAIL ADDRESS</span>
               <div className="account-detail-value-with-badge">
                 <span data-testid="detail-email">{profile?.email || '—'}</span>
-                {profile?.email_verified_at && (
+                {profile?.email_verified_at ? (
                   <Badge variant="success" size="sm">
                     VERIFIED
                   </Badge>
+                ) : (
+                  <div className="account-detail-unverified-group">
+                    <Badge variant="warning" size="sm">
+                      UNVERIFIED
+                    </Badge>
+                    <button
+                      type="button"
+                      className="account-overview-verify-btn"
+                      onClick={openVerifyEmailModal}
+                      data-testid="overview-verify-email-btn"
+                    >
+                      Verify Now
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

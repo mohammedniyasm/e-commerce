@@ -398,3 +398,44 @@
   color: var(--color-text-secondary, #585f6c);
   margin-top: 4px;
 }
+
+/* Cart Clear Modal & Header Actions */
+.cart-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cart-clear-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cart-clear-modal__desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-secondary, #585f6c);
+  margin: 0;
+}
+
+.cart-clear-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

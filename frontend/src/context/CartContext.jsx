@@ -157,27 +157,28 @@ export function CartProvider({ children }) {
   }, [isAuthenticated, status]);
 
   // Add Item to Cart
-  async function addToCart({ variant_id, quantity = 1, productDetails = {} }) {
-    if (!variant_id || quantity <= 0) return;
+  async function addToCart({ variant_id, variantId, quantity = 1, productDetails = {} }) {
+    const effectiveVariantId = variant_id || variantId;
+    if (!effectiveVariantId || quantity <= 0) return;
 
     setIsLoading(true);
     try {
       if (isAuthenticated) {
-        const updated = await addCustomerCartItem({ variant_id, quantity });
+        const updated = await addCustomerCartItem({ variant_id: effectiveVariantId, quantity });
         if (updated) {
           setCart(updated);
         }
       } else {
         // Guest Cart
         const guestItems = getGuestCart();
-        const existingIdx = guestItems.findIndex((it) => it.variant_id === variant_id);
+        const existingIdx = guestItems.findIndex((it) => it.variant_id === effectiveVariantId);
 
         if (existingIdx !== -1) {
           guestItems[existingIdx].quantity += quantity;
         } else {
           guestItems.push({
             id: Date.now(),
-            variant_id,
+            variant_id: effectiveVariantId,
             product_id: productDetails.id,
             product_name: productDetails.name,
             product_slug: productDetails.slug,
@@ -279,23 +280,54 @@ export function CartProvider({ children }) {
     setIsLoading(true);
     try {
       if (isAuthenticated) {
-        const updated = await removeCustomerCartItem(itemId);
-        if (updated) setCart(updated);
+        // Resolve the actual cart item ID
+        let resolvedItemId = itemId;
+        if (!resolvedItemId || resolvedItemId <= 0) {
+          const matched = cart?.items?.find(
+            (it) => (variantId && it.variant_id === variantId) || it.id === itemId,
+          );
+          if (matched) resolvedItemId = matched.id;
+        }
+
+        if (resolvedItemId) {
+          const updated = await removeCustomerCartItem(resolvedItemId);
+          if (updated) {
+            setCart(updated);
+          } else {
+            setCart((prev) => {
+              const remaining = (prev?.items || []).filter((it) => it.id !== resolvedItemId);
+              return {
+                ...prev,
+                items: remaining,
+                item_count: remaining.length,
+                total_quantity: remaining.reduce((sum, it) => sum + (it.quantity || 1), 0),
+                available_subtotal: remaining.reduce(
+                  (sum, it) => (it.is_available !== false ? sum + (it.line_total || (it.unit_price * it.quantity)) : sum),
+                  0,
+                ),
+              };
+            });
+          }
+        }
       } else {
-        const guestItems = getGuestCart().filter(
-          (it) => it.id !== itemId && it.variant_id !== variantId,
-        );
-        saveGuestCart(guestItems);
+        // Guest mode
+        const guestItems = getGuestCart();
+        const nextGuest = guestItems.filter((it) => {
+          if (itemId && it.id === itemId) return false;
+          if (variantId && it.variant_id === variantId) return false;
+          return true;
+        });
+        saveGuestCart(nextGuest);
         let totalQty = 0;
         let subtotal = 0;
-        guestItems.forEach((it) => {
+        nextGuest.forEach((it) => {
           totalQty += it.quantity;
           subtotal += (it.unit_price || 0) * it.quantity;
         });
         setCart({
           id: 0,
-          items: guestItems,
-          item_count: guestItems.length,
+          items: nextGuest,
+          item_count: nextGuest.length,
           total_quantity: totalQty,
           available_subtotal: subtotal,
           has_unavailable_items: false,
@@ -322,10 +354,21 @@ export function CartProvider({ children }) {
     setIsLoading(true);
     try {
       if (isAuthenticated) {
-        await clearCustomerCart();
-      } else {
-        clearGuestCart();
+        const updated = await clearCustomerCart();
+        if (updated) {
+          setCart(updated);
+        } else {
+          setCart({
+            id: 0,
+            items: [],
+            item_count: 0,
+            total_quantity: 0,
+            available_subtotal: 0,
+            has_unavailable_items: false,
+          });
+        }
       }
+      clearGuestCart();
       setCart({
         id: 0,
         items: [],
@@ -333,6 +376,27 @@ export function CartProvider({ children }) {
         total_quantity: 0,
         available_subtotal: 0,
         has_unavailable_items: false,
+      });
+      showToast({
+        title: 'Bag Cleared',
+        message: 'All items have been removed from your shopping bag.',
+        type: 'info',
+      });
+    } catch (err) {
+      // Clear locally for responsive user experience
+      clearGuestCart();
+      setCart({
+        id: 0,
+        items: [],
+        item_count: 0,
+        total_quantity: 0,
+        available_subtotal: 0,
+        has_unavailable_items: false,
+      });
+      showToast({
+        title: 'Bag Cleared',
+        message: 'Shopping bag cleared.',
+        type: 'info',
       });
     } finally {
       setIsLoading(false);

@@ -4,7 +4,12 @@ import { User, Edit3 } from 'lucide-react';
 import { Button } from '../common/Button';
 import './ProfileHeaderRibbon.css';
 
-export function ProfileHeaderRibbon({ profile, stats = {}, isLoading = false }) {
+export function ProfileHeaderRibbon({
+  profile,
+  stats = {},
+  isLoading = false,
+  onVerifyClick = null,
+}) {
   const name = profile?.name || 'Customer Account';
   const email = profile?.email || '';
   const phone = profile?.phone || '';
@@ -50,7 +55,25 @@ export function ProfileHeaderRibbon({ profile, stats = {}, isLoading = false }) 
                   {email}
                 </span>
               )}
-              {email && phone && <span className="profile-header-ribbon__dot">•</span>}
+              {profile?.email_verified_at ? (
+                <span
+                  className="profile-ribbon-badge profile-ribbon-badge--verified"
+                  data-testid="profile-verified-badge"
+                >
+                  ✓ Verified
+                </span>
+              ) : email ? (
+                <button
+                  type="button"
+                  className="profile-ribbon-badge profile-ribbon-badge--unverified"
+                  onClick={onVerifyClick}
+                  data-testid="profile-unverified-badge"
+                  title="Click to verify your email address"
+                >
+                  ⚠️ Unverified • Verify Now
+                </button>
+              ) : null}
+              {phone && <span className="profile-header-ribbon__dot">•</span>}
               {phone && (
                 <span className="profile-header-ribbon__phone" data-testid="profile-phone">
                   {phone}
