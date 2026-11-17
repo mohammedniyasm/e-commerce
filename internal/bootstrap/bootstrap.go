@@ -55,9 +55,17 @@ func NewApplication(db *gorm.DB, log *slog.Logger, cfg config.Config) (*Applicat
 	redisClient := redis.NewRedisClient(cfg.Redis, log)
 	rateLimiter := redis.NewRedisRateLimiter(redisClient)
 
-	objectStorage, err := storage.NewMinIOStorage(storage.MinIOConfig(cfg.MinIO))
-	if err != nil {
-		return nil, fmt.Errorf("initialize MinIO storage: %w", err)
+	// objectStorage, err := storage.NewMinIOStorage(storage.MinIOConfig(cfg.MinIO))
+	// if err != nil {
+	// 	return nil, fmt.Errorf("initialize MinIO storage: %w", err)
+	// }
+
+	objectStorage, err := storage.NewS3Storage(storage.S3Config{
+		Bucket: "ecommerce-assets-niyas-2026",
+		Region: "ap-southeast-2",
+	})
+	if err != nil{
+		return nil,fmt.Errorf("Initialise S3 Storage: %w",err)
 	}
 	unitOfWork := database.NewGormUnitOfWork(db)
 	accessTokenBlacklistStore := redis.NewAccessTokenBlacklistStore(redisClient)
