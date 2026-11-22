@@ -203,6 +203,7 @@
   object-fit: cover;
 }
 
+.admin-upload-preview__crop,
 .admin-upload-preview__remove {
   position: absolute;
   display: inline-flex;
@@ -215,11 +216,30 @@
   cursor: pointer;
 }
 
+.admin-upload-preview__crop {
+  bottom: 5px;
+  left: 5px;
+  gap: 4px;
+  padding: 5px 7px;
+  font-size: 10px;
+}
+
 .admin-upload-preview__remove {
   top: 5px;
   right: 5px;
   width: 24px;
   height: 24px;
+}
+
+.admin-upload-preview__crop:hover,
+.admin-upload-preview__remove:hover {
+  background: #0f172a;
+}
+
+.admin-upload-preview__crop:focus-visible,
+.admin-upload-preview__remove:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 .admin-upload-preview__remove:disabled {
@@ -249,13 +269,43 @@
 .admin-image-card:hover .admin-image-overlay,
 .admin-image-card:focus-within .admin-image-overlay {
   opacity: 1;
-  pointer-events: auto;
 }
 
 .admin-image-overlay__actions {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
+  pointer-events: auto;
+}
+
+.admin-image-assign-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.88);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.admin-image-assign-trigger:hover,
+.admin-image-assign-trigger.is-active {
+  background: #ffffff;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.admin-image-assign-trigger:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 .admin-image-overlay__actions .admin-icon-btn {
@@ -288,6 +338,7 @@
   border-radius: 11px;
   background: rgba(255, 255, 255, 0.13);
   backdrop-filter: blur(12px);
+  pointer-events: auto;
 }
 
 .admin-image-variant-assignment label {
@@ -727,7 +778,7 @@
 @media (hover: none) {
   .admin-image-overlay {
     opacity: 1;
-    pointer-events: auto;
+    pointer-events: none;
   }
 
   .admin-image-card:hover {

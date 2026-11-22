@@ -256,7 +256,7 @@ export function ProductDetailPage() {
         </div>
         <div className="pdp-grid">
           <div className="pdp-gallery-column">
-            <SkeletonLoader height="560px" />
+            <SkeletonLoader className="pdp-gallery-skeleton" height="560px" />
           </div>
           <div className="pdp-details-column">
             <SkeletonLoader height="14px" width="30%" />

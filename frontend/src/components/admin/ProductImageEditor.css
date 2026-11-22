@@ -1,0 +1,98 @@
+.admin-image-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.admin-image-editor__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-image-editor__heading strong {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.admin-image-editor__heading p,
+.admin-image-editor__dimensions,
+.admin-image-editor__error {
+  margin: 3px 0 0;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.admin-image-editor__heading > span {
+  padding: 4px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-image-editor__canvas-wrap {
+  width: min(100%, 360px);
+  aspect-ratio: 3 / 4;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #e2e8f0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.admin-image-editor__canvas-wrap:active {
+  cursor: grabbing;
+}
+
+.admin-image-editor__canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.admin-image-editor__zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.admin-image-editor__zoom input {
+  width: 100%;
+  accent-color: #0f172a;
+}
+
+.admin-image-editor__dimensions span {
+  color: #94a3b8;
+}
+
+.admin-image-editor__error {
+  color: #b91c1c;
+}
+
+.admin-image-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 520px) {
+  .admin-image-editor__actions {
+    flex-direction: column-reverse;
+  }
+
+  .admin-image-editor__actions .drape-btn {
+    width: 100%;
+  }
+}

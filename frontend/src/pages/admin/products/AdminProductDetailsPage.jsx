@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowUp,
   Check,
+  Crop,
   Edit2,
   Image as ImageIcon,
   Layers,
@@ -12,6 +13,7 @@ import {
   Plus,
   Power,
   Star,
+  Tags,
   Trash2,
   Upload,
   X,
@@ -36,6 +38,7 @@ import { Badge } from '../../../components/common/Badge';
 import { Button } from '../../../components/common/Button';
 import { DataTable } from '../../../components/common/DataTable';
 import { Modal } from '../../../components/common/Modal';
+import { ProductImageEditor } from '../../../components/admin/ProductImageEditor';
 import { useToast } from '../../../context/ToastContext';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
 import './AdminProductsPage.css';
@@ -52,6 +55,7 @@ export function AdminProductDetailsPage() {
   const [images, setImages] = useState([]);
   const [draggedImageId, setDraggedImageId] = useState(null);
   const [dropTargetImageId, setDropTargetImageId] = useState(null);
+  const [assignmentImageId, setAssignmentImageId] = useState(null);
   const [activeTab, setActiveTab] = useState('variants'); // 'variants' | 'images' | 'details'
 
   const [isLoading, setIsLoading] = useState(true);
@@ -76,6 +80,7 @@ export function AdminProductDetailsPage() {
   const [isUploadImageOpen, setIsUploadImageOpen] = useState(false);
   const [selectedImageFiles, setSelectedImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [editingImageIndex, setEditingImageIndex] = useState(null);
   const [pendingImageVariants, setPendingImageVariants] = useState({});
   const [targetVariantId, setTargetVariantId] = useState('');
   const [isDeleteImageOpen, setIsDeleteImageOpen] = useState(false);
@@ -307,10 +312,30 @@ export function AdminProductDetailsPage() {
     }
     setSelectedImageFiles((prev) => prev.filter((_, i) => i !== index));
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setEditingImageIndex((current) =>
+      current === index ? null : current > index ? current - 1 : current,
+    );
+  }
+
+  function handleApplyImageEdit(index, editedFile) {
+    const previewUrl = URL.createObjectURL(editedFile);
+    if (imagePreviews[index]) {
+      URL.revokeObjectURL(imagePreviews[index]);
+    }
+    setSelectedImageFiles((current) =>
+      current.map((file, fileIndex) => (fileIndex === index ? editedFile : file)),
+    );
+    setImagePreviews((current) =>
+      current.map((preview, previewIndex) =>
+        previewIndex === index ? previewUrl : preview,
+      ),
+    );
+    setEditingImageIndex(null);
   }
 
   function closeUploadModal() {
     setIsUploadImageOpen(false);
+    setEditingImageIndex(null);
     setSelectedImageFiles([]);
     imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
     setImagePreviews([]);
@@ -318,6 +343,15 @@ export function AdminProductDetailsPage() {
   }
 
   async function handleUploadImages() {
+    if (editingImageIndex !== null) {
+      showToast({
+        type: 'warning',
+        title: 'Finish Image Crop',
+        message: 'Apply or cancel the current image crop before uploading.',
+      });
+      return;
+    }
+
     if (!selectedImageFiles.length) {
       showToast({ type: 'warning', title: 'No Files', message: 'Please choose at least one image.' });
       return;
@@ -336,6 +370,7 @@ export function AdminProductDetailsPage() {
       setSelectedImageFiles([]);
       imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
       setImagePreviews([]);
+      setEditingImageIndex(null);
       setTargetVariantId('');
       setIsUploadImageOpen(false);
 
@@ -388,6 +423,7 @@ export function AdminProductDetailsPage() {
         delete next[img.id];
         return next;
       });
+      setAssignmentImageId(null);
       showToast({
         type: 'success',
         title: 'Image Assignment Updated',
@@ -728,7 +764,7 @@ export function AdminProductDetailsPage() {
         <div className="admin-product-section">
           <div className="admin-product-section-toolbar">
             <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-              Drag or reorder images, edit or remove photos, assign them to variants, and choose a primary image.
+              Drag to reorder images. Hover a photo to assign its variant, set it as primary, or remove it.
             </p>
             <Button
               variant="primary"
@@ -781,6 +817,25 @@ export function AdminProductDetailsPage() {
 
                     <div className="admin-image-overlay">
                       <div className="admin-image-overlay__actions">
+                        {variants.length > 0 && (
+                          <button
+                            type="button"
+                            className={`admin-image-assign-trigger ${
+                              assignmentImageId === img.id ? 'is-active' : ''
+                            }`}
+                            aria-label={`Assign ${product.name} image to a variant or product level`}
+                            aria-expanded={assignmentImageId === img.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setAssignmentImageId((current) =>
+                                current === img.id ? null : img.id,
+                              );
+                            }}
+                          >
+                            <Tags size={14} />
+                            <span>Assign</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="admin-icon-btn"
@@ -828,7 +883,7 @@ export function AdminProductDetailsPage() {
                         </button>
                       </div>
 
-                      {variants.length > 0 && (
+                      {variants.length > 0 && assignmentImageId === img.id && (
                         <div className="admin-image-variant-assignment">
                           <label htmlFor={`image-variant-${img.id}`}>
                             ASSIGN IMAGE TO
@@ -1109,7 +1164,7 @@ export function AdminProductDetailsPage() {
         onClose={closeUploadModal}
         title="Upload Product Images"
         eyebrow="Asset Management"
-        description="Upload product images and optionally assign them to a variant."
+        description="Crop images to the storefront's 3:4 product-card ratio, then upload and assign them."
         confirmText="Upload"
         cancelText="Cancel"
         isConfirmLoading={isActionLoading}
@@ -1163,6 +1218,15 @@ export function AdminProductDetailsPage() {
                   <img src={src} alt={`Selected image ${idx + 1}`} />
                   <button
                     type="button"
+                    className="admin-upload-preview__crop"
+                    aria-label={`Crop image ${idx + 1} for product listings`}
+                    onClick={() => setEditingImageIndex(idx)}
+                  >
+                    <Crop size={12} />
+                    Crop
+                  </button>
+                  <button
+                    type="button"
                     className="admin-upload-preview__remove"
                     aria-label={`Remove image ${idx + 1}`}
                     onClick={() => removeSelectedFile(idx)}
@@ -1173,6 +1237,20 @@ export function AdminProductDetailsPage() {
               ))}
             </div>
           )}
+
+          {editingImageIndex !== null &&
+            selectedImageFiles[editingImageIndex] &&
+            imagePreviews[editingImageIndex] && (
+              <ProductImageEditor
+                key={`${editingImageIndex}-${imagePreviews[editingImageIndex]}`}
+                file={selectedImageFiles[editingImageIndex]}
+                src={imagePreviews[editingImageIndex]}
+                onCancel={() => setEditingImageIndex(null)}
+                onApply={(editedFile) =>
+                  handleApplyImageEdit(editingImageIndex, editedFile)
+                }
+              />
+            )}
 
         </div>
       </Modal>
