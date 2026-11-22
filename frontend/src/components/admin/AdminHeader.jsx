@@ -5,6 +5,7 @@ import './AdminHeader.css';
 const headerTabs = [
   { path: '/admin', label: 'Dashboard', end: true },
   { path: '/admin/orders', label: 'Orders' },
+  { path: '/admin/shipments', label: 'Shipments' },
   { path: '/admin/payments', label: 'Payments' },
   { path: '/admin/customers', label: 'Customers' },
   { path: '/admin/products', label: 'Products' },
@@ -43,7 +44,7 @@ export function AdminHeader({ onMenuToggle, onLogoutClick }) {
         </nav>
 
         {/* Quick Access Top Tabs */}
-        <nav className="admin-header-tabs" aria-label="Quick Section Tabs">
+        {/* <nav className="admin-header-tabs" aria-label="Quick Section Tabs">
           {headerTabs.map((tab) => (
             <NavLink
               key={tab.path}
@@ -56,7 +57,7 @@ export function AdminHeader({ onMenuToggle, onLogoutClick }) {
               {tab.label}
             </NavLink>
           ))}
-        </nav>
+        </nav> */}
       </div>
 
       <div className="admin-header-right">

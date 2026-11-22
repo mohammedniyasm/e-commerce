@@ -96,6 +96,14 @@ async function run() {
     const badgeHtml = renderToString(React.createElement(Badge, { variant: 'filter', isActive: true }, 'MEN'));
     assert(badgeHtml.includes('drape-badge--filter') && badgeHtml.includes('drape-badge--active'), 'Badge renders active filter pill state');
 
+    const removableBadgeHtml = renderToString(
+      React.createElement(Badge, { variant: 'neutral', onRemove: () => {} }, 'Search: hoodie')
+    );
+    assert(
+      removableBadgeHtml.includes('aria-label="Remove filter"') && !removableBadgeHtml.includes('onRemove='),
+      'Badge renders a working accessible remove control without leaking event props to the DOM',
+    );
+
     const statusPillHtml = renderToString(React.createElement(StatusPill, { status: 'Delivered', variant: 'success' }));
     assert(statusPillHtml.includes('drape-status-pill--success') && statusPillHtml.includes('Delivered'), 'StatusPill renders success variant with dot indicator');
 

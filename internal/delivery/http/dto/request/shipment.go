@@ -18,3 +18,17 @@ type UpdateShippingStatusRequest struct {
 	Description *string `json:"description"`
 	Location    *string `json:"location"`
 }
+
+type ListShipmentsRequest struct {
+	Search          string `form:"search" binding:"max=255"`
+	ShippingStatus  string `form:"shipping_status"`
+	Type            string `form:"type"`
+	CourierName     string `form:"courier_name" binding:"max=255"`
+	OrderID         string `form:"order_id"`
+	ReturnRequestID string `form:"return_request_id"`
+	CreatedFrom     string `form:"created_from"`
+	CreatedTo       string `form:"created_to"`
+	Sort            string `form:"sort"`
+	Limit           int    `form:"limit,default=10"`
+	Page            int    `form:"page,default=1"`
+}

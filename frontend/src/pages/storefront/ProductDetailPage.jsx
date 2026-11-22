@@ -197,7 +197,7 @@ export function ProductDetailPage() {
     if (!selectedVariant.in_stock || selectedVariant.stock <= 0) {
       showToast({
         title: 'Item Unavailable',
-        message: 'The selected silhouette variant is currently out of stock.',
+        message: 'The selected option is currently out of stock.',
         type: 'error',
       });
       return;
@@ -252,13 +252,13 @@ export function ProductDetailPage() {
   if (error || !product) {
     return (
       <div className="pdp-page pdp-error-page">
-        <h2 className="pdp-error-title">Silhouette Not Found</h2>
+        <h2 className="pdp-error-title">Product Not Found</h2>
         <p className="pdp-error-desc">
-          {error || 'This product is no longer active in our atelier catalog.'}
+          {error || 'This product is no longer available.'}
         </p>
         <Link to="/catalog">
           <Button variant="primary" size="md">
-            Return to Collection
+            Back to Products
           </Button>
         </Link>
       </div>
@@ -351,7 +351,7 @@ export function ProductDetailPage() {
           {/* Brand & Category Header */}
           <div className="pdp-brand-row">
             <span className="pdp-brand-name">
-              {product.brand?.name || 'DRAPE ATELIER'}
+              {product.brand?.name || 'DRAPE'}
             </span>
             {product.category?.name && (
               <span className="pdp-category-pill">{product.category.name}</span>
@@ -466,7 +466,7 @@ export function ProductDetailPage() {
                   <span className="pdp-stock-dot" />
                   <span>
                     In Stock — {selectedVariant.stock <= 5
-                      ? `Only ${selectedVariant.stock} left in atelier`
+                      ? `Only ${selectedVariant.stock} left`
                       : `${selectedVariant.stock} units available`}
                   </span>
                 </div>
@@ -573,7 +573,7 @@ export function ProductDetailPage() {
                 className={`pdp-tab-btn ${activeTab === 'fabrication' ? 'is-active' : ''}`}
                 onClick={() => setActiveTab('fabrication')}
               >
-                FABRICATION
+                MATERIALS & CARE
               </button>
               <button
                 type="button"
@@ -587,7 +587,7 @@ export function ProductDetailPage() {
             <div className="pdp-tab-content">
               {activeTab === 'details' && (
                 <div className="pdp-prose">
-                  <p>{product.description || product.short_description || 'Tailored with unyielding architectural proportion and minimalist silhouette restraint.'}</p>
+                  <p>{product.description || product.short_description || 'Product details are not available yet.'}</p>
                   {selectedVariant?.sku && (
                     <p className="pdp-sku-meta">SKU: {selectedVariant.sku}</p>
                   )}
@@ -595,12 +595,12 @@ export function ProductDetailPage() {
               )}
               {activeTab === 'fabrication' && (
                 <div className="pdp-prose">
-                  <p>100% natural organic flax and long-staple cotton fibres. Unlined, breathable construction crafted for trans-seasonal tropical and temperate wear.</p>
+                  <p>Check the product description for material and care details.</p>
                 </div>
               )}
               {activeTab === 'shipping' && (
                 <div className="pdp-prose">
-                  <p>Dispatched from our Kochi flagship within 24 hours. Delivered in recyclable bespoke editorial packaging.</p>
+                  <p>Delivery estimates are shown at checkout. Tracking details will be available after your order ships.</p>
                 </div>
               )}
             </div>
@@ -613,10 +613,10 @@ export function ProductDetailPage() {
         <div className="pdp-reviews-header">
           <div>
             <h2 id="product-reviews-heading" className="pdp-section-heading">
-              Client Appraisals
+              Customer Reviews
             </h2>
             <p className="pdp-section-subtitle">
-              Verified testimonials on fit, tactile drape, and material longevity
+              Reviews from customers who purchased this product
             </p>
           </div>
         </div>
@@ -647,20 +647,20 @@ export function ProductDetailPage() {
           </div>
         ) : (
           <div className="pdp-empty-reviews">
-            <p>No client reviews recorded for this silhouette yet. Be the first to appraise it after purchase.</p>
+            <p>No reviews yet. Customers can review this product after purchase.</p>
           </div>
         )}
       </section>
 
       {/* Recommendations / You May Also Like */}
       {relatedProducts.length > 0 && (
-        <section className="pdp-recommendations-section" aria-labelledby="recommended-silhouettes">
+        <section className="pdp-recommendations-section" aria-labelledby="recommended-products">
           <div className="pdp-section-header">
-            <h2 id="recommended-silhouettes" className="pdp-section-heading">
-              Complementary Silhouettes
+            <h2             id="recommended-products" className="pdp-section-heading">
+              You May Also Like
             </h2>
             <p className="pdp-section-subtitle">
-              Pair with cohesive atelier wardrobe essentials
+              More products to explore
             </p>
           </div>
 

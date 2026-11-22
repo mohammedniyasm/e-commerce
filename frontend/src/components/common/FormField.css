@@ -46,13 +46,17 @@
   height: 48px;
 }
 
+.drape-input-wrapper--lg {
+  height: 48px;
+}
+
 .drape-input-wrapper--sm {
   height: 38px;
 }
 
 .drape-input-wrapper:focus-within {
   border-color: #000000;
-  box-shadow: 0 0 0 1px #000000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.14);
 }
 
 .drape-input-wrapper--error {
@@ -61,7 +65,7 @@
 
 .drape-input-wrapper--error:focus-within {
   border-color: var(--color-danger);
-  box-shadow: 0 0 0 1px var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16);
 }
 
 .drape-input-wrapper--disabled {
@@ -113,6 +117,29 @@
 .drape-input__icon--right {
   right: 14px;
   pointer-events: auto;
+}
+
+.drape-input__icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--store-text-secondary);
+  cursor: pointer;
+}
+
+.drape-input__icon-button:hover {
+  color: var(--store-text-primary);
+}
+
+.drape-input__icon-button:focus-visible {
+  outline: 2px solid var(--store-text-primary);
+  outline-offset: 2px;
 }
 
 /* Helper & Error texts */

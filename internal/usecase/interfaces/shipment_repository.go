@@ -10,6 +10,7 @@ import (
 
 type ShipmentRepository interface {
 	Create(ctx context.Context, shipment *models.Shipment) error
+	List(ctx context.Context, filter models.ShipmentListFilter) ([]models.Shipment, int64, error)
 	GetByID(ctx context.Context, id uint) (*models.Shipment, error)
 	GetByOrderID(ctx context.Context, orderID uuid.UUID) (*models.Shipment, error)
 	GetByReturnRequestID(ctx context.Context, returnRequestID uint) ([]models.Shipment, error)

@@ -475,6 +475,17 @@ func TestReturnRequestUseCase_UpdateStatusAndFulfillment(t *testing.T) {
 	ctx := context.Background()
 	orderID := uuid.New()
 
+	t.Run("inspection failed request cannot be closed before customer shipment", func(t *testing.T) {
+		f := newReturnFixture(t)
+		f.expectTX(ctx)
+		f.txRet.EXPECT().LockByID(ctx, uint(10)).Return(&models.ReturnRequest{
+			ID: 10, OrderID: orderID, Status: ReturnStatusInspectionFailed,
+		}, nil).Once()
+
+		_, err := f.uc.UpdateStatus(ctx, 10, ReturnStatusClosed, nil, nil, nil)
+		assert.ErrorIs(t, err, domainerrors.ErrInvalidOrderTransition)
+	})
+
 	t.Run("UpdateStatus pickup_scheduled and inspection_passed return refund", func(t *testing.T) {
 		f := newReturnFixture(t)
 		_, err := f.uc.UpdateStatus(ctx, 0, ReturnStatusApproved, nil, nil, nil)
@@ -592,13 +603,13 @@ func TestReturnRequestUseCase_UpdateStatusAndFulfillment(t *testing.T) {
 		f.txRet.EXPECT().LockByID(ctx, uint(14)).Return(&models.ReturnRequest{
 			ID: 14, OrderID: orderID, Status: ReturnStatusInspectionFailed,
 		}, nil).Once()
-		reqID14 := uint(14)
-		f.txShip.EXPECT().GetByReturnRequestIDAndType(ctx, uint(14), models.ShipmentTypeReturn).
-			Return(&models.Shipment{ID: 1, ReturnRequestID: &reqID14, Type: models.ShipmentTypeReturn, ShippingStatus: "delivered"}, nil).Once()
 		f.txShip.EXPECT().GetByReturnRequestIDAndType(ctx, uint(14), models.ShipmentTypeReturnToCustomer).
 			Return(nil, domainerrors.ErrRecordNotFound).Once()
 		f.txShip.EXPECT().Create(ctx, mock.MatchedBy(func(s *models.Shipment) bool {
 			return s.Type == models.ShipmentTypeReturnToCustomer && s.ReturnRequestID != nil && *s.ReturnRequestID == 14
+		})).Return(nil).Once()
+		f.txRet.EXPECT().Update(ctx, mock.MatchedBy(func(r *models.ReturnRequest) bool {
+			return r.ID == 14 && r.Status == ReturnStatusClosed
 		})).Return(nil).Once()
 
 		got, err := f.uc.CreateReturnToCustomerShipment(ctx, 14, "BlueDart", "TRK-77")

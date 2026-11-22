@@ -22,6 +22,13 @@ import { getReferralDashboard } from '../../api/referralService';
 import { formatCurrencyINR, formatDate } from '../../utils/formatters';
 import './ReferralPage.css';
 
+export function buildReferralLink(referralCode, origin = window.location.origin) {
+  if (!referralCode) return '';
+  const referralUrl = new URL('/register', origin);
+  referralUrl.searchParams.set('ref', referralCode);
+  return referralUrl.toString();
+}
+
 export function ReferralPage() {
   const { showToast } = useToast();
 
@@ -72,9 +79,16 @@ export function ReferralPage() {
   }
 
   async function handleCopyLink() {
-    const link =
-      dashboardData?.referral_link ||
-      `${window.location.origin}/register?ref=${dashboardData?.referral_code || ''}`;
+    const referralCode = dashboardData?.referral_code;
+    if (!referralCode) {
+      showToast({
+        title: 'Referral Link Unavailable',
+        message: 'Your referral code is not available yet.',
+        type: 'warning',
+      });
+      return;
+    }
+    const link = buildReferralLink(referralCode);
     try {
       await navigator.clipboard.writeText(link);
       setHasCopiedLink(true);
@@ -110,7 +124,7 @@ export function ReferralPage() {
         <div>
           <h1 className="account-referral-title">Referral Program</h1>
           <p className="account-referral-subtitle">
-            Introduce discerning patrons to Drape Atelier and earn commissioning credits.
+            Invite friends to shop with Drape and earn wallet rewards.
           </p>
         </div>
       </div>
@@ -120,17 +134,17 @@ export function ReferralPage() {
         <div className="referral-hero-content">
           <div className="referral-hero-eyebrow">
             <Gift size={15} />
-            <span>EXCLUSIVE ATELIER INITIATIVE</span>
+            <span>INVITE FRIENDS</span>
           </div>
           <h2 className="referral-hero-heading">Share Drape with Friends</h2>
           <p className="referral-hero-desc">
-            Invite fellow enthusiasts of slow-fashion tailoring. When your referred friend completes
-            their first delivered order, rewards credit directly to your Atelier Wallet.
+            Share your referral link. When a friend places and receives their first order, your
+            reward will be added to your wallet.
           </p>
 
           <div className="referral-code-bar">
             <div className="referral-code-display">
-              <span className="referral-code-label">YOUR BESPOKE CODE:</span>
+              <span className="referral-code-label">YOUR REFERRAL CODE:</span>
               <strong className="referral-code-text" data-testid="referral-code">
                 {isLoading ? '...' : referralCode}
               </strong>
@@ -214,7 +228,7 @@ export function ReferralPage() {
               <span className="referral-step-num">02</span>
               <strong className="referral-step-title">Friend Registers & Orders</strong>
               <p className="referral-step-desc">
-                Your friend registers with your code and places their first atelier commission.
+                Your friend signs up with your code and places their first order.
               </p>
             </div>
 
@@ -222,7 +236,7 @@ export function ReferralPage() {
               <span className="referral-step-num">03</span>
               <strong className="referral-step-title">Order Delivered & Verified</strong>
               <p className="referral-step-desc">
-                Once their garment is delivered and the standard return window elapses, the referral qualifies.
+                The referral qualifies after their order is delivered and the return period ends.
               </p>
             </div>
 
@@ -230,7 +244,7 @@ export function ReferralPage() {
               <span className="referral-step-num">04</span>
               <strong className="referral-step-title">Wallet Disbursal</strong>
               <p className="referral-step-desc">
-                Referral reward points credit automatically to your Atelier Wallet for instant commissioning.
+                Your reward is added to your wallet.
               </p>
             </div>
           </div>
@@ -261,7 +275,7 @@ export function ReferralPage() {
                   <div key={item.id} className="referral-ledger-row" data-testid={`referral-item-${item.id}`}>
                     <div className="referral-ledger-identity">
                       <strong className="referral-ledger-name">
-                        {item.name || 'Patron Friend'}
+                        {item.name || 'Friend'}
                       </strong>
                       <span className="referral-ledger-date">
                         Joined on {formatDate(item.created_at)}
@@ -300,7 +314,7 @@ export function ReferralPage() {
               <Users size={36} className="account-empty-icon" />
               <h2 className="account-empty-title">No Referrals Yet</h2>
               <p className="account-empty-text">
-                Share your invitation link with friends to begin earning rewards on delivered commissions.
+                Share your referral link with friends to earn rewards when their orders are delivered.
               </p>
               <Button
                 variant="outline"

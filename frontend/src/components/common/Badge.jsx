@@ -13,6 +13,7 @@ export function Badge({
   size = 'md',        // 'sm', 'md'
   isActive = false,   // For filter pills
   onClick = null,
+  onRemove = null,
   className = '',
   ...rest
 }) {
@@ -46,6 +47,16 @@ export function Badge({
   return (
     <span className={classNames} {...rest}>
       {children}
+      {onRemove && (
+        <button
+          type="button"
+          className="drape-badge__remove"
+          onClick={onRemove}
+          aria-label="Remove filter"
+        >
+          ×
+        </button>
+      )}
     </span>
   );
 }

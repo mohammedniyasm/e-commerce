@@ -10,6 +10,7 @@ import (
 type ShipmentResponse struct {
 	ID              uint                              `json:"id"`
 	OrderID         uuid.UUID                         `json:"order_id"`
+	OrderNumber     string                            `json:"order_number,omitempty"`
 	CourierName     *string                           `json:"courier_name,omitempty"`
 	TrackingNumber  *string                           `json:"tracking_number,omitempty"`
 	ShippingStatus  string                            `json:"shipping_status"`
@@ -20,6 +21,14 @@ type ShipmentResponse struct {
 	History         []ShipmentTrackingHistoryResponse `json:"history,omitempty"`
 	CreatedAt       time.Time                         `json:"created_at"`
 	UpdatedAt       time.Time                         `json:"updated_at"`
+}
+
+type ShipmentListResponse struct {
+	Shipments  []ShipmentResponse `json:"shipments"`
+	TotalCount int64              `json:"total_count"`
+	Page       int                `json:"page"`
+	Limit      int                `json:"limit"`
+	TotalPages int64              `json:"total_pages"`
 }
 
 type ShipmentTrackingHistoryResponse struct {

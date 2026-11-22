@@ -124,8 +124,8 @@ export function WalletPage() {
         key: razorpay_key_id || 'rzp_test_key',
         amount: amount,
         currency: currency || 'INR',
-        name: 'DRAPE ATELIER',
-        description: 'Atelier Wallet Balance Top-Up',
+        name: 'DRAPE',
+        description: 'Wallet top-up',
         order_id: gateway_order_id,
         prefill: {
           name: user?.name || '',
@@ -157,7 +157,7 @@ export function WalletPage() {
             setCustomAmount('');
             showToast({
               title: 'Wallet Funded',
-              message: `${formatCurrencyINR(finalAmount)} credited to your Atelier Wallet.`,
+              message: `${formatCurrencyINR(finalAmount)} added to your wallet.`,
               type: 'success',
             });
             await loadWalletData(1);
@@ -189,9 +189,9 @@ export function WalletPage() {
       {/* Top Header */}
       <div className="account-wallet-header">
         <div>
-          <h1 className="account-wallet-title">Atelier Wallet</h1>
+          <h1 className="account-wallet-title">Wallet</h1>
           <p className="account-wallet-subtitle">
-            Instant commissioning credit, return refunds, and referral reward disbursements.
+            Use your balance for orders and receive eligible refunds and referral rewards here.
           </p>
         </div>
         <Button
@@ -213,14 +213,14 @@ export function WalletPage() {
         <div className="wallet-hero-left">
           <div className="wallet-hero-badge">
             <Shield size={14} />
-            <span>SECURE ATELIER LEDGER</span>
+            <span>SECURE WALLET</span>
           </div>
           <span className="wallet-hero-label">AVAILABLE BALANCE</span>
           <h2 className="wallet-hero-balance" data-testid="wallet-balance">
             {isLoading ? '₹ —' : formatCurrencyINR(balance)}
           </h2>
           <p className="wallet-hero-note">
-            Wallet funds can be applied automatically at checkout across all bespoke commissions.
+            Your wallet balance can be used at checkout.
           </p>
         </div>
 
@@ -306,7 +306,7 @@ export function WalletPage() {
               <Clock size={36} className="account-empty-icon" />
               <h2 className="account-empty-title">No Transactions Yet</h2>
               <p className="account-empty-text">
-                Your transaction ledger records top-ups, order commissions, return refunds, and referral disbursements.
+                Your wallet activity will appear here, including top-ups, payments, refunds, and referral rewards.
               </p>
             </div>
           )}
@@ -344,13 +344,13 @@ export function WalletPage() {
       <Modal
         isOpen={isTopUpModalOpen}
         onClose={() => setIsTopUpModalOpen(false)}
-        title="Top Up Atelier Wallet"
-        eyebrow="FUND COMMISSIONING CREDIT"
+        title="Top Up Wallet"
+        eyebrow="ADD FUNDS"
         size="md"
       >
         <form onSubmit={handleTopUpSubmit} className="wallet-topup-form" noValidate>
           <p className="wallet-topup-desc">
-            Select or enter an amount to credit to your Drape Atelier wallet via secure Razorpay checkout.
+            Choose an amount to add to your wallet using Razorpay.
           </p>
 
           {topUpError && (

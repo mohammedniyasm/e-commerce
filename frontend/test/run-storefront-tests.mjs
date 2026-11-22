@@ -155,15 +155,15 @@ async function run() {
     // HomePage
     const { HomePage } = await vite.ssrLoadModule('/src/pages/storefront/HomePage.jsx');
     const homeHtml = renderWithApp(React.createElement(HomePage));
-    assert(homeHtml.includes('Tactile Permanence &amp; Timeless Utility') || homeHtml.includes('Tactile Permanence & Timeless Utility'), 'HomePage renders editorial campaign headline');
-    assert(homeHtml.includes('EXPLORE COLLECTION'), 'HomePage renders primary EXPLORE COLLECTION CTA');
+    assert(homeHtml.includes('Clothes for Every Day'), 'HomePage renders campaign headline');
+    assert(homeHtml.includes('SHOP COLLECTION'), 'HomePage renders primary shop CTA');
     assert(homeHtml.includes('INSURED SHIPPING'), 'HomePage renders value features');
-    assert(homeHtml.includes('The intention of DRAPE is not volume'), 'HomePage renders atelier manifesto quote');
+    assert(homeHtml.includes('Drape brings together comfortable clothing'), 'HomePage renders brand message');
 
     // CatalogPage
     const { CatalogPage } = await vite.ssrLoadModule('/src/pages/storefront/CatalogPage.jsx');
     const catalogHtml = renderWithApp(React.createElement(CatalogPage), { route: '/catalog?search=linen' });
-    assert(catalogHtml.includes('Curated Collection'), 'CatalogPage renders title Curated Collection');
+    assert(catalogHtml.includes('Shop All Products'), 'CatalogPage renders product listing title');
     assert(catalogHtml.includes('Collection'), 'CatalogPage renders breadcrumbs');
     assert(catalogHtml.includes('KEYWORD SEARCH'), 'CatalogPage renders keyword search filter group');
     assert(catalogHtml.includes('PRICE RANGE (₹)'), 'CatalogPage renders price range filter group');

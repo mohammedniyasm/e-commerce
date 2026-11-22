@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -492,6 +493,7 @@ type fixture struct {
 	uow        *mocks.MockUnitOfWork
 	jwt        *mocks.MockJWTService
 	sessions   *mocks.MockRefreshSessionStore
+	blacklist  *mocks.MockAccessTokenBlacklist
 	txUser     *mocks.MockUserRepository
 	txReferral *mocks.MockReferralRepository
 	txSettings *mocks.MockReferralSettingsRepository
@@ -503,6 +505,7 @@ func newFixture(t *testing.T) *fixture {
 		uow:        mocks.NewMockUnitOfWork(t),
 		jwt:        mocks.NewMockJWTService(t),
 		sessions:   mocks.NewMockRefreshSessionStore(t),
+		blacklist:  mocks.NewMockAccessTokenBlacklist(t),
 		txUser:     mocks.NewMockUserRepository(t),
 		txReferral: mocks.NewMockReferralRepository(t),
 		txSettings: mocks.NewMockReferralSettingsRepository(t),
@@ -514,7 +517,7 @@ func newFixture(t *testing.T) *fixture {
 		otpStore:             mocks.NewMockOTPstore(t),
 		jwtService:           f.jwt,
 		refreshSessionStore:  f.sessions,
-		accessTokenBlacklist: mocks.NewMockAccessTokenBlacklist(t),
+		accessTokenBlacklist: f.blacklist,
 		emailSender:          mocks.NewMockEmailSender(t),
 		googleTokenVerifier:  mocks.NewMockGoogleTokenVerifier(t),
 	}
@@ -623,6 +626,26 @@ func TestRegister_TransactionFails(t *testing.T) {
 	assert.ErrorIs(t, err, createErr)
 	assert.Nil(t, got)
 }
+
+func TestLogoutWithoutRefreshTokenRevokesAccessToken(t *testing.T) {
+	f := newFixture(t)
+	claims := &interfaces.AccessClaims{
+		UserID:    "1",
+		JTI:       "access-token-id",
+		ExpiresAt: time.Now().Add(time.Minute),
+	}
+	f.blacklist.EXPECT().
+		Blacklist(mock.Anything, claims.JTI, mock.MatchedBy(func(lifetime time.Duration) bool {
+			return lifetime > 0
+		})).
+		Return(nil).
+		Once()
+
+	err := f.uc.Logout(context.Background(), "", claims)
+
+	require.NoError(t, err)
+}
+
 func hashedUser(t *testing.T, plain string) *models.User {
 	t.Helper()
 	h, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.MinCost)

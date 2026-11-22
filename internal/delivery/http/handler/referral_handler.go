@@ -9,6 +9,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -141,9 +142,11 @@ func (h *ReferralHandler) GetReferralDashboard(c *gin.Context) {
 			CompletedAt:  referral.CompletedAt,
 		})
 	}
+	referralQuery := url.Values{}
+	referralQuery.Set("ref", referralCode)
 	dashboard := response.ReferralDashboardResponse{
 		ReferralCode: referralCode,
-		ReferralLink: "https://chaos-dander-quilt.ngrok-free.dev/register?ref=" + referralCode,
+		ReferralLink: "/register?" + referralQuery.Encode(),
 		Summary: response.ReferralSummaryDTO{
 			TotalReferrals:     total,
 			PendingReferrals:   pending,

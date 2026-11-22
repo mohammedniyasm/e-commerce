@@ -119,20 +119,24 @@ export function AdminCouponsPage() {
     setCode(coupon.code || '');
     setDiscountType(coupon.discount_type || 'percentage');
     setDiscountValue(String(coupon.discount_value || ''));
-    setMinOrderAmount(String(coupon.min_order_amount || ''));
-    setMaxDiscountAmount(String(coupon.max_discount_amount || ''));
+    setMinOrderAmount(String(coupon.minimum_order_amount ?? ''));
+    setMaxDiscountAmount(String(coupon.maximum_discount ?? ''));
     setUsageLimit(String(coupon.usage_limit || ''));
-    setUserLimit(String(coupon.user_limit || '1'));
-    setValidFrom(coupon.valid_from ? coupon.valid_from.split('T')[0] : '');
-    setValidUntil(coupon.valid_until ? coupon.valid_until.split('T')[0] : '');
+    setUserLimit(String(coupon.usage_limit_per_user ?? '1'));
+    setValidFrom(coupon.start_at ? coupon.start_at.split('T')[0] : '');
+    setValidUntil(coupon.expires_at ? coupon.expires_at.split('T')[0] : '');
     setIsActive(Boolean(coupon.is_active));
     setIsFormModalOpen(true);
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (!code.trim() || !discountValue) {
-      showToast('Coupon code and discount value are required', 'error');
+    if (!code.trim() || !discountValue || !validFrom || !validUntil) {
+      showToast('Coupon code, discount value, start date, and expiry date are required', 'error');
+      return;
+    }
+    if (validUntil < validFrom) {
+      showToast('Expiry date must be on or after the start date', 'error');
       return;
     }
 
@@ -140,12 +144,16 @@ export function AdminCouponsPage() {
       code: code.trim().toUpperCase(),
       discount_type: discountType,
       discount_value: parseFloat(discountValue),
-      min_order_amount: minOrderAmount ? parseFloat(minOrderAmount) : 0,
-      max_discount_amount: maxDiscountAmount ? parseFloat(maxDiscountAmount) : 0,
-      usage_limit: usageLimit ? parseInt(usageLimit, 10) : 0,
-      user_limit: userLimit ? parseInt(userLimit, 10) : 1,
-      valid_from: validFrom ? new Date(validFrom).toISOString() : new Date().toISOString(),
-      valid_until: validUntil ? new Date(validUntil).toISOString() : undefined,
+      minimum_order_amount: minOrderAmount ? parseFloat(minOrderAmount) : 0,
+      maximum_discount: maxDiscountAmount && parseFloat(maxDiscountAmount) > 0
+        ? parseFloat(maxDiscountAmount)
+        : undefined,
+      usage_limit: usageLimit && parseInt(usageLimit, 10) > 0
+        ? parseInt(usageLimit, 10)
+        : undefined,
+      usage_limit_per_user: userLimit ? parseInt(userLimit, 10) : 1,
+      start_at: new Date(validFrom).toISOString(),
+      expires_at: new Date(validUntil).toISOString(),
       is_active: isActive,
     };
 
@@ -235,9 +243,9 @@ export function AdminCouponsPage() {
         const c = (typeof val === 'object' && val !== null) ? val : (record || {});
         return (
           <div className="drape-conditions-cell">
-            <span>Min Order: {formatCurrency(c.min_order_amount || 0)}</span>
-            {c.max_discount_amount > 0 && (
-              <span className="text-muted">Max Cap: {formatCurrency(c.max_discount_amount)}</span>
+            <span>Min Order: {formatCurrency(c.minimum_order_amount || 0)}</span>
+            {c.maximum_discount > 0 && (
+              <span className="text-muted">Max Cap: {formatCurrency(c.maximum_discount)}</span>
             )}
           </div>
         );
@@ -250,8 +258,8 @@ export function AdminCouponsPage() {
         const c = (typeof val === 'object' && val !== null) ? val : (record || {});
         return (
           <div className="drape-conditions-cell">
-            <span>Until: {c.valid_until ? formatDate(c.valid_until) : 'No Expiry'}</span>
-            <span className="text-muted">From: {formatDate(c.valid_from)}</span>
+            <span>Until: {c.expires_at ? formatDate(c.expires_at) : 'No Expiry'}</span>
+            <span className="text-muted">From: {formatDate(c.start_at)}</span>
           </div>
         );
       },
@@ -298,24 +306,27 @@ export function AdminCouponsPage() {
           <div className="drape-table-actions">
             <Button
               variant="ghost"
-              size="sm"
-              icon={<Power size={13} />}
+              size="icon"
+              leftIcon={<Power size={16} />}
               onClick={() => handleToggleActive(c)}
               title={c.is_active ? 'Deactivate' : 'Activate'}
+              aria-label={c.is_active ? `Deactivate ${c.code}` : `Activate ${c.code}`}
             />
             <Button
               variant="ghost"
-              size="sm"
-              icon={<Edit2 size={13} />}
+              size="icon"
+              leftIcon={<Edit2 size={16} />}
               onClick={() => openEditModal(c)}
               title="Edit Coupon"
+              aria-label={`Edit ${c.code}`}
             />
             <Button
               variant="ghost"
-              size="sm"
-              icon={<Trash2 size={13} />}
+              size="icon"
+              leftIcon={<Trash2 size={16} />}
               onClick={() => setCouponToDelete(c)}
               title="Delete Coupon"
+              aria-label={`Delete ${c.code}`}
             />
           </div>
         );
@@ -338,7 +349,7 @@ export function AdminCouponsPage() {
           <Button
             variant="outline"
             size="sm"
-            icon={<RefreshCw size={14} className={isLoading ? 'spin-icon' : ''} />}
+            leftIcon={<RefreshCw size={14} className={isLoading ? 'spin-icon' : ''} />}
             onClick={fetchCoupons}
             disabled={isLoading}
           >
@@ -347,7 +358,7 @@ export function AdminCouponsPage() {
           <Button
             variant="primary"
             size="sm"
-            icon={<Plus size={14} />}
+            leftIcon={<Plus size={14} />}
             onClick={openCreateModal}
           >
             Create Coupon
@@ -526,6 +537,7 @@ export function AdminCouponsPage() {
                 value={validFrom}
                 onChange={(e) => setValidFrom(e.target.value)}
                 className="admin-input-full"
+                required
               />
             </label>
 
@@ -536,6 +548,8 @@ export function AdminCouponsPage() {
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
                 className="admin-input-full"
+                min={validFrom || undefined}
+                required
               />
             </label>
           </div>
@@ -548,7 +562,7 @@ export function AdminCouponsPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting}>
+            <Button type="submit" variant="primary" isLoading={isSubmitting}>
               {isSubmitting ? 'Saving...' : editingCoupon ? 'Update Coupon' : 'Create Coupon'}
             </Button>
           </div>
@@ -581,7 +595,7 @@ export function AdminCouponsPage() {
                 type="button"
                 variant="danger"
                 onClick={handleDeleteConfirm}
-                disabled={isDeleting}
+                isLoading={isDeleting}
               >
                 {isDeleting ? 'Deleting...' : 'Delete Coupon'}
               </Button>

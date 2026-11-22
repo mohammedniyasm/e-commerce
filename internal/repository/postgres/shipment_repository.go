@@ -25,6 +25,87 @@ func NewShipmentRepository(db *gorm.DB) *ShipmentRepository {
 func (r *ShipmentRepository) Create(ctx context.Context, shipment *models.Shipment) error {
 	return r.db.WithContext(ctx).Create(shipment).Error
 }
+func (r *ShipmentRepository) List(ctx context.Context, filter models.ShipmentListFilter) ([]models.Shipment, int64, error) {
+	var shipments []models.Shipment
+	var total int64
+
+	query := r.db.WithContext(ctx).Model(&models.Shipment{})
+
+	if filter.Search != "" {
+		pattern := "%" + filter.Search + "%"
+		query = query.
+			Joins("LEFT JOIN orders ON orders.id = shipments.order_id").
+			Where(
+				"(CAST(shipments.id AS TEXT) ILIKE ? OR shipments.order_id::text ILIKE ? OR COALESCE(shipments.courier_name, '') ILIKE ? OR COALESCE(shipments.tracking_number, '') ILIKE ? OR COALESCE(orders.order_number, '') ILIKE ?)",
+				pattern,
+				pattern,
+				pattern,
+				pattern,
+				pattern,
+			)
+	}
+	if filter.ShippingStatus != nil {
+		query = query.Where("shipments.shipping_status = ?", *filter.ShippingStatus)
+	}
+	if filter.Type != nil {
+		query = query.Where("shipments.type = ?", *filter.Type)
+	}
+	if filter.CourierName != "" {
+		query = query.Where("COALESCE(shipments.courier_name, '') ILIKE ?", "%"+filter.CourierName+"%")
+	}
+	if filter.OrderID != nil {
+		query = query.Where("shipments.order_id = ?", *filter.OrderID)
+	}
+	if filter.ReturnRequestID != nil {
+		query = query.Where("shipments.return_request_id = ?", *filter.ReturnRequestID)
+	}
+	if filter.CreatedFrom != nil {
+		query = query.Where("shipments.created_at >= ?", *filter.CreatedFrom)
+	}
+	if filter.CreatedTo != nil {
+		query = query.Where("shipments.created_at < ?", filter.CreatedTo.AddDate(0, 0, 1))
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	sortOrders := map[string]string{
+		"newest":       "shipments.created_at DESC, shipments.id DESC",
+		"oldest":       "shipments.created_at ASC, shipments.id ASC",
+		"updated_desc": "shipments.updated_at DESC, shipments.id DESC",
+		"updated_asc":  "shipments.updated_at ASC, shipments.id ASC",
+		"status_asc":   "shipments.shipping_status ASC, shipments.created_at DESC",
+		"status_desc":  "shipments.shipping_status DESC, shipments.created_at DESC",
+	}
+	orderBy, ok := sortOrders[filter.Sort]
+	if !ok {
+		orderBy = sortOrders["newest"]
+	}
+
+	if filter.Limit <= 0 {
+		filter.Limit = 10
+	}
+	if filter.Limit > 100 {
+		filter.Limit = 100
+	}
+	if filter.Page <= 0 {
+		filter.Page = 1
+	}
+
+	err := query.
+		Preload("Order", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "order_number")
+		}).
+		Order(orderBy).
+		Offset((filter.Page - 1) * filter.Limit).
+		Limit(filter.Limit).
+		Find(&shipments).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	return shipments, total, nil
+}
 func (r *ShipmentRepository) GetByID(ctx context.Context, id uint) (*models.Shipment, error) {
 	var shipment models.Shipment
 	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&shipment).Error; err != nil {

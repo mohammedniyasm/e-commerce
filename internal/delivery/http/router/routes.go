@@ -276,6 +276,7 @@ func RegisterRoutes(r *gin.Engine,
 		admin.GET("/orders/refund-pending", orderHandler.ListRefundPendingOrders)
 		admin.POST("/orders/:order_id/refund", orderHandler.ProcessWalletRefund)
 
+		admin.GET("/shipments", shipmentHandler.ListShipments)
 		admin.POST("/shipments", shipmentHandler.CreateShipment)
 		admin.GET("/shipments/:shipment_id", shipmentHandler.GetShipmentByID)
 		admin.PATCH("/shipments/:shipment_id", shipmentHandler.UpdateShipment)

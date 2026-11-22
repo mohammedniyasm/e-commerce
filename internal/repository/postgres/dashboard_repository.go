@@ -138,7 +138,7 @@ func (r *DashboardRepository) GetTopProducts(ctx context.Context, limit int) ([]
 			products.name AS product_name,
 			SUM(order_items.quantity) AS units_sold,
 			COUNT(DISTINCT(order_items.order_id)) AS total_orders,
-			SUM(order_items.subtotal) AS total_revenue
+			SUM(order_items.subtotal) AS revenue
 		`).
 		Joins("JOIN orders ON orders.id = order_items.order_id").
 		Joins("JOIN product_variants ON product_variants.id = order_items.variant_id").

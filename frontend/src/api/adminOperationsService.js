@@ -66,6 +66,31 @@ export async function processWalletRefund(orderId) {
 // MODULE C: SHIPMENTS
 // ==========================================
 
+export async function listAdminShipments(params = {}) {
+  const queryParams = {
+    page: params.page || 1,
+    limit: params.limit || 10,
+    sort: params.sort || 'newest',
+    ...(params.search ? { search: params.search } : {}),
+    ...(params.shipping_status ? { shipping_status: params.shipping_status } : {}),
+    ...(params.type ? { type: params.type } : {}),
+    ...(params.courier_name ? { courier_name: params.courier_name } : {}),
+    ...(params.order_id ? { order_id: params.order_id } : {}),
+    ...(params.return_request_id ? { return_request_id: params.return_request_id } : {}),
+    ...(params.created_from ? { created_from: params.created_from } : {}),
+    ...(params.created_to ? { created_to: params.created_to } : {}),
+  };
+  const response = await apiClient.get('/admin/shipments', {
+    params: queryParams,
+    requiresAuth: true,
+  });
+  const data = response?.data?.data;
+  if (!data || !Array.isArray(data.shipments)) {
+    throw new Error('Shipment list response was invalid.');
+  }
+  return data;
+}
+
 export async function createShipment(payload) {
   const response = await apiClient.post('/admin/shipments', payload, { requiresAuth: true });
   return response?.data?.data ?? null;
@@ -131,10 +156,10 @@ export async function createExchangeOrder(returnRequestId) {
   return response?.data?.data ?? null;
 }
 
-export async function createReturnShipment(returnRequestId) {
+export async function createReturnShipment(returnRequestId, payload) {
   const response = await apiClient.post(
     `/admin/return-requests/${returnRequestId}/return-shipment`,
-    undefined,
+    payload,
     { requiresAuth: true }
   );
   return response?.data?.data ?? null;
@@ -345,4 +370,37 @@ export async function getReferralSettings() {
 export async function updateReferralSettings(payload) {
   const response = await apiClient.put('/admin/referrals/settings', payload, { requiresAuth: true });
   return response?.data?.data ?? null;
+}
+
+export async function getAdminReferralDashboard() {
+  const response = await apiClient.get('/admin/referrals/dashboard', { requiresAuth: true });
+  return response?.data?.data ?? null;
+}
+
+export async function getTopAdminReferrers(limit = 5) {
+  const response = await apiClient.get('/admin/referrals/top-referrers', {
+    params: { limit },
+    requiresAuth: true,
+  });
+  return response?.data?.data?.referrers ?? [];
+}
+
+export async function listAdminReferrals(params = {}) {
+  const queryParams = {
+    page: params.page || 1,
+    limit: params.limit || 10,
+    ...(params.status ? { status: params.status } : {}),
+    ...(params.reward_status ? { reward_status: params.reward_status } : {}),
+    ...(params.referrer_id ? { referrer_id: params.referrer_id } : {}),
+    ...(params.start_date ? { start_date: params.start_date } : {}),
+    ...(params.end_date ? { end_date: params.end_date } : {}),
+  };
+  const response = await apiClient.get('/admin/referrals', {
+    params: queryParams,
+    requiresAuth: true,
+  });
+  return response?.data?.data ?? {
+    referrals: [],
+    pagination: { total: 0, limit: queryParams.limit, offset: 0 },
+  };
 }

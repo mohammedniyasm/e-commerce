@@ -175,7 +175,7 @@ func TestRemoveWishlistItem(t *testing.T) {
 		expected := &models.Wishlist{ID: 1, UserID: 10}
 
 		repo.EXPECT().RemoveWishlistItem(ctx, uint(1), uint(10), uint(3)).Return(nil).Once()
-		repo.EXPECT().GetWishlistByID(ctx, uint(1), uint(10)).Return(expected, nil).Once()
+		repo.EXPECT().GetWishlistByID(ctx, uint(10), uint(1)).Return(expected, nil).Once()
 
 		res, err := uc.RemoveWishlistItem(ctx, 1, 10, 3)
 		require.NoError(t, err)
@@ -201,7 +201,7 @@ func TestClearWishlist(t *testing.T) {
 		expected := &models.Wishlist{ID: 1, UserID: 10}
 
 		repo.EXPECT().ClearWishlist(ctx, uint(1), uint(10)).Return(nil).Once()
-		repo.EXPECT().GetWishlistByID(ctx, uint(1), uint(10)).Return(expected, nil).Once()
+		repo.EXPECT().GetWishlistByID(ctx, uint(10), uint(1)).Return(expected, nil).Once()
 
 		res, err := uc.ClearWishlist(ctx, 1, 10)
 		require.NoError(t, err)

@@ -9,6 +9,7 @@ import (
 
 type ShipmentUseCase interface {
 	CreateShipment(ctx context.Context, shipment *models.Shipment) error
+	ListShipments(ctx context.Context, filter models.ShipmentListFilter) ([]models.Shipment, int64, error)
 	GetShipmentByID(ctx context.Context, id uint) (*models.Shipment, error)
 	GetShipmentByOrderID(ctx context.Context, orderID uuid.UUID) (*models.Shipment, error)
 	UpdateShipment(ctx context.Context, shipment *models.Shipment) error

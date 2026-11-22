@@ -3,6 +3,7 @@ import {
   Award,
   BarChart3,
   CreditCard,
+  Gift,
   Layers,
   LayoutDashboard,
   LogOut,
@@ -12,6 +13,7 @@ import {
   ShoppingBag,
   Star,
   TicketPercent,
+  Truck,
   Users,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +25,7 @@ const navSections = [
     items: [
       { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
       { path: '/admin/orders', label: 'Orders', icon: ShoppingBag },
+      { path: '/admin/shipments', label: 'Shipments', icon: Truck },
       { path: '/admin/payments', label: 'Payments', icon: CreditCard },
       { path: '/admin/customers', label: 'Customers', icon: Users },
       { path: '/admin/returns', label: 'Returns', icon: RotateCcw },
@@ -41,6 +44,7 @@ const navSections = [
     items: [
       { path: '/admin/coupons', label: 'Coupons', icon: TicketPercent },
       { path: '/admin/reviews', label: 'Reviews', icon: Star },
+      { path: '/admin/referrals', label: 'Referrals', icon: Gift },
       { path: '/admin/reports', label: 'Reports', icon: BarChart3 },
       { path: '/admin/settings', label: 'Settings', icon: Settings },
     ],

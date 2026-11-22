@@ -38,6 +38,19 @@
   font-size: 0.75rem;
 }
 
+.drape-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+.drape-table-actions .drape-btn--icon {
+  flex: 0 0 40px;
+}
+
 .admin-link-btn {
   background: none;
   border: none;

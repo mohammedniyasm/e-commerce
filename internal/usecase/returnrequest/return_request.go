@@ -357,6 +357,10 @@ func (u *ReturnRequestUseCase) UpdateStatus(ctx context.Context, returnRequestID
 		if err != nil {
 			return err
 		}
+		if request.Status == ReturnStatusInspectionFailed &&
+			status == ReturnStatusClosed {
+			return domainerrors.ErrInvalidOrderTransition
+		}
 		if !isValidReturnTransition(request.Status, status) {
 			return domainerrors.ErrInvalidOrderTransition
 		}
@@ -775,18 +779,6 @@ func (u *ReturnRequestUseCase) CreateReturnToCustomerShipment(ctx context.Contex
 			if request.Status != ReturnStatusInspectionFailed {
 				return domainerrors.ErrInvalidOrderTransition
 			}
-			returnShipment, err := repos.Shipment.GetByReturnRequestIDAndType(
-				ctx,
-				request.ID,
-				models.ShipmentTypeReturn,
-			)
-			if err != nil {
-				return fmt.Errorf("get return shipment: %w", err)
-			}
-
-			if returnShipment.ShippingStatus != "delivered" {
-				return domainerrors.ErrInvalidOrderTransition
-			}
 			_, err = repos.Shipment.GetByReturnRequestIDAndType(
 				ctx,
 				request.ID,
@@ -810,6 +802,11 @@ func (u *ReturnRequestUseCase) CreateReturnToCustomerShipment(ctx context.Contex
 			}
 			if err := repos.Shipment.Create(ctx, shipment); err != nil {
 				return err
+			}
+			request.Status = ReturnStatusClosed
+			request.UpdatedAt = time.Now()
+			if err := repos.ReturnRequest.Update(ctx, request); err != nil {
+				return fmt.Errorf("close return request after creating customer shipment: %w", err)
 			}
 			createdShipment = shipment
 			return nil

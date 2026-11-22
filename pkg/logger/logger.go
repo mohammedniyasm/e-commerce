@@ -73,7 +73,7 @@ func New() (*slog.Logger, io.Closer, error) {
 		return nil, nil, err
 	}
 	logger := slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: slog.LevelWarn,
 	}))
 	return logger, writer, nil
 }

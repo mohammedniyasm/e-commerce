@@ -23,6 +23,10 @@ import { DataTable } from '../../../components/common/DataTable';
 import { Modal } from '../../../components/common/Modal';
 import { useToast } from '../../../context/ToastContext';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
+import {
+  canMarkCodPaymentPaid,
+  canProcessWalletRefund,
+} from '../../../utils/orderEligibility';
 import './AdminPaymentsPage.css';
 
 export function AdminPaymentsPage() {
@@ -227,12 +231,8 @@ export function AdminPaymentsPage() {
       align: 'right',
       render: (val, order) => {
         const item = (typeof val === 'object' && val !== null) ? val : (order || {});
-        const isCodPending =
-          String(item.payment_method || '').toLowerCase() === 'cod' &&
-          item.payment_status === 'pending';
-        const isEligibleForRefund =
-          (item.order_status === 'cancelled' || item.order_status === 'returned') &&
-          item.payment_status !== 'refunded';
+        const isCodPending = canMarkCodPaymentPaid(item);
+        const isEligibleForRefund = canProcessWalletRefund(item);
 
         return (
           <div className="drape-table-actions">
@@ -240,8 +240,9 @@ export function AdminPaymentsPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                icon={<DollarSign size={13} />}
+                leftIcon={<DollarSign size={13} />}
                 onClick={() => handleMarkCodPaid(item.id)}
+                isLoading={updatingCodId === item.id}
                 disabled={updatingCodId === item.id}
               >
                 {updatingCodId === item.id ? 'Saving...' : 'Mark Paid'}

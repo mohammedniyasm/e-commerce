@@ -10,7 +10,7 @@ export function StorefrontFooter() {
           <div className="storefront-footer__col">
             <h2 className="storefront-footer__heading">ABOUT US</h2>
             <p className="storefront-footer__text">
-              DRAPE embodies minimalist slow-fashion, sustainable tailoring, and timeless wardrobe essentials crafted for the intentional silhouette.
+              Drape offers comfortable, well-made clothing for everyday life.
             </p>
           </div>
 
@@ -20,8 +20,8 @@ export function StorefrontFooter() {
             <ul className="storefront-footer__list">
               <li><Link to="/">Home</Link></li>
               <li><Link to="/catalog">Collection</Link></li>
-              <li><Link to="/catalog?sort=price_asc">Curated Essentials</Link></li>
-              <li><Link to="/catalog?sort=price_desc">New Arrivals</Link></li>
+              <li><Link to="/catalog?sort=price_asc">Lowest Price First</Link></li>
+              <li><Link to="/catalog?sort=price_desc">Highest Price First</Link></li>
             </ul>
           </div>
 
@@ -29,10 +29,9 @@ export function StorefrontFooter() {
           <div className="storefront-footer__col">
             <h2 className="storefront-footer__heading">CUSTOMER SERVICE</h2>
             <ul className="storefront-footer__list">
-              <li><Link to="/account">Orders & Tracking</Link></li>
-              <li><Link to="/catalog">Returns & Exchanges</Link></li>
-              <li><Link to="/catalog">Shipping Information</Link></li>
-              <li><Link to="/catalog">Frequently Asked Questions</Link></li>
+              <li><Link to="/account/orders">Orders & Tracking</Link></li>
+              <li><Link to="/account/returns">Returns & Exchanges</Link></li>
+              <li><Link to="/account/addresses">Delivery Addresses</Link></li>
             </ul>
           </div>
 
@@ -40,17 +39,16 @@ export function StorefrontFooter() {
           <div className="storefront-footer__col">
             <h2 className="storefront-footer__heading">CONTACT US</h2>
             <address className="storefront-footer__contact">
-              <p>concierge@drapeatelier.com</p>
-              <p>+1 (800) 294-8190</p>
-              <p>482 Mercer Street, Soho</p>
-              <p>New York, NY 10013</p>
+              <p>
+                <a href="mailto:concierge@drapeatelier.com">Email customer support</a>
+              </p>
             </address>
           </div>
         </div>
 
         <div className="storefront-footer__bottom">
           <p className="storefront-footer__copyright">
-            © {new Date().getFullYear()} DRAPE ATELIER. ALL RIGHTS RESERVED.
+            © {new Date().getFullYear()} DRAPE. ALL RIGHTS RESERVED.
           </p>
           <div className="storefront-footer__badges">
             <span>PRICES IN INDIAN RUPEES (INR ₹)</span>

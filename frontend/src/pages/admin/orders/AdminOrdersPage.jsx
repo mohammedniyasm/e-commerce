@@ -11,13 +11,15 @@ import {
   XCircle,
   RotateCcw,
   RefreshCw,
+  DollarSign,
 } from 'lucide-react';
-import { listAdminOrders } from '../../../api/adminOperationsService';
+import { listAdminOrders, updateCODPaymentStatus } from '../../../api/adminOperationsService';
 import { Badge } from '../../../components/common/Badge';
 import { Button } from '../../../components/common/Button';
 import { DataTable } from '../../../components/common/DataTable';
 import { useToast } from '../../../context/ToastContext';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
+import { canMarkCodPaymentPaid } from '../../../utils/orderEligibility';
 import './AdminOrdersPage.css';
 
 const ORDER_STATUS_OPTIONS = [
@@ -49,6 +51,7 @@ export function AdminOrdersPage() {
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [updatingCodId, setUpdatingCodId] = useState(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -94,6 +97,20 @@ export function AdminOrdersPage() {
     setSelectedOrderStatus('');
     setSelectedPaymentStatus('');
     setPage(1);
+  };
+
+  const handleMarkCodPaid = async (orderId) => {
+    setUpdatingCodId(orderId);
+    try {
+      await updateCODPaymentStatus(orderId, 'paid');
+      showToast('COD payment marked as paid', 'success');
+      await fetchOrders();
+    } catch (err) {
+      console.error('Failed to update COD payment:', err);
+      showToast(err?.response?.data?.message || 'Failed to update payment status', 'error');
+    } finally {
+      setUpdatingCodId(null);
+    }
   };
 
   const getOrderStatusBadge = (status) => {
@@ -222,10 +239,24 @@ export function AdminOrdersPage() {
       align: 'right',
       render: (val, order) => {
         const item = (typeof val === 'object' && val !== null) ? val : (order || {});
+        const isPendingCod = canMarkCodPaymentPaid(item);
         return (
           <div className="drape-table-actions">
+            {isPendingCod && (
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<DollarSign size={14} />}
+                onClick={() => handleMarkCodPaid(item.id)}
+                isLoading={updatingCodId === item.id}
+                disabled={updatingCodId === item.id}
+                aria-label={`Mark COD payment as paid for order ${item.order_number || item.id}`}
+              >
+                {updatingCodId === item.id ? 'Marking...' : 'Mark COD Paid'}
+              </Button>
+            )}
             <Link to={`/admin/orders/${item.id}`}>
-              <Button variant="ghost" size="sm" icon={<Eye size={14} />}>
+              <Button variant="ghost" size="sm" leftIcon={<Eye size={14} />}>
                 Details
               </Button>
             </Link>

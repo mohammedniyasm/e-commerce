@@ -53,6 +53,7 @@
 }
 
 .admin-kpi-card {
+  position: relative;
   background: var(--color-surface, #ffffff);
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 8px;
@@ -60,6 +61,14 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  padding-right: 3rem;
+}
+
+.admin-kpi-icon {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  color: var(--admin-text-muted);
 }
 
 .admin-kpi-title {
@@ -77,4 +86,26 @@
 
 .admin-kpi-value.font-heading {
   font-family: var(--font-heading, 'Playfair Display', serif);
+}
+
+@media (max-width: 640px) {
+  .admin-reports-page .admin-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-reports-page .admin-header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .admin-reports-page .admin-header-actions > button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .admin-reports-page .admin-header-actions .drape-btn {
+    width: 100%;
+    min-width: 0;
+  }
 }

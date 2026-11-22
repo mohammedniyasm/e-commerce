@@ -120,7 +120,7 @@ export function AdminLoginPage() {
                 type="email"
                 name="email"
                 autoComplete="email"
-                placeholder="admin@drape.luxury"
+                placeholder="admin@example.com"
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 className={`admin-login-input ${errors.email ? 'has-error' : ''}`}

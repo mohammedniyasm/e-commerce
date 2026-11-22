@@ -450,7 +450,7 @@ export function AdminBrandsPage() {
         <div className="admin-page-title-group">
           <h1 className="admin-page-title">Brands</h1>
           <p className="admin-page-subtitle">
-            Manage luxury fashion houses, partner ateliers, and brand logos.
+            Manage product brands, partner labels, and logos.
           </p>
         </div>
 
@@ -536,7 +536,7 @@ export function AdminBrandsPage() {
         onClose={() => setIsCreateOpen(false)}
         title="Create Brand"
         eyebrow="Brand Management"
-        description="Add a designer label or brand to the Drape luxury catalog."
+        description="Add a designer label or brand to the Drape catalog."
         confirmText="Create Brand"
         cancelText="Cancel"
         isConfirmLoading={isActionLoading}

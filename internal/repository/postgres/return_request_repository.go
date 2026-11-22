@@ -29,8 +29,11 @@ func (r *ReturnRequestRepository) Create(ctx context.Context, request *models.Re
 func (r *ReturnRequestRepository) GetByID(ctx context.Context, id uint) (*models.ReturnRequest, error) {
 	var request models.ReturnRequest
 	err := r.db.WithContext(ctx).
+		Preload("Order").
 		Preload("OrderItem").
 		Preload("RequestedVariant").
+		Preload("RequestedVariant.Images").
+		Preload("RequestedVariant.Product.Images").
 		Where("id = ?", id).
 		First(&request).Error
 	if err != nil {
@@ -47,8 +50,11 @@ func (r *ReturnRequestRepository) GetByIDAndUserID(ctx context.Context, id uint,
 		Joins("JOIN orders ON orders.id = return_requests.order_id").
 		Where("return_requests.id = ?", id).
 		Where("orders.user_id = ?", userID).
+		Preload("Order").
 		Preload("OrderItem").
 		Preload("RequestedVariant").
+		Preload("RequestedVariant.Images").
+		Preload("RequestedVariant.Product.Images").
 		First(&request).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -70,8 +76,11 @@ func (r *ReturnRequestRepository) ListByUserID(ctx context.Context, userID uint,
 	}
 	offset := (page - 1) * limit
 	err := query.
+		Preload("Order").
 		Preload("OrderItem").
 		Preload("RequestedVariant").
+		Preload("RequestedVariant.Images").
+		Preload("RequestedVariant.Product.Images").
 		Order("return_requests.created_at DESC").
 		Offset(offset).
 		Limit(limit).
@@ -97,8 +106,11 @@ func (r *ReturnRequestRepository) List(ctx context.Context, orderID *uuid.UUID, 
 	}
 	offset := (page - 1) * limit
 	err := query.
+		Preload("Order").
 		Preload("OrderItem").
 		Preload("RequestedVariant").
+		Preload("RequestedVariant.Images").
+		Preload("RequestedVariant.Product.Images").
 		Order("created_at DESC").
 		Offset(offset).
 		Limit(limit).

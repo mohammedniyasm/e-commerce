@@ -50,9 +50,9 @@ export function AdminSettingsPage() {
 
       if (referralRes.status === 'fulfilled' && referralRes.value) {
         const ref = referralRes.value;
-        setReferrerBonus(String(ref.referrer_bonus ?? ref.referrer_amount ?? 500));
-        setRefereeBonus(String(ref.referee_bonus ?? ref.referee_amount ?? 250));
-        setMinOrderToReward(String(ref.min_order_amount ?? ref.min_purchase_amount ?? 2000));
+        setReferrerBonus(String(ref.referrer_reward ?? 500));
+        setRefereeBonus(String(ref.referred_reward ?? 250));
+        setMinOrderToReward(String(ref.minimum_order_amount ?? 2000));
         setIsReferralActive(Boolean(ref.is_active ?? true));
       }
     } catch (err) {
@@ -72,9 +72,9 @@ export function AdminSettingsPage() {
     setIsSavingReferral(true);
     try {
       const payload = {
-        referrer_amount: parseFloat(referrerBonus),
-        referee_amount: parseFloat(refereeBonus),
-        min_order_amount: parseFloat(minOrderToReward),
+        referrer_reward: parseFloat(referrerBonus),
+        referred_reward: parseFloat(refereeBonus),
+        minimum_order_amount: parseFloat(minOrderToReward),
         is_active: isReferralActive,
       };
 
@@ -113,7 +113,7 @@ export function AdminSettingsPage() {
           <Button
             variant="outline"
             size="sm"
-            icon={<RefreshCw size={14} />}
+            leftIcon={<RefreshCw size={14} />}
             onClick={fetchSettings}
           >
             Refresh
@@ -205,8 +205,8 @@ export function AdminSettingsPage() {
                 type="submit"
                 variant="primary"
                 size="sm"
-                icon={<Save size={14} />}
-                disabled={isSavingReferral}
+                leftIcon={<Save size={14} />}
+                isLoading={isSavingReferral}
               >
                 {isSavingReferral ? 'Saving...' : 'Save Referral Configuration'}
               </Button>
@@ -275,7 +275,7 @@ export function AdminSettingsPage() {
             <div>
               <span className="admin-field-label">Email Account</span>
               <span className="admin-field-value font-mono">
-                {adminProfile?.email || 'admin@drape.luxury'}
+                {adminProfile?.email || 'admin@example.com'}
               </span>
             </div>
             <div>

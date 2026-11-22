@@ -275,10 +275,32 @@
 @media (max-width: 768px) {
   .account-card__header {
     padding: 16px 20px;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .account-card__body {
     padding: 20px;
+  }
+
+  .account-details-grid,
+  .account-support-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-detail-value-with-badge {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .account-detail-value-with-badge > span:first-child,
+  .account-default-address-name,
+  .account-default-address-lines {
+    overflow-wrap: anywhere;
+  }
+
+  .account-default-address-header {
+    flex-wrap: wrap;
   }
 
   .account-order-snippet {

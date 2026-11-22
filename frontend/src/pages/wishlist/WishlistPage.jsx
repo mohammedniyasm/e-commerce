@@ -126,14 +126,14 @@ export function WishlistPage() {
       {/* Header with Title and Collection Actions */}
       <div className="wishlist-header">
         <div className="wishlist-header__titles">
-          <div className="wishlist-header__eyebrow">CURATED SILHOUETTES</div>
+          <div className="wishlist-header__eyebrow">SAVED PRODUCTS</div>
           <h1 className="wishlist-title">
             My Wishlist{currentWishlist?.name && currentWishlist.name !== 'My Wishlist' ? ` — ${currentWishlist.name}` : ''}
           </h1>
           <p className="wishlist-subtitle">
             {isEmpty
-              ? 'No pieces currently saved in this collection.'
-              : `${items.length} ${items.length === 1 ? 'piece' : 'pieces'} curated in this collection.`}
+              ? 'No products saved in this list yet.'
+              : `${items.length} ${items.length === 1 ? 'product' : 'products'} saved in this list.`}
           </p>
         </div>
 
@@ -200,20 +200,24 @@ export function WishlistPage() {
         </nav>
       )}
 
-      {/* Empty State */}
-      {isEmpty ? (
+      {/* Loading, empty, and populated states */}
+      {isLoading && isEmpty ? (
+        <div className="wishlist-loading-state" role="status" aria-live="polite">
+          <RefreshCw size={22} aria-hidden="true" />
+          <span>Loading your wishlist...</span>
+        </div>
+      ) : isEmpty ? (
         <div className="wishlist-empty-state" data-testid="wishlist-empty-state">
           <div className="wishlist-empty-icon-wrapper" aria-hidden="true">
             <Heart size={44} />
           </div>
           <h2 className="wishlist-empty-title">Your Wishlist is Empty</h2>
           <p className="wishlist-empty-desc">
-            Curate your personal collection of timeless tailoring and quiet luxury silhouettes.
+            Save products here to find them quickly later.
           </p>
-          <Link to="/catalog">
-            <Button variant="primary" size="lg" rightIcon={<ArrowRight size={14} />}>
-              EXPLORE COLLECTION
-            </Button>
+          <Link to="/catalog" className="wishlist-empty-action">
+            <span>EXPLORE COLLECTION</span>
+            <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
       ) : (
@@ -252,7 +256,7 @@ export function WishlistPage() {
                     className="wishlist-card__remove-btn"
                     onClick={() => handleRemoveProduct(item)}
                     aria-label={`Remove ${item.product_name} from wishlist`}
-                    title="Remove piece"
+                    title="Remove product"
                     disabled={isLoading || removingItemId === (item.id || item.product_id)}
                     data-testid={`remove-item-${item.id || item.product_id}`}
                   >
@@ -300,9 +304,8 @@ export function WishlistPage() {
                       </Button>
                     ) : (
                       <Link to={productHref} className="wishlist-card__view-btn">
-                        <Button variant="secondary" size="sm" fullWidth>
-                          SELECT SIZE
-                        </Button>
+                        <span>Select size</span>
+                        <ArrowRight size={14} aria-hidden="true" />
                       </Link>
                     )}
                   </div>
@@ -318,7 +321,7 @@ export function WishlistPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         title="Create New Collection"
-        eyebrow="ATELIER WISHLISTS"
+        eyebrow="WISHLISTS"
         size="sm"
       >
         <form onSubmit={handleCreateSubmit} className="wishlist-modal-form">
@@ -326,12 +329,12 @@ export function WishlistPage() {
             label="COLLECTION NAME"
             htmlFor="new-wishlist-name"
             error={createError}
-            hint="e.g. Summer Capsule, Evening Silhouettes, Work Essentials"
+            hint="For example: Work clothes or Weekend outfits"
           >
             <Input
               id="new-wishlist-name"
               type="text"
-              placeholder="e.g. Autumn Capsule"
+              placeholder="For example: Work clothes"
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               autoFocus
@@ -365,9 +368,8 @@ export function WishlistPage() {
       >
         <div className="wishlist-modal-confirm" data-testid="clear-wishlist-modal">
           <p className="wishlist-modal-confirm__desc">
-            Are you sure you wish to remove all pieces from{' '}
-            <strong>"{currentWishlist?.name || 'this collection'}"</strong>? This will clear all
-            curated pieces.
+            Are you sure you want to clear all products from{' '}
+            <strong>"{currentWishlist?.name || 'this collection'}"</strong>? This action cannot be undone.
           </p>
           <div className="wishlist-modal-confirm__actions">
             <Button
@@ -377,7 +379,7 @@ export function WishlistPage() {
               onClick={() => setIsClearModalOpen(false)}
               disabled={isLoading}
             >
-              KEEP PIECES
+              KEEP PRODUCTS
             </Button>
             <Button
               type="button"
@@ -403,9 +405,8 @@ export function WishlistPage() {
       >
         <div className="wishlist-modal-confirm" data-testid="delete-wishlist-modal">
           <p className="wishlist-modal-confirm__desc">
-            Are you sure you wish to permanently delete the collection{' '}
-            <strong>"{currentWishlist?.name || 'this collection'}"</strong>? All pieces within it
-            will be removed.
+            Are you sure you want to permanently delete{' '}
+            <strong>"{currentWishlist?.name || 'this list'}"</strong>? All products in it will be removed.
           </p>
           <div className="wishlist-modal-confirm__actions">
             <Button

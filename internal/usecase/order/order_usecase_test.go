@@ -86,19 +86,6 @@ func TestIsValidOrderTransition(t *testing.T) {
 			nextStatus:    "cancelled",
 			want:          true,
 		},
-		{
-			name:          "delivered to returned",
-			currentStatus: "delivered",
-			nextStatus:    "returned",
-			want:          true,
-		},
-		{
-			name:          "delivered to processing",
-			currentStatus: "delivered",
-			nextStatus:    "processing",
-			want:          true,
-		},
-
 		// Invalid transitions
 		{
 			name:          "pending to shipped",
@@ -128,6 +115,18 @@ func TestIsValidOrderTransition(t *testing.T) {
 			name:          "delivered to cancelled",
 			currentStatus: "delivered",
 			nextStatus:    "cancelled",
+			want:          false,
+		},
+		{
+			name:          "delivered to returned",
+			currentStatus: "delivered",
+			nextStatus:    "returned",
+			want:          false,
+		},
+		{
+			name:          "delivered to processing",
+			currentStatus: "delivered",
+			nextStatus:    "processing",
 			want:          false,
 		},
 
@@ -431,7 +430,7 @@ func TestOrderUseCase_PlaceOrder(t *testing.T) {
 		assert.Equal(t, "paid", got.PaymentStatus)
 	})
 
-	t.Run("coupon discount branch without expecting shadowed CouponUsage.Create", func(t *testing.T) {
+	t.Run("coupon discount records usage", func(t *testing.T) {
 		f := newOrderFixture(t)
 		f.expectTX(ctx)
 		setupCartTX(f)
@@ -445,6 +444,13 @@ func TestOrderUseCase_PlaceOrder(t *testing.T) {
 		f.txCoupon.EXPECT().GetByCodeForUpdate(ctx, "SAVE10").Return(coupon, nil).Once()
 		f.txCouponUse.EXPECT().CountByCouponID(ctx, coupon.ID).Return(int64(0), nil).Once()
 		f.txCouponUse.EXPECT().CountByCouponAndUser(ctx, coupon.ID, uint(1)).Return(int64(0), nil).Once()
+		f.txCouponUse.EXPECT().Create(ctx, mock.MatchedBy(func(usage *models.CouponUsage) bool {
+			return usage.CouponID == coupon.ID &&
+				usage.UserID == 1 &&
+				usage.OrderID != uuid.Nil &&
+				usage.DiscountAmount == 50 &&
+				!usage.UsedAt.IsZero()
+		})).Return(nil).Once()
 
 		got, err := f.uc.PlaceOrder(ctx, 1, []uint{100}, 5, "cod", &code)
 		require.NoError(t, err)
@@ -545,6 +551,17 @@ func TestOrderUseCase_StatusCancelAddressInvoicePaymentExpireRefund(t *testing.T
 		f.txPayment.EXPECT().Update(ctx, mock.AnythingOfType("*models.Payment")).Return(nil).Once()
 		f.txOrder.EXPECT().Update(ctx, mock.AnythingOfType("*models.Order")).Return(nil).Once()
 		require.NoError(t, f.uc.UpdateCODPaymentStatus(ctx, orderID, "paid"))
+
+		fCancelled := newOrderFixture(t)
+		fCancelled.expectTX(ctx)
+		fCancelled.txOrder.EXPECT().LockByID(ctx, orderID).Return(&models.Order{
+			ID: orderID, UserID: 1, OrderStatus: "cancelled", PaymentStatus: "pending",
+		}, nil).Once()
+		require.ErrorIs(
+			t,
+			fCancelled.uc.UpdateCODPaymentStatus(ctx, orderID, "paid"),
+			domainerrors.ErrInvalidOrderTransition,
+		)
 
 		f2 := newOrderFixture(t)
 		assert.ErrorIs(t, f2.uc.ExpirePendingOrder(ctx, uuid.Nil), domainerrors.ErrInvalidOrderID)

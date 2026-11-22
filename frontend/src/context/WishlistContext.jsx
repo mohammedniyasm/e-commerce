@@ -28,6 +28,18 @@ export function WishlistProvider({ children }) {
   const [guestItems, setGuestItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  function applyWishlistDetails(details, fallbackItems) {
+    const updated = details || { ...currentWishlist, items: fallbackItems };
+    setCurrentWishlist(updated);
+    setWishlists((prev) =>
+      prev.map((wishlist) =>
+        wishlist.id === updated.id
+          ? { ...wishlist, item_count: updated.items?.length ?? wishlist.item_count }
+          : wishlist,
+      ),
+    );
+  }
+
   // Sync wishlists on auth state change
   useEffect(() => {
     let isMounted = true;
@@ -83,7 +95,7 @@ export function WishlistProvider({ children }) {
               items: local.map((item, index) =>
                 typeof item === 'object'
                   ? { id: index + 1, product_id: item.id, ...item }
-                  : { id: index + 1, product_id: item, product_name: 'Atelier Piece' },
+                  : { id: index + 1, product_id: item, product_name: 'Saved product' },
               ),
             });
           }
@@ -137,11 +149,9 @@ export function WishlistProvider({ children }) {
         if (exists) {
           const item = currentWishlist.items.find((it) => it.product_id === product.id);
           if (item && currentWishlist.id) {
-            await removeWishlistItem(currentWishlist.id, item.id);
-            setCurrentWishlist((prev) => ({
-              ...prev,
-              items: prev.items.filter((it) => it.id !== item.id),
-            }));
+            const fallbackItems = currentWishlist.items.filter((it) => it.id !== item.id);
+            const updated = await removeWishlistItem(currentWishlist.id, item.id);
+            applyWishlistDetails(updated, fallbackItems);
             showToast({
               title: 'Removed from Wishlist',
               message: 'Item removed from your wishlist.',
@@ -149,17 +159,24 @@ export function WishlistProvider({ children }) {
             });
           }
         } else {
-          await addProductToWishlist({
+          const fallbackItems = [
+            ...currentWishlist.items,
+            {
+              product_id: product.id,
+              product_name: product.name,
+              product_slug: product.slug,
+              image_url: product.primary_image?.image_url,
+              starting_price: product.min_price,
+            },
+          ];
+          const updated = await addProductToWishlist({
             wishlist_name: targetList,
             product_id: product.id,
           });
-          if (currentWishlist.id) {
-            const updated = await getWishlistDetails(currentWishlist.id);
-            if (updated) setCurrentWishlist(updated);
-          }
+          applyWishlistDetails(updated, fallbackItems);
           showToast({
             title: 'Saved to Wishlist',
-            message: 'Item saved to your curated wishlist.',
+            message: 'Item saved to your wishlist.',
             type: 'success',
           });
         }
@@ -201,6 +218,51 @@ export function WishlistProvider({ children }) {
         message: err.message || 'Unable to update wishlist.',
         type: 'error',
       });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function addToWishlist(product, wishlistId) {
+    if (!product?.id || !isAuthenticated) return false;
+
+    const targetWishlist = wishlists.find(
+      (wishlist) => String(wishlist.id) === String(wishlistId),
+    );
+    if (!targetWishlist) {
+      showToast({
+        title: 'Collection Unavailable',
+        message: 'Please refresh your wishlists and try again.',
+        type: 'error',
+      });
+      return false;
+    }
+
+    setIsLoading(true);
+    try {
+      const updated = await addProductToWishlist({
+        wishlist_name: targetWishlist.name,
+        product_id: product.id,
+      });
+      if (!updated || !Array.isArray(updated.items)) {
+        throw new Error('The wishlist response was invalid.');
+      }
+
+      setActiveWishlistId(targetWishlist.id);
+      applyWishlistDetails(updated, updated.items);
+      showToast({
+        title: 'Saved to Wishlist',
+        message: `Item saved to "${targetWishlist.name}".`,
+        type: 'success',
+      });
+      return true;
+    } catch (err) {
+      showToast({
+        title: 'Wishlist Error',
+        message: err.message || 'Unable to update wishlist.',
+        type: 'error',
+      });
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -296,16 +358,7 @@ export function WishlistProvider({ children }) {
     try {
       if (isAuthenticated && targetId) {
         const updated = await clearWishlistApi(targetId);
-        if (updated) {
-          setCurrentWishlist(updated);
-        } else {
-          setCurrentWishlist((prev) => ({
-            ...prev,
-            items: [],
-          }));
-        }
-        const lists = await getWishlists();
-        if (lists) setWishlists(lists);
+        applyWishlistDetails(updated, []);
       } else {
         clearGuestWishlist();
         setGuestItems([]);
@@ -345,18 +398,11 @@ export function WishlistProvider({ children }) {
 
         if (targetItemId) {
           const updated = await removeWishlistItem(currentWishlist.id, targetItemId);
-          if (updated) {
-            setCurrentWishlist(updated);
-          } else {
-            setCurrentWishlist((prev) => ({
-              ...prev,
-              items: (prev?.items || []).filter((it) => it.id !== targetItemId),
-            }));
-          }
+          const fallbackItems = (currentWishlist.items || []).filter(
+            (it) => it.id !== targetItemId,
+          );
+          applyWishlistDetails(updated, fallbackItems);
         }
-
-        const lists = await getWishlists();
-        if (lists) setWishlists(lists);
 
         showToast({
           title: 'Removed from Wishlist',
@@ -381,7 +427,7 @@ export function WishlistProvider({ children }) {
           items: nextGuest.map((it, idx) =>
             typeof it === 'object'
               ? { id: idx + 1, product_id: it.id || it.product_id, ...it }
-              : { id: idx + 1, product_id: it, product_name: 'Atelier Piece' },
+              : { id: idx + 1, product_id: it, product_name: 'Saved product' },
           ),
         });
 
@@ -407,8 +453,10 @@ export function WishlistProvider({ children }) {
       wishlists,
       currentWishlist,
       activeWishlistId,
+      isAuthenticated,
       isInWishlist,
       toggleWishlist,
+      addToWishlist,
       selectWishlist,
       createWishlist: handleCreateWishlist,
       deleteWishlist: handleDeleteWishlist,
@@ -416,7 +464,7 @@ export function WishlistProvider({ children }) {
       removeItem,
       isLoading,
     }),
-    [wishlists, currentWishlist, activeWishlistId, guestItems, isLoading],
+    [wishlists, currentWishlist, activeWishlistId, guestItems, isLoading, isAuthenticated],
   );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
@@ -429,8 +477,10 @@ export function useWishlist() {
       wishlists: [],
       currentWishlist: { id: 0, name: 'My Wishlist', items: [] },
       activeWishlistId: null,
+      isAuthenticated: false,
       isInWishlist: () => false,
       toggleWishlist: async () => {},
+      addToWishlist: async () => false,
       selectWishlist: async () => {},
       createWishlist: async () => {},
       deleteWishlist: async () => {},

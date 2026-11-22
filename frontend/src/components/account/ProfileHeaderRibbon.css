@@ -174,9 +174,30 @@
     gap: 20px;
   }
 
+  .profile-header-ribbon__identity,
+  .profile-header-ribbon__details {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .profile-header-ribbon__identity {
+    gap: 16px;
+  }
+
+  .profile-header-ribbon__contact {
+    flex-wrap: wrap;
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .profile-header-ribbon__email {
+    overflow-wrap: anywhere;
+  }
+
   .profile-header-ribbon__stats {
     width: 100%;
     justify-content: space-around;
+    gap: 12px;
     padding: 14px 16px;
   }
 

@@ -194,11 +194,11 @@ export function CatalogPage() {
 
         <div className="catalog-header__title-row">
           <div>
-            <h1 className="catalog-title">Curated Collection</h1>
+            <h1 className="catalog-title">Shop All Products</h1>
             <p className="catalog-subtitle">
               {isLoading
-                ? 'Discovering silhouettes...'
-                : `Showing ${productsData.products?.length || 0} of ${productsData.total || 0} pieces`}
+                ? 'Loading products...'
+                : `Showing ${productsData.products?.length || 0} of ${productsData.total || 0} products`}
             </p>
           </div>
 
@@ -522,7 +522,7 @@ export function CatalogPage() {
             </>
           ) : (
             <div className="catalog-state-card">
-              <h3 className="catalog-state-card__title">No Silhouettes Found</h3>
+              <h3 className="catalog-state-card__title">No Products Found</h3>
               <p className="catalog-state-card__msg">
                 We couldn't find any products matching your specific combination of filters.
               </p>

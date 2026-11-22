@@ -20,7 +20,6 @@ body {
   font-family: var(--font-family-base);
   color: var(--store-text-primary);
   background-color: var(--store-bg);
-  min-width: 320px;
   min-height: 100vh;
   line-height: 1.5;
 }
@@ -100,54 +99,6 @@ input, select, textarea {
   align-items: center;
 }
 
-/* Admin Shell */
-.admin-shell {
-  display: grid;
-  grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr);
-  min-height: 100vh;
-  background-color: var(--admin-bg);
-}
-
-.admin-sidebar {
-  background: var(--admin-sidebar-bg);
-  border-right: 1px solid var(--admin-sidebar-border);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-  min-height: 100vh;
-  padding: var(--space-8);
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.admin-sidebar nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.admin-sidebar a {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  color: var(--admin-text-secondary);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-}
-
-.admin-sidebar a:hover {
-  background-color: var(--store-pill-bg);
-  color: var(--admin-text-primary);
-}
-
-.admin-sidebar a.active {
-  background-color: #000000;
-  color: #ffffff;
-  font-weight: var(--font-weight-semibold);
-}
-
 /* Placeholder Page Styling */
 .placeholder-page {
   margin: 0 auto;
@@ -181,23 +132,6 @@ input, select, textarea {
 @media (max-width: 768px) {
   .site-header {
     padding: 0 var(--space-6);
-  }
-  .admin-shell {
-    grid-template-columns: 1fr;
-  }
-  .admin-sidebar {
-    height: auto;
-    min-height: auto;
-    position: static;
-    padding: var(--space-4) var(--space-6);
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .admin-sidebar nav {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: var(--space-2);
   }
   .placeholder-page {
     padding: var(--space-16) var(--space-6);

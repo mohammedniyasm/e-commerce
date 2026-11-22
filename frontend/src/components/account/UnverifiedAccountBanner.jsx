@@ -54,7 +54,7 @@ export function UnverifiedAccountBanner({
             <span className="unverified-banner__pill">SECURITY NOTICE</span>
           </div>
           <p className="unverified-banner__desc">
-            Your atelier account email <strong>{profile.email}</strong> is not verified. Verify
+            The email address <strong>{profile.email}</strong> is not verified. Verify it
             now to secure your account, receive real-time order tracking notifications, and unlock
             all customer privileges.
           </p>
@@ -147,13 +147,13 @@ export function UnverifiedAccountPopup({
         <div className="unverified-popup__icon-badge">
           <MailCheck size={16} />
         </div>
-        <span className="unverified-popup__eyebrow">ATELIER PRIVILEGES</span>
+        <span className="unverified-popup__eyebrow">ACCOUNT SECURITY</span>
       </div>
 
       <h4 className="unverified-popup__title">Verify Your Email Address</h4>
       <p className="unverified-popup__text">
         Confirm <strong>{profile.email}</strong> to activate full order delivery notifications and
-        priority atelier services.
+        important account updates.
       </p>
 
       <div className="unverified-popup__footer">

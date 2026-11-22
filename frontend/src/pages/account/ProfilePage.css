@@ -176,6 +176,17 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .profile-email-info {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .profile-email-address {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   .profile-form-grid {
     grid-template-columns: 1fr;
   }

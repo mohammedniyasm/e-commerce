@@ -457,6 +457,7 @@ export function AdminProductDetailsPage() {
             type="button"
             className="admin-icon-btn"
             title="Edit Variant"
+            aria-label={`Edit variant ${v.sku}`}
             onClick={() => openEditVariantModal(v)}
           >
             <Edit2 size={14} />
@@ -465,6 +466,7 @@ export function AdminProductDetailsPage() {
             type="button"
             className="admin-icon-btn danger"
             title="Delete Variant"
+            aria-label={`Delete variant ${v.sku}`}
             onClick={() => {
               setVariantToDelete(v);
               setIsDeleteVariantOpen(true);
@@ -484,20 +486,12 @@ export function AdminProductDetailsPage() {
         <div className="admin-page-title-group">
           <Link
             to="/admin/products"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              color: '#64748b',
-              fontSize: 13,
-              textDecoration: 'none',
-              marginBottom: 4,
-            }}
+            className="admin-back-link"
           >
             <ArrowLeft size={14} />
             <span>Back to Products</span>
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="admin-product-heading">
             <h1 className="admin-page-title">{product.name}</h1>
             <Badge variant={product.is_active ? 'success' : 'neutral'} size="md">
               {product.is_active ? 'Active' : 'Inactive'}
@@ -512,26 +506,31 @@ export function AdminProductDetailsPage() {
         </div>
 
         <div className="admin-header-actions">
-          <Button variant="secondary" size="md" onClick={handleToggleActive}>
-            <Power size={14} />
-            <span>{product.is_active ? 'Deactivate' : 'Activate'}</span>
+          <Button
+            variant="secondary"
+            size="md"
+            leftIcon={<Power size={14} />}
+            onClick={handleToggleActive}
+          >
+            {product.is_active ? 'Deactivate' : 'Activate'}
           </Button>
 
           <Button variant="secondary" size="md" onClick={handleToggleListed}>
-            <span>{product.is_listed ? 'Hide from Store' : 'Publish to Store'}</span>
+            {product.is_listed ? 'Hide from Store' : 'Publish to Store'}
           </Button>
 
-          <Link to={`/admin/products/${product.id}/edit`}>
-            <Button variant="primary" size="md">
-              <Edit2 size={14} />
-              <span>Edit Product</span>
-            </Button>
+          <Link
+            to={`/admin/products/${product.id}/edit`}
+            className="drape-btn drape-btn--primary drape-btn--md admin-button-link"
+          >
+            <Edit2 size={14} />
+            <span>Edit Product</span>
           </Link>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="admin-toolbar-card" style={{ padding: '8px 12px' }}>
+      <div className="admin-toolbar-card admin-product-tabs">
         <div className="admin-tabs-group" role="tablist">
           <button
             type="button"
@@ -565,18 +564,23 @@ export function AdminProductDetailsPage() {
 
       {/* TAB 1: VARIANTS */}
       {activeTab === 'variants' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="admin-product-section">
+          <div className="admin-product-section-toolbar">
             <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
               Each variant specifies unique SKU, pricing, inventory quantity, size, and color.
             </p>
-            <Button variant="primary" size="sm" onClick={openCreateVariantModal}>
-              <Plus size={14} />
-              <span>Add Variant</span>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus size={14} />}
+              onClick={openCreateVariantModal}
+            >
+              Add Variant
             </Button>
           </div>
 
           <DataTable
+            className="admin-variants-table"
             columns={variantColumns}
             data={variants}
             keyField="id"
@@ -587,14 +591,15 @@ export function AdminProductDetailsPage() {
 
       {/* TAB 2: PRODUCT IMAGES */}
       {activeTab === 'images' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="admin-product-section">
+          <div className="admin-product-section-toolbar">
             <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
               Upload gallery images and designate a primary thumbnail image for storefront listings.
             </p>
             <Button
               variant="primary"
               size="sm"
+              leftIcon={<Upload size={14} />}
               onClick={() => {
                 setSelectedImageFiles([]);
                 setImagePreviews([]);
@@ -602,8 +607,7 @@ export function AdminProductDetailsPage() {
                 setIsUploadImageOpen(true);
               }}
             >
-              <Upload size={14} />
-              <span>Upload Images</span>
+              Upload Images
             </Button>
           </div>
 
@@ -623,6 +627,7 @@ export function AdminProductDetailsPage() {
                       <button
                         type="button"
                         className="admin-icon-btn"
+                        aria-label={`Set ${product.name} image as primary`}
                         style={{ background: '#ffffff', color: '#0f172a' }}
                         title="Set as Primary"
                         onClick={() => handleSetPrimaryImage(img)}
@@ -633,6 +638,7 @@ export function AdminProductDetailsPage() {
                     <button
                       type="button"
                       className="admin-icon-btn danger"
+                      aria-label={`Delete ${product.name} image`}
                       style={{ background: '#ffffff' }}
                       title="Delete Image"
                       onClick={() => {
@@ -739,7 +745,7 @@ export function AdminProductDetailsPage() {
             {variantErrors.sku && <span className="admin-form-error">{variantErrors.sku}</span>}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="admin-variant-optional-fields">
             <div className="admin-form-field">
               <label className="admin-form-label" htmlFor="var-size">
                 Size (Optional)
@@ -769,7 +775,7 @@ export function AdminProductDetailsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+          <div className="admin-variant-pricing-fields">
             <div className="admin-form-field">
               <label className="admin-form-label" htmlFor="var-mrp">
                 MRP (₹) <span className="required">*</span>

@@ -92,7 +92,7 @@ export function LoginPage() {
     <div className="auth-card" data-testid="login-card">
       <div className="auth-card-header">
         <h1 className="auth-card-title">Welcome Back</h1>
-        <p className="auth-card-subtitle">Enter your credentials to access your account</p>
+        <p className="auth-card-subtitle">Sign in to view your account and orders.</p>
       </div>
 
       {serverError && (
@@ -114,7 +114,7 @@ export function LoginPage() {
             name="email"
             type="email"
             size="lg"
-            placeholder="name@atelier-drape.com"
+            placeholder="you@example.com"
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
             hasError={Boolean(errors.email)}

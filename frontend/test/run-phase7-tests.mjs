@@ -73,10 +73,32 @@ async function run() {
     }
 
     // Overview
-    let restore = mockApi('get', { total_revenue: 500000, total_orders: 120 });
-    await AdminService.getDashboardOverview();
+    let restore = mockApi('get', {
+      TotalRevenue: 500000,
+      TotalOrders: 120,
+      TotalCustomers: 34,
+      TotalProducts: 20,
+      PendingOrders: 2,
+    });
+    const overview = await AdminService.getDashboardOverview();
     assert(lastRequest.url === '/admin/dashboard/overview', 'getDashboardOverview requests /admin/dashboard/overview');
     assert(lastRequest.config?.requiresAuth === true, 'getDashboardOverview requires authentication');
+    assert(
+      overview?.total_revenue === 500000 &&
+        overview?.total_orders === 120 &&
+        overview?.total_customers === 34 &&
+        overview?.total_products === 20 &&
+        overview?.pending_orders === 2,
+      'getDashboardOverview normalizes Go field names to the frontend response shape',
+    );
+    restore();
+
+    restore = mockApi('get', { total_revenue: 125, total_orders: 3 });
+    const snakeCaseOverview = await AdminService.getDashboardOverview();
+    assert(
+      snakeCaseOverview?.total_revenue === 125 && snakeCaseOverview?.total_orders === 3,
+      'getDashboardOverview preserves snake_case response fields',
+    );
     restore();
 
     // Sales
@@ -205,6 +227,7 @@ async function run() {
     assert(sidebarHtml.includes('Reviews'), 'AdminSidebar contains Reviews nav item');
     assert(sidebarHtml.includes('Customers'), 'AdminSidebar contains Customers nav item');
     assert(sidebarHtml.includes('Reports'), 'AdminSidebar contains Reports nav item');
+    assert(sidebarHtml.includes('Referrals'), 'AdminSidebar contains Referrals nav item');
     assert(sidebarHtml.includes('Settings'), 'AdminSidebar contains Settings nav item');
     assert(sidebarHtml.includes('Sign Out'), 'AdminSidebar contains Sign Out button');
 
@@ -235,7 +258,19 @@ async function run() {
 
     // 6. Admin Dashboard Page Component
     console.log('\n[6/6] Testing AdminDashboardPage Structure and Widgets...');
-    const { AdminDashboardPage } = await vite.ssrLoadModule('/src/pages/admin/AdminDashboardPage.jsx');
+    const { AdminDashboardPage, fillMissingSalesBuckets } = await vite.ssrLoadModule('/src/pages/admin/AdminDashboardPage.jsx');
+    const singleSalesSeries = fillMissingSalesBuckets(
+      [{ date: '2026-11-21T00:00:00Z', total_revenue: 1250, total_orders: 1 }],
+      { start_date: '2026-11-20', end_date: '2026-11-22', group_by: 'day' },
+    );
+    assert(
+      singleSalesSeries.length === 3 &&
+        singleSalesSeries[0].total_revenue === 0 &&
+        singleSalesSeries[1].total_revenue === 1250 &&
+        singleSalesSeries[2].total_revenue === 0 &&
+        singleSalesSeries.filter((point) => point.hasActivity).length === 1,
+      'Sales chart fills missing date buckets around a single order',
+    );
 
     const dashboardHtml = renderToString(
       React.createElement(

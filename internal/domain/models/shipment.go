@@ -31,3 +31,17 @@ type Shipment struct {
 	Order         Order                     `gorm:"foreignKey:OrderID"`
 	History       []ShipmentTrackingHistory `gorm:"foreignKey:ShipmentID"`
 }
+
+type ShipmentListFilter struct {
+	Search          string
+	ShippingStatus  *string
+	Type            *ShipmentType
+	CourierName     string
+	OrderID         *uuid.UUID
+	ReturnRequestID *uint
+	CreatedFrom     *time.Time
+	CreatedTo       *time.Time
+	Sort            string
+	Limit           int
+	Page            int
+}

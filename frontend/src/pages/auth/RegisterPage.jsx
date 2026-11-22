@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Phone, Tag, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -19,22 +19,24 @@ import '../../styles/auth.css';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { registerCustomer } = useAuth();
   const { showToast } = useToast();
+  const referralCodeFromUrl = searchParams.get('ref')?.trim() || '';
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     password: '',
-    referralCode: '',
+    referralCode: referralCodeFromUrl,
   });
 
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showReferralInput, setShowReferralInput] = useState(false);
+  const [showReferralInput, setShowReferralInput] = useState(Boolean(referralCodeFromUrl));
 
   const passwordRules = checkPasswordRules(formData.password);
 
@@ -116,7 +118,7 @@ export function RegisterPage() {
     <div className="auth-card" data-testid="register-card">
       <div className="auth-card-header">
         <h1 className="auth-card-title">Create Account</h1>
-        <p className="auth-card-subtitle">Join us and explore latest fashion</p>
+        <p className="auth-card-subtitle">Create an account to save products and track your orders.</p>
       </div>
 
       {serverError && (
@@ -138,7 +140,7 @@ export function RegisterPage() {
             name="name"
             type="text"
             size="lg"
-            placeholder="Eleni Vance"
+            placeholder="Your full name"
             value={formData.name}
             onChange={(e) => handleChange('name', e.target.value)}
             hasError={Boolean(errors.name)}
@@ -161,7 +163,7 @@ export function RegisterPage() {
             name="email"
             type="email"
             size="lg"
-            placeholder="name@atelier-drape.com"
+            placeholder="you@example.com"
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
             hasError={Boolean(errors.email)}
@@ -281,7 +283,7 @@ export function RegisterPage() {
               name="referralCode"
               type="text"
               size="md"
-              placeholder="e.g. FRIEND2025"
+              placeholder="e.g. FRIEND10"
               value={formData.referralCode}
               onChange={(e) => handleChange('referralCode', e.target.value)}
               disabled={isSubmitting}

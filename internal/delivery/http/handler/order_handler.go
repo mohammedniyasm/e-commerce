@@ -635,11 +635,23 @@ func mapOrderToResponse(order *models.Order) response.OrderResponse {
 	if shouldShowEstimatedDelivery(order.OrderStatus) {
 		estimatedStart, estimatedEnd = calculateEstimatedDelivery(order.PlacedAt)
 	}
+	paymentMethod := ""
+	for _, payment := range order.Payments {
+		if paymentMethod == "" {
+			paymentMethod = payment.PaymentMethod
+		}
+		method := strings.ToLower(strings.TrimSpace(payment.PaymentMethod))
+		if method == "cod" || method == "cash_on_delivery" {
+			paymentMethod = payment.PaymentMethod
+			break
+		}
+	}
 	items := make([]response.OrderItemResponse, 0, len(order.Items))
 	for _, item := range order.Items {
 		items = append(items, response.OrderItemResponse{
 			ID:          item.ID,
 			VariantID:   item.VariantID,
+			ProductID:   item.Variant.ProductID,
 			ProductName: item.ProductName,
 			ImageURL:    item.ImageURL,
 			VariantInfo: item.VariantInfo,
@@ -659,10 +671,20 @@ func mapOrderToResponse(order *models.Order) response.OrderResponse {
 			City:         order.Address.City,
 			State:        order.Address.State,
 			Pincode:      order.Address.PostalCode,
+			Country:      order.Address.Country,
 		}
 
 		if order.Address.AddressLine2 != nil {
 			address.AddressLine2 = *order.Address.AddressLine2
+		}
+	}
+
+	var user *response.OrderUserResponse
+	if order.User != nil {
+		user = &response.OrderUserResponse{
+			Name:  order.User.Name,
+			Email: order.User.Email,
+			Phone: order.User.Phone,
 		}
 	}
 
@@ -671,6 +693,7 @@ func mapOrderToResponse(order *models.Order) response.OrderResponse {
 		OrderNumber:            order.OrderNumber,
 		OrderStatus:            order.OrderStatus,
 		PaymentStatus:          order.PaymentStatus,
+		PaymentMethod:          paymentMethod,
 		Subtotal:               order.Subtotal,
 		DiscountAmount:         order.DiscountAmount,
 		ShippingAmount:         order.ShippingAmount,
@@ -679,6 +702,7 @@ func mapOrderToResponse(order *models.Order) response.OrderResponse {
 		EstimatedDeliveryEnd:   estimatedEnd,
 		Items:                  items,
 		Address:                address,
+		User:                   user,
 		PlacedAt:               order.PlacedAt,
 		CreatedAt:              order.CreatedAt,
 	}

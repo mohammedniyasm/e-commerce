@@ -1,4 +1,13 @@
+.google-auth-control {
+  position: relative;
+  width: 100%;
+  min-height: 48px;
+}
+
 .google-auth-button {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,4 +51,29 @@
   font-weight: 500;
   letter-spacing: 0.13px;
   color: var(--color-text, #191c1d);
+}
+
+.google-auth-sdk-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+}
+
+.google-auth-sdk-button > div {
+  max-width: 100%;
+}
+
+.google-auth-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #191c1d;
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: all;
 }

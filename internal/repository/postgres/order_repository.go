@@ -22,6 +22,13 @@ func NewOrderRepository(db *gorm.DB) *OrderRepository {
 		db: db,
 	}
 }
+
+func preloadOrderUser(query *gorm.DB) *gorm.DB {
+	return query.Preload("User", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "name", "email", "phone")
+	})
+}
+
 func (r *OrderRepository) Create(ctx context.Context, order *models.Order) error {
 	if order.ID == uuid.Nil {
 		order.ID = uuid.New()
@@ -30,8 +37,9 @@ func (r *OrderRepository) Create(ctx context.Context, order *models.Order) error
 }
 func (r *OrderRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Order, error) {
 	var order models.Order
-	err := r.db.WithContext(ctx).Where("id = ?", id).
+	err := preloadOrderUser(r.db.WithContext(ctx).Where("id = ?", id)).
 		Preload("Items").
+		Preload("Items.Variant").
 		Preload("Address").
 		Preload("Payments").
 		Preload("StatusHistory").
@@ -48,8 +56,9 @@ func (r *OrderRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Or
 }
 func (r *OrderRepository) GetByOrderNumber(ctx context.Context, orderNumber string) (*models.Order, error) {
 	var order models.Order
-	err := r.db.WithContext(ctx).Where("order_number = ?", orderNumber).
+	err := preloadOrderUser(r.db.WithContext(ctx).Where("order_number = ?", orderNumber)).
 		Preload("Items").
+		Preload("Items.Variant").
 		Preload("Address").
 		Preload("Payments").
 		Preload("StatusHistory").
@@ -91,7 +100,7 @@ func (r *OrderRepository) ListByUserID(ctx context.Context, userID uint, limit i
 
 	offset := (page - 1) * limit
 
-	err := query.
+	err := preloadOrderUser(query).
 		Offset(offset).
 		Limit(limit).
 		Find(&orders).Error
@@ -152,7 +161,11 @@ func (r *OrderRepository) List(ctx context.Context, userID *uint, search string,
 		query = query.Order("created_at DESC")
 	}
 	offset := (page - 1) * limit
-	err := query.Offset(offset).Limit(limit).Find(&orders).Error
+	err := preloadOrderUser(query).
+		Preload("Payments").
+		Offset(offset).
+		Limit(limit).
+		Find(&orders).Error
 	if err != nil {
 		return nil, 0, err
 	}

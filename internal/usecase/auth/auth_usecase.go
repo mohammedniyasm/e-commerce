@@ -320,20 +320,26 @@ func (u *AuthUseCase) RefreshAccessToken(ctx context.Context, refreshToken strin
 	return accessToken, newRefreshToken, nil
 }
 func (u *AuthUseCase) Logout(ctx context.Context, refreshToken string, accessClaims *interfaces.AccessClaims) error {
-	if refreshToken == "" {
+	if accessClaims == nil {
 		return domainerrors.ErrInvalidCredentials
 	}
-	_, jti, err := u.jwtService.ValidateRefreshToken(refreshToken)
-	if err != nil {
-		return err
-	}
-	errr := u.refreshSessionStore.Delete(ctx, jti)
-	if errr != nil {
-		u.log.Error(
-			"failed to delete refresh session during logout",
-			"error", errr,
+	if refreshToken != "" {
+		_, jti, err := u.jwtService.ValidateRefreshToken(refreshToken)
+		if err != nil {
+			return err
+		}
+		if err := u.refreshSessionStore.Delete(ctx, jti); err != nil {
+			u.log.Error(
+				"failed to delete refresh session during logout",
+				"error", err,
+			)
+			return err
+		}
+	} else {
+		u.log.Warn(
+			"logout requested without a refresh token",
+			"user_id", accessClaims.UserID,
 		)
-		return errr
 	}
 	remainingLifetime := time.Until(accessClaims.ExpiresAt)
 	if remainingLifetime > 0 {

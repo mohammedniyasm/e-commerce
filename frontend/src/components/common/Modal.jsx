@@ -43,6 +43,8 @@ export function Modal({
 }) {
   const modalRef = useRef(null);
   const previousActiveElementRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Focus trap, initial focus, and focus restoration
   useEffect(() => {
@@ -72,7 +74,7 @@ export function Modal({
     function handleKeyDown(e) {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -119,7 +121,7 @@ export function Modal({
         previousActiveElementRef.current.focus();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

@@ -26,6 +26,7 @@ type PlaceOrderResponse struct {
 type OrderItemResponse struct {
 	ID          uint            `json:"id"`
 	VariantID   uint            `json:"variant_id"`
+	ProductID   uint            `json:"product_id,omitempty"`
 	ProductName string          `json:"product_name"`
 	ImageURL    string          `json:"image_url"`
 	VariantInfo json.RawMessage `json:"variant_info"`
@@ -42,6 +43,13 @@ type OrderAddressResponse struct {
 	City         string `json:"city"`
 	State        string `json:"state"`
 	Pincode      string `json:"pincode"`
+	Country      string `json:"country"`
+}
+
+type OrderUserResponse struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Phone string `json:"phone"`
 }
 
 type OrderResponse struct {
@@ -49,6 +57,7 @@ type OrderResponse struct {
 	OrderNumber            string                `json:"order_number"`
 	OrderStatus            string                `json:"order_status"`
 	PaymentStatus          string                `json:"payment_status"`
+	PaymentMethod          string                `json:"payment_method"`
 	Subtotal               float64               `json:"subtotal"`
 	DiscountAmount         float64               `json:"discount_amount"`
 	ShippingAmount         float64               `json:"shipping_amount"`
@@ -57,6 +66,7 @@ type OrderResponse struct {
 	EstimatedDeliveryEnd   *time.Time            `json:"estimated_delivery_end,omitempty"`
 	Items                  []OrderItemResponse   `json:"items"`
 	Address                *OrderAddressResponse `json:"address,omitempty"`
+	User                   *OrderUserResponse    `json:"user,omitempty"`
 	PlacedAt               time.Time             `json:"placed_at"`
 	CreatedAt              time.Time             `json:"created_at"`
 }

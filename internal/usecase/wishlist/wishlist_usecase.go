@@ -156,7 +156,7 @@ func (u *WishlistUseCase) RemoveWishlistItem(ctx context.Context, wishlistID uin
 		)
 		return nil, err
 	}
-	return u.wishlistRepo.GetWishlistByID(ctx, wishlistID, userID)
+	return u.wishlistRepo.GetWishlistByID(ctx, userID, wishlistID)
 }
 func (u *WishlistUseCase) ClearWishlist(ctx context.Context, wishlistID uint, userID uint) (*models.Wishlist, error) {
 	if wishlistID == 0 {
@@ -172,7 +172,7 @@ func (u *WishlistUseCase) ClearWishlist(ctx context.Context, wishlistID uint, us
 		)
 		return nil, err
 	}
-	return u.wishlistRepo.GetWishlistByID(ctx, wishlistID, userID)
+	return u.wishlistRepo.GetWishlistByID(ctx, userID, wishlistID)
 }
 func (u *WishlistUseCase) MergeWishlistItems(ctx context.Context, wishlistName string, userID uint, productIDs []uint) (*models.Wishlist, uint, uint, error) {
 	wishlistName = strings.TrimSpace(wishlistName)

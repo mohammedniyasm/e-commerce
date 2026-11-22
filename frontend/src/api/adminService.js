@@ -24,7 +24,22 @@ export async function getAdminProfile() {
  */
 export async function getDashboardOverview() {
   const response = await apiClient.get('/admin/dashboard/overview', { requiresAuth: true });
-  return response?.data?.data ?? null;
+  const overview = response?.data?.data;
+  if (!overview) return null;
+
+  return {
+    total_revenue: overview.total_revenue ?? overview.TotalRevenue,
+    total_orders: overview.total_orders ?? overview.TotalOrders,
+    total_customers: overview.total_customers ?? overview.TotalCustomers,
+    total_products: overview.total_products ?? overview.TotalProducts,
+    pending_orders: overview.pending_orders ?? overview.PendingOrders,
+    confirmed_orders: overview.confirmed_orders ?? overview.ConfirmedOrders,
+    processing_orders: overview.processing_orders ?? overview.ProcessingOrders,
+    shipped_orders: overview.shipped_orders ?? overview.ShippedOrders,
+    delivered_orders: overview.delivered_orders ?? overview.DeliveredOrders,
+    cancelled_orders: overview.cancelled_orders ?? overview.CancelledOrders,
+    returned_orders: overview.returned_orders ?? overview.ReturnedOrders,
+  };
 }
 
 /**

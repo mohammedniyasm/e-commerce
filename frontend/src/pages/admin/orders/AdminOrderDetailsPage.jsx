@@ -30,6 +30,14 @@ import { Modal } from '../../../components/common/Modal';
 import { SkeletonLoader } from '../../../components/common/SkeletonLoader';
 import { useToast } from '../../../context/ToastContext';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
+import {
+  getShipmentStatusTransitions,
+  SHIPMENT_STATUS_LABELS,
+} from '../../../utils/shipmentStatus';
+import {
+  canMarkCodPaymentPaid,
+  canProcessWalletRefund,
+} from '../../../utils/orderEligibility';
 import './AdminOrderDetailsPage.css';
 
 // Exact valid transitions from backend internal/usecase/order/order_usecase.go: isValidOrderTransition
@@ -39,7 +47,7 @@ const VALID_TRANSITIONS = {
   processing: ['shipped', 'cancelled'],
   shipped: ['delivered', 'returned'],
   out_for_delivery: ['delivered', 'cancelled'],
-  delivered: ['returned', 'processing'],
+  delivered: [],
   cancelled: [],
   returned: [],
 };
@@ -59,15 +67,13 @@ export function AdminOrderDetailsPage() {
 
   // Shipment creation state
   const [isCreateShipmentOpen, setIsCreateShipmentOpen] = useState(false);
-  const [carrier, setCarrier] = useState('BlueDart');
+  const [courierName, setCourierName] = useState('BlueDart');
   const [trackingNumber, setTrackingNumber] = useState('');
-  const [estimatedDelivery, setEstimatedDelivery] = useState('');
-  const [shipmentNotes, setShipmentNotes] = useState('');
   const [isCreatingShipment, setIsCreatingShipment] = useState(false);
 
   // Shipment status update state
   const [isUpdateShipmentOpen, setIsUpdateShipmentOpen] = useState(false);
-  const [newShipmentStatus, setNewShipmentStatus] = useState('in_transit');
+  const [newShipmentStatus, setNewShipmentStatus] = useState('');
   const [shipmentLocation, setShipmentLocation] = useState('');
   const [shipmentUpdateNotes, setShipmentUpdateNotes] = useState('');
   const [isUpdatingShipment, setIsUpdatingShipment] = useState(false);
@@ -75,12 +81,15 @@ export function AdminOrderDetailsPage() {
   // Refund state
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
   const [isRefunding, setIsRefunding] = useState(false);
+  const availableShipmentTransitions = getShipmentStatusTransitions(shipment?.shipping_status);
 
   // COD Payment update
   const [isMarkingPaid, setIsMarkingPaid] = useState(false);
 
   const fetchOrderData = useCallback(async () => {
     setIsLoading(true);
+    setOrder(null);
+    setShipment(null);
     try {
       const orderData = await getAdminOrderById(orderId);
       setOrder(orderData);
@@ -90,8 +99,12 @@ export function AdminOrderDetailsPage() {
         const shipmentData = await getShipmentByOrderId(orderId);
         setShipment(shipmentData);
       } catch (shipErr) {
-        // Shipment might not exist yet; ignore 404
-        setShipment(null);
+        if (shipErr?.status === 404) {
+          setShipment(null);
+        } else {
+          console.error('Failed to load shipment details:', shipErr);
+          showToast(shipErr?.message || 'Failed to load shipment details', 'error');
+        }
       }
     } catch (err) {
       console.error('Failed to load order details:', err);
@@ -159,26 +172,24 @@ export function AdminOrderDetailsPage() {
   // Handle Create Shipment
   const handleCreateShipment = async (e) => {
     e.preventDefault();
-    if (!carrier.trim() || !trackingNumber.trim()) {
-      showToast('Carrier and tracking number are required', 'error');
+    if (!courierName.trim() || !trackingNumber.trim()) {
+      showToast('Courier name and tracking number are required', 'error');
       return;
     }
 
     setIsCreatingShipment(true);
     try {
       await createShipment({
-        order_id: Number(orderId),
-        carrier: carrier.trim(),
+        order_id: orderId,
+        courier_name: courierName.trim(),
         tracking_number: trackingNumber.trim(),
-        estimated_delivery: estimatedDelivery || undefined,
-        notes: shipmentNotes.trim() || undefined,
       });
       showToast('Shipment created successfully', 'success');
       setIsCreateShipmentOpen(false);
       await fetchOrderData();
     } catch (err) {
       console.error('Failed to create shipment:', err);
-      showToast(err?.response?.data?.message || 'Failed to create shipment', 'error');
+      showToast(err?.message || 'Failed to create shipment', 'error');
     } finally {
       setIsCreatingShipment(false);
     }
@@ -188,20 +199,24 @@ export function AdminOrderDetailsPage() {
   const handleUpdateShipmentStatus = async (e) => {
     e.preventDefault();
     if (!shipment?.id) return;
+    if (!getShipmentStatusTransitions(shipment.shipping_status).includes(newShipmentStatus)) {
+      showToast('That shipment status transition is not allowed.', 'error');
+      return;
+    }
 
     setIsUpdatingShipment(true);
     try {
       await updateShippingStatus(shipment.id, {
         status: newShipmentStatus,
         location: shipmentLocation.trim() || undefined,
-        notes: shipmentUpdateNotes.trim() || undefined,
+        description: shipmentUpdateNotes.trim() || undefined,
       });
       showToast('Shipment status updated', 'success');
       setIsUpdateShipmentOpen(false);
       await fetchOrderData();
     } catch (err) {
       console.error('Failed to update shipment status:', err);
-      showToast(err?.response?.data?.message || 'Failed to update shipment status', 'error');
+      showToast(err?.message || 'Failed to update shipment status', 'error');
     } finally {
       setIsUpdatingShipment(false);
     }
@@ -236,11 +251,9 @@ export function AdminOrderDetailsPage() {
 
   const currentStatus = String(order.order_status || '').toLowerCase();
   const allowedTransitions = VALID_TRANSITIONS[currentStatus] || [];
-  const canRefund =
-    (currentStatus === 'cancelled' || currentStatus === 'returned') &&
-    order.payment_status !== 'refunded';
-  const isCOD = String(order.payment_method || '').toLowerCase() === 'cod';
-  const canMarkCODPaid = isCOD && order.payment_status !== 'paid';
+  const canRefund = canProcessWalletRefund(order);
+  const canMarkCODPaid = canMarkCodPaymentPaid(order);
+  const shippingAddress = order.address || order.shipping_address;
 
   return (
     <div className="admin-order-details-page">
@@ -305,8 +318,9 @@ export function AdminOrderDetailsPage() {
             <Button
               variant="primary"
               size="sm"
-              icon={<DollarSign size={14} />}
+              leftIcon={<DollarSign size={14} />}
               onClick={handleMarkCODPaid}
+              isLoading={isMarkingPaid}
               disabled={isMarkingPaid}
             >
               {isMarkingPaid ? 'Marking...' : 'Mark COD as Paid'}
@@ -338,41 +352,54 @@ export function AdminOrderDetailsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(order.items || []).map((item, idx) => (
-                    <tr key={item.id || idx}>
-                      <td>
-                        <div className="admin-item-info">
-                          {item.product?.thumbnail && (
-                            <img
-                              src={item.product.thumbnail}
-                              alt={item.product?.name || 'Product'}
-                              className="admin-item-thumb"
-                            />
-                          )}
-                          <div>
-                            <span className="admin-item-name">
-                              {item.product?.name || item.product_name || `Item #${item.id}`}
-                            </span>
-                            {item.product?.brand?.name && (
-                              <span className="admin-item-brand">{item.product.brand.name}</span>
+                  {(order.items || []).map((item, idx) => {
+                    const variantInfo =
+                      item.variant_info && typeof item.variant_info === 'object'
+                        ? item.variant_info
+                        : {};
+                    const variantLabel = [
+                      variantInfo.size && `Size: ${variantInfo.size}`,
+                      variantInfo.color && `Color: ${variantInfo.color}`,
+                      (variantInfo.sku || item.variant?.sku || item.sku) &&
+                        `SKU: ${variantInfo.sku || item.variant?.sku || item.sku}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ');
+                    const unitPrice = Number(item.unit_price ?? item.price ?? 0);
+                    const itemTotal = Number(item.subtotal ?? unitPrice * Number(item.quantity || 0));
+                    const productName = item.product_name || item.product?.name || `Item #${item.id}`;
+                    const imageUrl = item.image_url || item.product?.thumbnail;
+
+                    return (
+                      <tr key={item.id || idx}>
+                        <td>
+                          <div className="admin-item-info">
+                            {imageUrl && (
+                              <img
+                                src={imageUrl}
+                                alt={productName}
+                                className="admin-item-thumb"
+                              />
                             )}
+                            <div>
+                              <span className="admin-item-name">{productName}</span>
+                              {item.product?.brand?.name && (
+                                <span className="admin-item-brand">{item.product.brand.name}</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="admin-item-variant">
-                          {item.variant?.size && `Size: ${item.variant.size} `}
-                          {item.variant?.color && `Color: ${item.variant.color}`}
-                          {!item.variant?.size && !item.variant?.color && (item.sku || 'Standard')}
-                        </span>
-                      </td>
-                      <td className="text-right">{formatCurrency(item.unit_price || item.price)}</td>
-                      <td className="text-center">{item.quantity}</td>
-                      <td className="text-right font-semibold">
-                        {formatCurrency((item.unit_price || item.price) * item.quantity)}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td>
+                          <span className="admin-item-variant">
+                            {variantLabel || `Variant #${item.variant_id || item.variant?.id || '—'}`}
+                          </span>
+                        </td>
+                        <td className="text-right">{formatCurrency(unitPrice)}</td>
+                        <td className="text-center">{item.quantity}</td>
+                        <td className="text-right font-semibold">{formatCurrency(itemTotal)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -409,31 +436,44 @@ export function AdminOrderDetailsPage() {
                 <Truck size={18} />
                 <h2 className="admin-card-title">Fulfillment & Shipment</h2>
               </div>
-              {shipment ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsUpdateShipmentOpen(true)}
+              <div className="admin-shipment-card-actions">
+                {shipment ? (
+                  availableShipmentTransitions.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setNewShipmentStatus(availableShipmentTransitions[0]);
+                        setIsUpdateShipmentOpen(true);
+                      }}
+                    >
+                      Update Status
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setIsCreateShipmentOpen(true)}
+                  >
+                    Create Shipment
+                  </Button>
+                )}
+                <Link
+                  to={`/admin/shipments?orderId=${encodeURIComponent(orderId)}`}
+                  className="admin-shipment-manager-link"
                 >
-                  Update Tracking
-                </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setIsCreateShipmentOpen(true)}
-                >
-                  Create Shipment
-                </Button>
-              )}
+                  Shipment Manager
+                </Link>
+              </div>
             </div>
 
             {shipment ? (
               <div className="admin-shipment-details">
                 <div className="admin-shipment-grid">
                   <div>
-                    <span className="admin-field-label">Carrier</span>
-                    <span className="admin-field-value font-semibold">{shipment.carrier}</span>
+                    <span className="admin-field-label">Courier</span>
+                    <span className="admin-field-value font-semibold">{shipment.courier_name || 'Not assigned'}</span>
                   </div>
                   <div>
                     <span className="admin-field-label">Tracking Number</span>
@@ -443,30 +483,40 @@ export function AdminOrderDetailsPage() {
                   </div>
                   <div>
                     <span className="admin-field-label">Status</span>
-                    <Badge variant="info">{shipment.status}</Badge>
+                    <Badge variant="info">
+                      {SHIPMENT_STATUS_LABELS[shipment.shipping_status] || shipment.shipping_status || 'Unknown'}
+                    </Badge>
                   </div>
                   <div>
-                    <span className="admin-field-label">Estimated Delivery</span>
+                    <span className="admin-field-label">Shipped At</span>
                     <span className="admin-field-value">
-                      {shipment.estimated_delivery ? formatDate(shipment.estimated_delivery) : 'TBD'}
+                      {shipment.shipped_at ? formatDate(shipment.shipped_at) : '—'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="admin-field-label">Delivered At</span>
+                    <span className="admin-field-value">
+                      {shipment.delivered_at ? formatDate(shipment.delivered_at) : '—'}
                     </span>
                   </div>
                 </div>
 
-                {shipment.tracking_history && shipment.tracking_history.length > 0 && (
+                {shipment.history && shipment.history.length > 0 && (
                   <div className="admin-tracking-timeline">
                     <h4>Tracking Timeline</h4>
                     <div className="admin-timeline">
-                      {shipment.tracking_history.map((event, i) => (
+                      {shipment.history.map((event, i) => (
                         <div key={i} className="admin-timeline-item">
                           <div className="admin-timeline-dot" />
                           <div className="admin-timeline-content">
-                            <span className="admin-timeline-status">{event.status}</span>
+                            <span className="admin-timeline-status">
+                              {SHIPMENT_STATUS_LABELS[event.shipping_status] || event.shipping_status}
+                            </span>
                             {event.location && (
-                              <span className="admin-timeline-location">📍 {event.location}</span>
+                              <span className="admin-timeline-location">{event.location}</span>
                             )}
-                            {event.notes && (
-                              <span className="admin-timeline-notes">{event.notes}</span>
+                            {event.description && (
+                              <span className="admin-timeline-notes">{event.description}</span>
                             )}
                             <span className="admin-timeline-time">{formatDate(event.created_at)}</span>
                           </div>
@@ -550,9 +600,11 @@ export function AdminOrderDetailsPage() {
                 <h4>Customer Details</h4>
               </div>
               <div className="admin-details-block">
-                <span className="font-semibold">{order.user?.name || 'Guest Customer'}</span>
+                <span className="font-semibold">
+                  {order.user?.name || shippingAddress?.name || 'Guest Customer'}
+                </span>
                 <span>{order.user?.email || 'No email provided'}</span>
-                <span>{order.user?.phone || 'No phone provided'}</span>
+                <span>{order.user?.phone || shippingAddress?.phone || 'No phone provided'}</span>
               </div>
             </div>
 
@@ -562,15 +614,26 @@ export function AdminOrderDetailsPage() {
                 <h4>Shipping Address</h4>
               </div>
               <div className="admin-details-block">
-                {order.shipping_address ? (
+                {shippingAddress ? (
                   <>
-                    <span className="font-semibold">{order.shipping_address.name}</span>
-                    <span>{order.shipping_address.street}</span>
+                    <span className="font-semibold">{shippingAddress.name}</span>
                     <span>
-                      {order.shipping_address.city}, {order.shipping_address.state}{' '}
-                      {order.shipping_address.postal_code}
+                      {shippingAddress.address_line1 || shippingAddress.street || '—'}
                     </span>
-                    <span>Phone: {order.shipping_address.phone}</span>
+                    {(shippingAddress.address_line2 || shippingAddress.address_line_2) && (
+                      <span>{shippingAddress.address_line2 || shippingAddress.address_line_2}</span>
+                    )}
+                    <span>
+                      {[
+                        shippingAddress.city,
+                        shippingAddress.state,
+                        shippingAddress.pincode || shippingAddress.postal_code,
+                        shippingAddress.country,
+                      ]
+                        .filter(Boolean)
+                        .join(', ') || '—'}
+                    </span>
+                    <span>Phone: {shippingAddress.phone || '—'}</span>
                   </>
                 ) : (
                   <span>No shipping address on file</span>
@@ -601,11 +664,11 @@ export function AdminOrderDetailsPage() {
       >
         <form onSubmit={handleCreateShipment} className="admin-modal-form">
           <label className="admin-form-label">
-            Carrier Name *
+            Courier Name *
             <input
               type="text"
-              value={carrier}
-              onChange={(e) => setCarrier(e.target.value)}
+              value={courierName}
+              onChange={(e) => setCourierName(e.target.value)}
               placeholder="e.g. BlueDart, Delhivery, FedEx"
               required
               className="admin-input-full"
@@ -622,26 +685,6 @@ export function AdminOrderDetailsPage() {
               className="admin-input-full"
             />
           </label>
-          <label className="admin-form-label">
-            Estimated Delivery Date
-            <input
-              type="date"
-              value={estimatedDelivery}
-              onChange={(e) => setEstimatedDelivery(e.target.value)}
-              className="admin-input-full"
-            />
-          </label>
-          <label className="admin-form-label">
-            Notes (Optional)
-            <textarea
-              value={shipmentNotes}
-              onChange={(e) => setShipmentNotes(e.target.value)}
-              placeholder="Package dispatched from central warehouse."
-              className="admin-input-full"
-              rows={3}
-            />
-          </label>
-
           <div className="admin-modal-actions">
             <Button
               type="button"
@@ -670,12 +713,13 @@ export function AdminOrderDetailsPage() {
               value={newShipmentStatus}
               onChange={(e) => setNewShipmentStatus(e.target.value)}
               className="admin-select-full"
+              required
             >
-              <option value="dispatched">Dispatched</option>
-              <option value="in_transit">In Transit</option>
-              <option value="out_for_delivery">Out for Delivery</option>
-              <option value="delivered">Delivered</option>
-              <option value="failed">Failed / Exception</option>
+              {availableShipmentTransitions.map((status) => (
+                <option key={status} value={status}>
+                  {SHIPMENT_STATUS_LABELS[status] || status}
+                </option>
+              ))}
             </select>
           </label>
           <label className="admin-form-label">
@@ -689,7 +733,7 @@ export function AdminOrderDetailsPage() {
             />
           </label>
           <label className="admin-form-label">
-            Notes
+            Description
             <textarea
               value={shipmentUpdateNotes}
               onChange={(e) => setShipmentUpdateNotes(e.target.value)}

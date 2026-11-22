@@ -171,3 +171,14 @@
 .drape-modal__actions .drape-btn {
   flex: 1;
 }
+
+@media (max-width: 360px) {
+  .drape-modal__actions {
+    flex-direction: column;
+  }
+
+  .drape-modal__actions .drape-btn {
+    width: 100%;
+    min-width: 0;
+  }
+}

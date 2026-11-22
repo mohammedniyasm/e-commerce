@@ -1855,6 +1855,8 @@ components:
           type: integer
         variant_id:
           type: integer
+        product_id:
+          type: integer
         product_name:
           type: string
         image_url:
@@ -1888,6 +1890,19 @@ components:
           type: string
         pincode:
           type: string
+        country:
+          type: string
+
+    OrderUserResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
 
     OrderResponse:
       type: object
@@ -1900,6 +1915,8 @@ components:
         order_status:
           type: string
         payment_status:
+          type: string
+        payment_method:
           type: string
         subtotal:
           type: number
@@ -1928,6 +1945,10 @@ components:
         address:
           allOf:
             - $ref: '#/components/schemas/OrderAddressResponse'
+          nullable: true
+        user:
+          allOf:
+            - $ref: '#/components/schemas/OrderUserResponse'
           nullable: true
         placed_at:
           type: string
@@ -2039,6 +2060,8 @@ components:
         order_id:
           type: string
           format: uuid
+        order_number:
+          type: string
         courier_name:
           type: string
           nullable: true
@@ -2071,6 +2094,24 @@ components:
         updated_at:
           type: string
           format: date-time
+
+    ShipmentListResponse:
+      type: object
+      properties:
+        shipments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShipmentResponse'
+        total_count:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        limit:
+          type: integer
+        total_pages:
+          type: integer
+          format: int64
 
     ShipmentTrackingHistoryListResponse:
       type: object
@@ -2267,6 +2308,70 @@ components:
         updated_at:
           type: string
           format: date-time
+        order:
+          $ref: '#/components/schemas/ReturnRequestOrderSummary'
+        order_item:
+          $ref: '#/components/schemas/ReturnRequestOrderItem'
+        requested_variant:
+          $ref: '#/components/schemas/ReturnRequestVariant'
+
+    ReturnRequestOrderSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_number:
+          type: string
+        order_status:
+          type: string
+        payment_status:
+          type: string
+        user_id:
+          type: integer
+
+    ReturnRequestOrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        variant_id:
+          type: integer
+        product_name:
+          type: string
+        image_url:
+          type: string
+        variant_info:
+          type: object
+          additionalProperties: true
+        unit_price:
+          type: number
+        quantity:
+          type: integer
+        subtotal:
+          type: number
+
+    ReturnRequestVariant:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        size:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        sku:
+          type: string
+        image_url:
+          type: string
+        selling_price:
+          type: number
+        stock:
+          type: integer
 
     ReturnRequestListData:
       type: object
@@ -3686,11 +3791,10 @@ paths:
     post:
       tags: [Auth]
       summary: Logout customer session
-      description: Requires valid Bearer token and refresh token cookie; revokes refresh token and clears cookie.
+      description: Requires a valid Bearer token. Revokes the refresh session when its cookie is present and clears the cookie.
       operationId: logoutUser
       security:
         - BearerAuth: []
-          RefreshTokenCookie: []
       responses:
         '200':
           $ref: '#/components/responses/SuccessMessageResponse'
@@ -5447,10 +5551,10 @@ paths:
     post:
       tags: [Admin Auth]
       summary: Logout administrator session
+      description: Requires a valid Bearer token. Revokes the refresh session when its cookie is present and clears the cookie.
       operationId: adminLogout
       security:
         - BearerAuth: []
-          RefreshTokenCookie: []
       responses:
         '200':
           $ref: '#/components/responses/SuccessMessageResponse'
@@ -7703,6 +7807,95 @@ paths:
           $ref: '#/components/responses/ConflictResponse'
 
   /api/v1/admin/shipments:
+    get:
+      tags: [Admin Shipments]
+      summary: List shipments with filters and pagination
+      operationId: adminListShipments
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - name: limit
+          in: query
+          required: false
+          description: Items per page (maximum 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: shipping_status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, packed, ready_to_ship, in_transit, out_for_delivery, delivered, failed, returned, cancelled]
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [delivery, return, return_to_customer]
+        - name: courier_name
+          in: query
+          required: false
+          description: Case-insensitive partial match
+          schema:
+            type: string
+        - name: order_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: return_request_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: created_from
+          in: query
+          required: false
+          description: Include shipments created on or after this date
+          schema:
+            type: string
+            format: date
+        - name: created_to
+          in: query
+          required: false
+          description: Include shipments created on or before this date
+          schema:
+            type: string
+            format: date
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [newest, oldest, updated_desc, updated_asc, status_asc, status_desc]
+            default: newest
+      responses:
+        '200':
+          description: Paginated shipments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponseBase'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ShipmentListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
     post:
       tags: [Admin Shipments]
       summary: Create shipment for an order

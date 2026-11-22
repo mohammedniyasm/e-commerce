@@ -2,6 +2,7 @@ import { createServer } from 'vite';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import fs from 'node:fs';
 
 async function run() {
   console.log('--- STARTING CUSTOMER AUTHENTICATION VERIFICATION TESTS ---');
@@ -92,22 +93,30 @@ async function run() {
     const AuthService = await vite.ssrLoadModule('/src/api/authService.js');
     assert(typeof AuthService.registerCustomer === 'function', 'authService exports registerCustomer');
     assert(typeof AuthService.loginCustomer === 'function', 'authService exports loginCustomer');
+    assert(typeof AuthService.logout === 'function', 'authService exports logout');
     assert(typeof AuthService.loginWithGoogle === 'function', 'authService exports loginWithGoogle');
     assert(typeof AuthService.forgotPassword === 'function', 'authService exports forgotPassword');
     assert(typeof AuthService.verifyForgotPasswordOTP === 'function', 'authService exports verifyForgotPasswordOTP');
     assert(typeof AuthService.resendForgotPasswordOTP === 'function', 'authService exports resendForgotPasswordOTP');
     assert(typeof AuthService.resetPassword === 'function', 'authService exports resetPassword');
 
+    const { getRefreshEndpoint } = await vite.ssrLoadModule('/src/api/client.js');
+    assert(
+      getRefreshEndpoint('/admin/orders') === '/admin/auth/refresh-token' &&
+        getRefreshEndpoint('/orders') === '/auth/refresh-token',
+      '401 retries refresh the correct customer or admin session',
+    );
+
     // 3. Test Component Rendering
     console.log('\n[3/3] Testing Component SSR Rendering...');
     const { AuthProvider } = await vite.ssrLoadModule('/src/context/AuthContext.jsx');
     const { ToastProvider } = await vite.ssrLoadModule('/src/context/ToastContext.jsx');
 
-    function renderWithProviders(element) {
+    function renderWithProviders(element, initialEntries = ['/']) {
       return renderToString(
         React.createElement(
           MemoryRouter,
-          null,
+          { initialEntries },
           React.createElement(
             ToastProvider,
             null,
@@ -129,6 +138,24 @@ async function run() {
     assert(registerHtml.includes('CREATE ACCOUNT'), 'RegisterPage renders CREATE ACCOUNT submit button');
     assert(registerHtml.includes('Continue with Google'), 'RegisterPage renders Continue with Google button');
     assert(registerHtml.includes('Already have an account?'), 'RegisterPage renders login redirect link');
+    const referredRegisterHtml = renderWithProviders(
+      React.createElement(RegisterPage),
+      ['/register?ref=FRIEND10'],
+    );
+    assert(
+      referredRegisterHtml.includes('REFERRAL CODE (OPTIONAL)') &&
+        referredRegisterHtml.includes('value="FRIEND10"'),
+      'RegisterPage pre-fills and reveals the referral code from the ref query parameter',
+    );
+    const googleButtonSource = fs.readFileSync(
+      new URL('../src/components/auth/GoogleAuthButton.jsx', import.meta.url),
+      'utf8',
+    );
+    assert(
+      googleButtonSource.includes('googleIdentity.renderButton') &&
+        !googleButtonSource.includes('accounts.id.prompt()'),
+      'GoogleAuthButton uses the Google popup button instead of the suppressible One Tap prompt',
+    );
 
     // LoginPage
     const { LoginPage } = await vite.ssrLoadModule('/src/pages/auth/LoginPage.jsx');
@@ -164,10 +191,10 @@ async function run() {
     // AuthLayout
     const { AuthLayout } = await vite.ssrLoadModule('/src/layouts/AuthLayout.jsx');
     const layoutHtml = renderWithProviders(React.createElement(AuthLayout));
-    assert(layoutHtml.includes('EDITION 01 / SS25'), 'AuthLayout renders editorial edition badge');
+    assert(layoutHtml.includes('NEW SEASON'), 'AuthLayout renders season badge');
     assert(layoutHtml.includes('KOCHI FLAGSHIP'), 'AuthLayout renders flagship location label');
-    assert(layoutHtml.includes('Tactile permanence and effortless daily utility.'), 'AuthLayout renders campaign quote');
-    assert(layoutHtml.includes('LOOK 14: RELAXED LINEN SUITING'), 'AuthLayout renders editorial look metadata');
+    assert(layoutHtml.includes('Comfortable clothing for everyday life.'), 'AuthLayout renders campaign quote');
+    assert(layoutHtml.includes('COMFORTABLE EVERYDAY CLOTHING'), 'AuthLayout renders collection details');
     assert(layoutHtml.includes('DRAPE'), 'AuthLayout renders DRAPE brand logo');
 
     // Summary

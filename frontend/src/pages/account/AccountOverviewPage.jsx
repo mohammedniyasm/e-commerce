@@ -48,7 +48,7 @@ export function AccountOverviewPage() {
           </div>
           <div className="account-overview-unverified-alert__text">
             <strong>Account Email Unverified</strong>
-            <span>Your email address ({profile?.email}) is not yet verified. Complete verification to activate all atelier features.</span>
+            <span>Your email address ({profile?.email}) is not yet verified. Verify it to receive account updates.</span>
           </div>
           <Button
             variant="primary"
@@ -190,7 +190,7 @@ export function AccountOverviewPage() {
 
                     <div className="account-order-snippet__summary">
                       <span className="account-order-snippet__items">
-                        {itemsCount} {itemsCount === 1 ? 'Garment' : 'Garments'}
+                        {itemsCount} {itemsCount === 1 ? 'item' : 'items'}
                       </span>
                       <span className="account-order-snippet__total">
                         {formatCurrencyINR(order.total_amount)}
@@ -215,7 +215,7 @@ export function AccountOverviewPage() {
             <div className="account-empty-block" data-testid="orders-empty-state">
               <Package size={32} className="account-empty-icon" />
               <p className="account-empty-text">
-                No orders placed yet. Explore our curated collections.
+                You have not placed an order yet. Browse our products to get started.
               </p>
               <Link to="/catalog">
                 <Button variant="outline" size="sm">
@@ -283,7 +283,7 @@ export function AccountOverviewPage() {
         </div>
       </section>
 
-      {/* SECTION 4: Security & Concierge Assistance (2-Column Grid) */}
+      {/* SECTION 4: Account Security & Customer Support */}
       <div className="account-support-grid">
         {/* Account Security */}
         <div className="account-card account-card--compact">
@@ -295,7 +295,7 @@ export function AccountOverviewPage() {
           </div>
           <div className="account-card__body">
             <p className="account-card__desc">
-              Protect your atelier account credentials and manage password security.
+              Keep your account secure and manage your password.
             </p>
             <div className="account-card__action-row">
               <Link to="/account/profile">
@@ -307,7 +307,7 @@ export function AccountOverviewPage() {
           </div>
         </div>
 
-        {/* Atelier Concierge matching Figma text */}
+        {/* Customer support */}
         <div className="account-card account-card--compact">
           <div className="account-card__header">
             <div className="account-card__title-group">
@@ -317,15 +317,14 @@ export function AccountOverviewPage() {
           </div>
           <div className="account-card__body">
             <p className="account-card__desc">
-              Our Drape Atelier concierge team is on hand for assistance with order inquiries,
-              sizing, or bespoke tailoring consultations.
+              Contact our support team for help with orders, sizing, or returns.
             </p>
             <div className="account-card__action-row">
               <a
                 href="mailto:concierge@drapeatelier.com"
                 className="account-concierge-link"
               >
-                <span>Contact Concierge</span>
+                <span>Email Customer Support</span>
                 <ExternalLink size={14} />
               </a>
             </div>

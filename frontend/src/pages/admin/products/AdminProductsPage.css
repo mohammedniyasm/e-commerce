@@ -176,3 +176,400 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+.admin-catalog-page {
+  min-width: 0;
+}
+
+.admin-product-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-product-heading .admin-page-title {
+  overflow-wrap: anywhere;
+}
+
+.admin-catalog-page .admin-header-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+.admin-button-link {
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.admin-catalog-page .admin-icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.admin-catalog-page .admin-icon-btn:focus-visible,
+.admin-catalog-page .admin-status-pill:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.admin-catalog-page .admin-actions-cell {
+  gap: 8px;
+}
+
+.admin-catalog-page .admin-status-pill {
+  min-height: 32px;
+  border-radius: 9999px;
+}
+
+.admin-product-filter-card {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.admin-product-filter-card .admin-tabs-group {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.admin-product-filter-card .admin-tab-btn {
+  white-space: nowrap;
+}
+
+.admin-product-filter-card .admin-filter-controls {
+  display: grid;
+  grid-template-columns: minmax(200px, 2fr) repeat(3, minmax(120px, 1fr)) auto;
+  align-items: stretch;
+  width: 100%;
+}
+
+.admin-product-filter-card .admin-search-wrapper,
+.admin-product-filter-card .admin-filter-select {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-product-filter-card .drape-btn {
+  height: 38px;
+}
+
+.admin-product-tabs {
+  padding: 8px 12px;
+}
+
+.admin-product-tabs .admin-tabs-group {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-product-tabs .admin-tabs-group::-webkit-scrollbar,
+.admin-product-filter-card .admin-tabs-group::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-product-tabs .admin-tab-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.admin-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.admin-back-link:hover {
+  color: #0f172a;
+}
+
+.admin-product-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 16px;
+}
+
+.admin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.admin-product-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.admin-product-section-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-variant-optional-fields,
+.admin-variant-pricing-fields {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-variant-optional-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-variant-pricing-fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-catalog-page .admin-form-label .required {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .admin-product-filter-card {
+    padding: 12px;
+  }
+
+  .admin-product-filter-card .admin-filter-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .admin-product-filter-card .admin-search-wrapper,
+  .admin-product-filter-card .admin-filter-controls > .drape-btn {
+    grid-column: 1 / -1;
+  }
+
+  .admin-product-filter-card .admin-tabs-group {
+    align-self: stretch;
+  }
+
+  .admin-product-filter-card .admin-tab-btn {
+    flex: 1 0 auto;
+  }
+
+  .admin-catalog-page .admin-header-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .admin-product-section-toolbar {
+    align-items: flex-start;
+  }
+
+  .admin-detail-card {
+    padding: 18px;
+  }
+
+  .admin-variants-table .drape-table {
+    min-width: 720px;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-product-filter-card .admin-filter-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-product-filter-card .admin-tabs-group {
+    width: 100%;
+  }
+
+  .admin-product-filter-card .admin-tab-btn {
+    padding: 6px 10px;
+  }
+
+  .admin-products-table .drape-table-container {
+    overflow: visible;
+  }
+
+  .admin-products-table .drape-table,
+  .admin-products-table .drape-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-products-table .drape-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .admin-products-table .drape-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f1f2;
+  }
+
+  .admin-products-table .drape-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .admin-products-table .drape-table tbody td {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    padding: 8px 0;
+    border: 0;
+    font-size: 12px;
+  }
+
+  .admin-products-table .drape-table tbody td::before {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .admin-products-table .drape-table tbody td:nth-child(1) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-products-table .drape-table tbody td:nth-child(1)::before {
+    content: none;
+  }
+
+  .admin-products-table .drape-table tbody td:nth-child(2)::before {
+    content: 'Category';
+  }
+
+  .admin-products-table .drape-table tbody td:nth-child(3)::before {
+    content: 'Brand';
+  }
+
+  .admin-products-table .drape-table tbody td:nth-child(4)::before {
+    content: 'Active';
+  }
+
+  .admin-products-table .drape-table tbody td:nth-child(5)::before {
+    content: 'Listed';
+  }
+
+  .admin-products-table .drape-table tbody td:nth-child(6),
+  .admin-products-table .drape-table tbody td:nth-child(7) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-products-table .drape-table tbody td:nth-child(6)::before {
+    content: 'Created';
+  }
+
+  .admin-products-table .drape-table tbody td:nth-child(7) {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .admin-products-table .drape-table tbody td:nth-child(7)::before {
+    content: 'Actions';
+    margin-right: 8px;
+  }
+
+  .admin-products-table .admin-product-name-col,
+  .admin-products-table .admin-product-title-group {
+    min-width: 0;
+  }
+
+  .admin-products-table .admin-product-title {
+    overflow-wrap: anywhere;
+  }
+
+  .admin-products-table .admin-product-slug {
+    overflow-wrap: anywhere;
+  }
+
+  .admin-products-table .admin-status-pill {
+    max-width: 100%;
+  }
+
+  .admin-products-table .drape-tr--empty {
+    display: block;
+  }
+
+  .admin-products-table .drape-tr--empty td {
+    display: block;
+    grid-column: auto;
+    text-align: center;
+  }
+
+  .admin-product-heading {
+    align-items: flex-start;
+  }
+
+  .admin-catalog-page .admin-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-catalog-page .admin-header-actions > .drape-btn,
+  .admin-catalog-page .admin-header-actions > a {
+    width: 100%;
+  }
+
+  .admin-catalog-page .admin-header-actions > a .drape-btn {
+    width: 100%;
+  }
+
+  .admin-product-section-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-product-section-toolbar > .drape-btn {
+    width: 100%;
+  }
+
+  .admin-product-select-grid,
+  .admin-variant-optional-fields,
+  .admin-variant-pricing-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .admin-form-actions > .drape-btn,
+  .admin-form-actions > a {
+    width: 100%;
+  }
+
+  .admin-images-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (hover: none) {
+  .admin-image-overlay {
+    align-items: flex-end;
+    padding: 12px;
+    background: linear-gradient(transparent, rgba(15, 23, 42, 0.65));
+    opacity: 1;
+  }
+}

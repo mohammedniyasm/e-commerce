@@ -1,6 +1,14 @@
 /* Drape Order Confirmation Page Styles */
 
 .order-confirm-page {
+  --spacing-2xs: var(--space-1);
+  --spacing-xs: var(--space-2);
+  --spacing-sm: var(--space-3);
+  --spacing-md: var(--space-4);
+  --spacing-lg: var(--space-6);
+  --spacing-xl: var(--space-8);
+  --spacing-2xl: var(--space-12);
+  --spacing-3xl: var(--space-16);
   max-width: 860px;
   margin: 0 auto;
   padding: var(--spacing-3xl) var(--spacing-xl);
@@ -14,6 +22,7 @@
   width: 100%;
   background: #ffffff;
   border: 1px solid var(--border-stone-200, #e7e5e4);
+  border-radius: var(--radius-md);
   padding: var(--spacing-3xl) var(--spacing-2xl);
   text-align: center;
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
@@ -85,6 +94,7 @@
   background: var(--color-stone-50, #fafaf9);
   border: 1px solid var(--border-stone-200, #e7e5e4);
   padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -119,6 +129,7 @@
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-2xl);
   text-align: left;
+  border-radius: var(--radius-sm);
   color: var(--color-stone-600, #57534e);
   font-size: var(--font-size-xs, 0.75rem);
   line-height: 1.5;
@@ -164,5 +175,16 @@
 
   .order-confirm-actions button {
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .order-confirm-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-confirm-ref-badge {
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 }

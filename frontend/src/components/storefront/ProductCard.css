@@ -17,6 +17,8 @@
 
 .drape-product-card__image-link {
   display: block;
+  position: absolute;
+  inset: 0;
   text-decoration: none;
 }
 
@@ -170,4 +172,60 @@
   background: #ffffff;
   color: var(--color-gold-700, #966b1a);
   border-color: var(--color-gold-300, #eed99f);
+}
+
+.drape-product-card__wishlist-btn:focus-visible {
+  outline: 2px solid var(--store-text-primary, #191c1d);
+  outline-offset: 3px;
+}
+
+.wishlist-collection-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.wishlist-collection-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--store-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.wishlist-collection-form__field select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--store-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--store-surface);
+  color: var(--store-text-primary);
+  font: inherit;
+}
+
+.wishlist-collection-form__field select:focus-visible {
+  outline: 2px solid var(--store-text-primary);
+  outline-offset: 2px;
+}
+
+.wishlist-collection-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.wishlist-collection-form__actions .drape-btn {
+  min-width: 120px;
+}
+
+@media (max-width: 420px) {
+  .wishlist-collection-form__actions {
+    flex-direction: column-reverse;
+  }
+
+  .wishlist-collection-form__actions .drape-btn {
+    width: 100%;
+  }
 }

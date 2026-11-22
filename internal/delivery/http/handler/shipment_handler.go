@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"ecommerce/internal/delivery/http/dto/request"
 	"ecommerce/internal/delivery/http/dto/response"
@@ -29,6 +31,82 @@ func NewShipmentHandler(
 		shipmentUseCase: shipmentUseCase,
 		log:             log,
 	}
+}
+func (h *ShipmentHandler) ListShipments(c *gin.Context) {
+	var req request.ListShipmentsRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "Invalid shipment query parameters",
+		})
+		return
+	}
+
+	filter, err := parseShipmentListFilter(req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: err.Error(),
+		})
+		return
+	}
+	if filter.Limit <= 0 {
+		filter.Limit = 10
+	}
+	if filter.Limit > 100 {
+		filter.Limit = 100
+	}
+	if filter.Page <= 0 {
+		filter.Page = 1
+	}
+	if filter.Sort == "" {
+		filter.Sort = "newest"
+	}
+
+	shipments, total, err := h.shipmentUseCase.ListShipments(c.Request.Context(), filter)
+	if err != nil {
+		switch {
+		case errors.Is(err, domainerrors.ErrInvalidInput),
+			errors.Is(err, domainerrors.ErrInvalidOrderID),
+			errors.Is(err, domainerrors.ErrInvalidShippingStatus):
+			c.JSON(http.StatusBadRequest, response.APIResponse{
+				Success: false,
+				Message: "Invalid shipment filters",
+			})
+		default:
+			h.log.ErrorContext(
+				c.Request.Context(),
+				"failed to list shipments",
+				"error", err,
+			)
+			c.JSON(http.StatusInternalServerError, response.APIResponse{
+				Success: false,
+				Message: "Unable to retrieve shipments",
+			})
+		}
+		return
+	}
+
+	items := make([]response.ShipmentResponse, 0, len(shipments))
+	for i := range shipments {
+		items = append(items, toShipmentResponse(&shipments[i]))
+	}
+	totalPages := int64(0)
+	if total > 0 {
+		totalPages = (total + int64(filter.Limit) - 1) / int64(filter.Limit)
+	}
+
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "Shipments retrieved successfully",
+		Data: response.ShipmentListResponse{
+			Shipments:  items,
+			TotalCount: total,
+			Page:       filter.Page,
+			Limit:      filter.Limit,
+			TotalPages: totalPages,
+		},
+	})
 }
 func (h *ShipmentHandler) CreateShipment(c *gin.Context) {
 	var req request.CreateShipmentRequest
@@ -438,6 +516,7 @@ func toShipmentResponse(shipment *models.Shipment) response.ShipmentResponse {
 	return response.ShipmentResponse{
 		ID:              shipment.ID,
 		OrderID:         shipment.OrderID,
+		OrderNumber:     shipment.Order.OrderNumber,
 		Type:            shipment.Type,
 		ReturnRequestID: shipment.ReturnRequestID,
 		CourierName:     shipment.CourierName,
@@ -449,6 +528,80 @@ func toShipmentResponse(shipment *models.Shipment) response.ShipmentResponse {
 		UpdatedAt:       shipment.UpdatedAt,
 		History:         history,
 	}
+}
+
+func parseShipmentListFilter(req request.ListShipmentsRequest) (models.ShipmentListFilter, error) {
+	filter := models.ShipmentListFilter{
+		Search:      strings.TrimSpace(req.Search),
+		CourierName: strings.TrimSpace(req.CourierName),
+		Sort:        strings.TrimSpace(req.Sort),
+		Limit:       req.Limit,
+		Page:        req.Page,
+	}
+
+	if status := strings.TrimSpace(req.ShippingStatus); status != "" {
+		switch status {
+		case "pending", "packed", "ready_to_ship", "in_transit", "out_for_delivery",
+			"delivered", "failed", "returned", "cancelled":
+		default:
+			return models.ShipmentListFilter{}, errors.New("invalid shipping_status")
+		}
+		filter.ShippingStatus = &status
+	}
+	if shipmentType := strings.TrimSpace(req.Type); shipmentType != "" {
+		value := models.ShipmentType(shipmentType)
+		switch value {
+		case models.ShipmentTypeDelivery, models.ShipmentTypeReturn, models.ShipmentTypeReturnToCustomer:
+		default:
+			return models.ShipmentListFilter{}, errors.New("invalid type")
+		}
+		filter.Type = &value
+	}
+	switch filter.Sort {
+	case "", "newest", "oldest", "updated_desc", "updated_asc", "status_asc", "status_desc":
+	default:
+		return models.ShipmentListFilter{}, errors.New("invalid sort")
+	}
+	if rawOrderID := strings.TrimSpace(req.OrderID); rawOrderID != "" {
+		orderID, err := uuid.Parse(rawOrderID)
+		if err != nil || orderID == uuid.Nil {
+			return models.ShipmentListFilter{}, errors.New("invalid order_id")
+		}
+		filter.OrderID = &orderID
+	}
+	if rawReturnRequestID := strings.TrimSpace(req.ReturnRequestID); rawReturnRequestID != "" {
+		parsedID, err := strconv.ParseUint(rawReturnRequestID, 10, 32)
+		if err != nil || parsedID == 0 {
+			return models.ShipmentListFilter{}, errors.New("invalid return_request_id")
+		}
+		id := uint(parsedID)
+		filter.ReturnRequestID = &id
+	}
+	createdFrom, err := parseShipmentDateFilter(req.CreatedFrom)
+	if err != nil {
+		return models.ShipmentListFilter{}, errors.New("created_from must use YYYY-MM-DD format")
+	}
+	createdTo, err := parseShipmentDateFilter(req.CreatedTo)
+	if err != nil {
+		return models.ShipmentListFilter{}, errors.New("created_to must use YYYY-MM-DD format")
+	}
+	filter.CreatedFrom = createdFrom
+	filter.CreatedTo = createdTo
+	if createdFrom != nil && createdTo != nil && createdFrom.After(*createdTo) {
+		return models.ShipmentListFilter{}, errors.New("created_from cannot be after created_to")
+	}
+	return filter, nil
+}
+
+func parseShipmentDateFilter(value string) (*time.Time, error) {
+	if strings.TrimSpace(value) == "" {
+		return nil, nil
+	}
+	parsed, err := time.Parse("2006-01-02", strings.TrimSpace(value))
+	if err != nil {
+		return nil, err
+	}
+	return &parsed, nil
 }
 func (h *ShipmentHandler) handleShipmentError(c *gin.Context, err error, message string) {
 	switch {

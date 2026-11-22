@@ -187,7 +187,10 @@ export function AdminCustomersPage() {
       align: 'center',
       render: (val, user) => {
         const u = (typeof val === 'object' && val !== null) ? val : (user || {});
-        const isVerified = typeof val === 'boolean' ? val : Boolean(u.is_email_verified);
+        const isVerified =
+          typeof val === 'boolean'
+            ? val
+            : Boolean(u.is_email_verified ?? (u.email_verified_at != null));
         return (
           <Badge variant={isVerified ? 'success' : 'neutral'}>
             {isVerified ? 'Verified' : 'Unverified'}

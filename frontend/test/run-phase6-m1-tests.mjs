@@ -136,7 +136,7 @@ async function run() {
       assert(navHtml.includes('Personal Profile'), 'AccountNav renders Personal Profile link');
       assert(navHtml.includes('My Orders'), 'AccountNav renders My Orders link');
       assert(navHtml.includes('Address Book'), 'AccountNav renders Address Book link');
-      assert(navHtml.includes('Atelier Wallet'), 'AccountNav renders Atelier Wallet link');
+      assert(navHtml.includes('Wallet'), 'AccountNav renders Wallet link');
       assert(navHtml.includes('Returns &amp; Exchanges') || navHtml.includes('Returns & Exchanges'), 'AccountNav renders Returns & Exchanges link');
       assert(navHtml.includes('Referral Program'), 'AccountNav renders Referral Program link');
       assert(navHtml.includes('Sign Out'), 'AccountNav renders Sign Out action button');
@@ -174,7 +174,7 @@ async function run() {
 
     const layoutSource = fs.readFileSync(new URL('../src/layouts/AccountLayout.jsx', import.meta.url), 'utf8');
     assert(
-      layoutSource.includes('Sign Out of Atelier') &&
+      layoutSource.includes('title="Sign Out"') &&
         layoutSource.includes('isSignOutModalOpen') &&
         layoutSource.includes('STAY SIGNED IN'),
       'AccountLayout component integrates Sign Out confirmation modal matching Figma 33:14649',
@@ -185,7 +185,7 @@ async function run() {
         Modal,
         {
           isOpen: true,
-          title: 'Sign Out of Atelier',
+          title: 'Sign Out',
           eyebrow: 'SESSION CONFIRMATION',
           onClose: () => {},
         },
@@ -198,7 +198,7 @@ async function run() {
       ),
     );
     assert(
-      modalHtml.includes('Sign Out of Atelier') &&
+      modalHtml.includes('Sign Out') &&
         modalHtml.includes('STAY SIGNED IN') &&
         modalHtml.includes('SIGN OUT'),
       'Sign Out confirmation modal renders properly matching Figma 33:14649',
@@ -272,8 +272,8 @@ async function run() {
     assert(overviewHtml.includes('Saved Addresses'), 'AccountOverviewPage renders Saved Addresses section (Figma Section 3)');
     assert(overviewHtml.includes('Bungalow 4, Princess Street'), 'AccountOverviewPage renders default address street line');
     assert(overviewHtml.includes('Account Security'), 'AccountOverviewPage renders Account Security card');
-    assert(overviewHtml.includes('Need Help?'), 'AccountOverviewPage renders Need Help / Atelier Concierge card');
-    assert(overviewHtml.includes('concierge@drapeatelier.com'), 'AccountOverviewPage renders concierge contact email');
+    assert(overviewHtml.includes('Need Help?'), 'AccountOverviewPage renders customer support card');
+    assert(overviewHtml.includes('Email Customer Support'), 'AccountOverviewPage renders support contact link');
 
     // 5. Route Protection & Architecture Verification
     console.log('\n[5/5] Testing Route Guards & Nested Route Architecture...');

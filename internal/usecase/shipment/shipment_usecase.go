@@ -7,6 +7,7 @@ import (
 	"ecommerce/internal/usecase/interfaces"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/google/uuid"
 	// "uuid"
@@ -82,6 +83,15 @@ func isValidShippingTransition(currentStatus, nextStatus string) bool {
 	}
 	return false
 }
+func isValidShippingStatus(status string) bool {
+	switch status {
+	case "pending", "packed", "ready_to_ship", "in_transit", "out_for_delivery",
+		"delivered", "failed", "returned", "cancelled":
+		return true
+	default:
+		return false
+	}
+}
 func (u *ShipmentUseCase) CreateShipment(ctx context.Context, shipment *models.Shipment) error {
 	if shipment == nil {
 		return domainerrors.ErrInvalidShipment
@@ -99,6 +109,50 @@ func (u *ShipmentUseCase) CreateShipment(ctx context.Context, shipment *models.S
 		return nil
 	}
 	return domainerrors.ErrOrderNeedToConfirm
+}
+func (u *ShipmentUseCase) ListShipments(ctx context.Context, filter models.ShipmentListFilter) ([]models.Shipment, int64, error) {
+	filter.Search = strings.TrimSpace(filter.Search)
+	filter.CourierName = strings.TrimSpace(filter.CourierName)
+	if filter.Limit <= 0 {
+		filter.Limit = 10
+	}
+	if filter.Limit > 100 {
+		filter.Limit = 100
+	}
+	if filter.Page <= 0 {
+		filter.Page = 1
+	}
+
+	if filter.ShippingStatus != nil {
+		if !isValidShippingStatus(*filter.ShippingStatus) {
+			return nil, 0, domainerrors.ErrInvalidShippingStatus
+		}
+	}
+	if filter.Type != nil &&
+		*filter.Type != models.ShipmentTypeDelivery &&
+		*filter.Type != models.ShipmentTypeReturn &&
+		*filter.Type != models.ShipmentTypeReturnToCustomer {
+		return nil, 0, domainerrors.ErrInvalidInput
+	}
+	if filter.OrderID != nil && *filter.OrderID == uuid.Nil {
+		return nil, 0, domainerrors.ErrInvalidOrderID
+	}
+	if filter.ReturnRequestID != nil && *filter.ReturnRequestID == 0 {
+		return nil, 0, domainerrors.ErrInvalidInput
+	}
+	if filter.CreatedFrom != nil && filter.CreatedTo != nil && filter.CreatedFrom.After(*filter.CreatedTo) {
+		return nil, 0, domainerrors.ErrInvalidInput
+	}
+
+	switch filter.Sort {
+	case "", "newest":
+		filter.Sort = "newest"
+	case "oldest", "updated_desc", "updated_asc", "status_asc", "status_desc":
+	default:
+		return nil, 0, domainerrors.ErrInvalidInput
+	}
+
+	return u.shipmentRepo.List(ctx, filter)
 }
 func (u *ShipmentUseCase) GetShipmentByID(ctx context.Context, id uint) (*models.Shipment, error) {
 	if id <= 0 {
@@ -132,18 +186,7 @@ func (u *ShipmentUseCase) UpdateShippingStatus(ctx context.Context, shipmentID u
 	if shipmentID == 0 {
 		return domainerrors.ErrInvalidShipmentID
 	}
-	validStatuses := map[string]bool{
-		"pending":          true,
-		"packed":           true,
-		"ready_to_ship":    true,
-		"in_transit":       true,
-		"out_for_delivery": true,
-		"delivered":        true,
-		"failed":           true,
-		"returned":         true,
-		"cancelled":        true,
-	}
-	if !validStatuses[status] {
+	if !isValidShippingStatus(status) {
 		return domainerrors.ErrInvalidShippingStatus
 	}
 	err := u.unitOfWork.WithinTransaction(ctx, func(repos interfaces.TransactionRepositories) error {
@@ -171,13 +214,11 @@ func (u *ShipmentUseCase) UpdateShippingStatus(ctx context.Context, shipmentID u
 			if err != nil {
 				return fmt.Errorf("get return request: %w", err)
 			}
-			if request.Status != ReturnStatusInspectionFailed {
-				return domainerrors.ErrInvalidOrderTransition
+			if request.Status == ReturnStatusClosed {
+				return nil
 			}
-			if !isValidReturnTransition(
-				request.Status,
-				ReturnStatusClosed,
-			) {
+			if request.Status != ReturnStatusInspectionFailed ||
+				!isValidReturnTransition(request.Status, ReturnStatusClosed) {
 				return domainerrors.ErrInvalidOrderTransition
 			}
 			request.Status = ReturnStatusClosed

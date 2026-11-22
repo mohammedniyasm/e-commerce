@@ -188,3 +188,25 @@
     display: flex;
   }
 }
+
+@media (max-width: 640px) {
+  .admin-header {
+    padding: 0 12px;
+  }
+
+  .admin-header-left {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .admin-header-right {
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  .admin-view-store-link,
+  .admin-header-divider,
+  .admin-header-user-meta {
+    display: none;
+  }
+}

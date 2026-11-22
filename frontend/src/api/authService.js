@@ -81,7 +81,6 @@ export async function logout({ role } = {}) {
   try {
     await apiClient.post(path, undefined, {
       requiresAuth: true,
-      skipSessionRefresh: true,
     });
   } finally {
     clearAccessToken();

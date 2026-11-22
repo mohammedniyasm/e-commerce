@@ -250,6 +250,24 @@
 }
 
 @media (max-width: 480px) {
+  .referral-code-display {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .referral-code-text {
+    overflow-wrap: anywhere;
+  }
+
+  .referral-code-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .referral-code-actions button {
+    width: 100%;
+  }
+
   .referral-stats-grid {
     grid-template-columns: 1fr;
   }

@@ -236,7 +236,7 @@ export function ForgotPasswordPage() {
                 name="email"
                 type="email"
                 size="lg"
-                placeholder="name@atelier-drape.com"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);

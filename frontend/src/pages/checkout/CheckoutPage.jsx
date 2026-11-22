@@ -358,7 +358,7 @@ export function CheckoutPage() {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_Tvc7Cx1Mt8YYEk',
         amount: Math.round(order.total_amount * 100),
         currency: 'INR',
-        name: 'Drape Atelier',
+        name: 'Drape',
         description: `Order #${order.order_number}`,
         order_id: razorpayOrder.razorpay_order_id,
         prefill: {
@@ -395,7 +395,7 @@ export function CheckoutPage() {
           } catch (verifyErr) {
             setPaymentError(
               verifyErr.response?.data?.message ||
-                'Payment verification failed. Please contact concierge support.',
+                'Payment verification failed. Please contact customer support.',
             );
           } finally {
             setIsSubmitting(false);
@@ -591,7 +591,7 @@ export function CheckoutPage() {
     <div className="checkout-page" data-testid="checkout-page">
       <div className="checkout-header">
         <h1 className="checkout-title">Checkout</h1>
-        <p className="checkout-subtitle">Secure luxury order completion & atelier delivery</p>
+        <p className="checkout-subtitle">Review your order and enter your delivery details.</p>
       </div>
 
       {paymentError && (
@@ -610,7 +610,7 @@ export function CheckoutPage() {
                   leftIcon={<RefreshCw size={14} />}
                   onClick={() => executeRazorpayFlow(createdPendingOrder)}
                   data-testid="retry-payment-btn"
-                  loading={isSubmitting}
+                  isLoading={isSubmitting}
                   disabled={isSubmitting}
                 >
                   RETRY PAYMENT
@@ -824,7 +824,7 @@ export function CheckoutPage() {
                 <div className="checkout-payment-option__body">
                   <div className="checkout-payment-option__title">
                     <Wallet size={18} />
-                    <strong>Drape Atelier Wallet</strong>
+                    <strong>Drape Wallet</strong>
                     <span className="checkout-wallet-balance">
                       Balance: {wallet ? formatCurrencyINR(wallet.balance) : '₹0.00'}
                     </span>
@@ -878,7 +878,7 @@ export function CheckoutPage() {
                     type="submit"
                     variant="outline"
                     size="sm"
-                    loading={isApplyingCoupon}
+                    isLoading={isApplyingCoupon}
                     disabled={isApplyingCoupon || !couponCode.trim()}
                     data-testid="apply-coupon-btn"
                   >
@@ -920,7 +920,7 @@ export function CheckoutPage() {
               variant="primary"
               size="lg"
               fullWidth
-              loading={isSubmitting}
+              isLoading={isSubmitting}
               disabled={
                 isSubmitting ||
                 Boolean(createdPendingOrder?.is_expired) ||
@@ -1054,7 +1054,7 @@ export function CheckoutPage() {
               type="submit"
               variant="primary"
               size="md"
-              loading={isSavingAddress}
+              isLoading={isSavingAddress}
               disabled={isSavingAddress}
             >
               SAVE ADDRESS

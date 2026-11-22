@@ -244,6 +244,7 @@ async function run() {
     assert(orderDetailsSource.includes('confirmed: [\'processing\', \'cancelled\']'), 'Enforces confirmed -> processing/cancelled transition');
     assert(orderDetailsSource.includes('processing: [\'shipped\', \'cancelled\']'), 'Enforces processing -> shipped/cancelled transition');
     assert(orderDetailsSource.includes('shipped: [\'delivered\', \'returned\']'), 'Enforces shipped -> delivered/returned transition');
+    assert(orderDetailsSource.includes('delivered: []'), 'Delivered orders are terminal in the admin UI');
 
     // Review Moderation Policy: Admins cannot delete customer reviews (visibility only)
     assert(typeof AdminOps.deleteAdminReview === 'undefined', 'Admin review deletion is prohibited; only visibility moderation is supported');

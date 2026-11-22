@@ -147,13 +147,16 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 }
 func (h *AuthHandler) Logout(c *gin.Context) {
 	refreshToken, err := c.Cookie(h.cookie.RefreshTokenName)
-	if err != nil {
+	if err != nil && !errors.Is(err, http.ErrNoCookie) {
 		c.JSON(400, response.APIResponse{
 			Success: false,
-			Message: "refresh token cookie required",
+			Message: "invalid refresh token cookie",
 			// Error:   err.Error(),
 		})
 		return
+	}
+	if errors.Is(err, http.ErrNoCookie) {
+		refreshToken = ""
 	}
 	accessClaimValue, exists := c.Get(middleware.AccessClaimsKey)
 	if !exists {
@@ -169,6 +172,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 			Success: false,
 			Message: "invalid access claims",
 		})
+		return
 	}
 	err = h.authUsecase.Logout(c.Request.Context(), refreshToken, accessClaims)
 	if err != nil {

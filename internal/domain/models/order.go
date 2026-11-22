@@ -21,6 +21,7 @@ type Order struct {
 	CreatedAt time.Time `gorm:"not null"`
 	UpdatedAt time.Time `gorm:"not null"`
 
+	User          *User                `gorm:"foreignKey:UserID;references:ID"`
 	Items         []OrderItem          `gorm:"foreignKey:OrderID"`
 	Address       *OrderAddress        `gorm:"foreignKey:OrderID"`
 	Payments      []Payment            `gorm:"foreignKey:OrderID"`

@@ -790,6 +790,27 @@ func TestShipmentUseCase_UpdateShippingStatus(t *testing.T) {
 		require.NoError(t, f.uc.UpdateShippingStatus(ctx, 8, "delivered", nil, nil))
 	})
 
+	t.Run("return_to_customer delivery accepts request already closed on shipment creation", func(t *testing.T) {
+		f := newShipmentFixture(t)
+		retID := uint(16)
+		ship := &models.Shipment{
+			ID:              9,
+			OrderID:         orderID,
+			ReturnRequestID: &retID,
+			Type:            models.ShipmentTypeReturnToCustomer,
+			ShippingStatus:  "out_for_delivery",
+		}
+		retReq := &models.ReturnRequest{ID: retID, OrderID: orderID, Status: ReturnStatusClosed}
+
+		f.expectTX(ctx)
+		f.txShipment.EXPECT().GetByID(ctx, uint(9)).Return(ship, nil).Once()
+		f.txShipment.EXPECT().UpdateShippingStatus(ctx, uint(9), "delivered", (*string)(nil), (*string)(nil)).
+			Return(nil).Once()
+		f.txReturn.EXPECT().GetByID(ctx, retID).Return(retReq, nil).Once()
+
+		require.NoError(t, f.uc.UpdateShippingStatus(ctx, 9, "delivered", nil, nil))
+	})
+
 	t.Run("tx error propagates", func(t *testing.T) {
 		f := newShipmentFixture(t)
 		txErr := errors.New("tx failed")
@@ -800,4 +821,79 @@ func TestShipmentUseCase_UpdateShippingStatus(t *testing.T) {
 
 		assert.ErrorIs(t, f.uc.UpdateShippingStatus(ctx, 5, "packed", nil, nil), txErr)
 	})
+}
+
+func TestListShipmentsNormalizesFiltersAndPagination(t *testing.T) {
+	ctx := context.Background()
+	f := newShipmentFixture(t)
+	expectedFilter := models.ShipmentListFilter{
+		Search:      "tracking",
+		CourierName: "Blue Dart",
+		Sort:        "newest",
+		Limit:       100,
+		Page:        1,
+	}
+	f.shipmentRepo.On("List", ctx, expectedFilter).Return(
+		[]models.Shipment{{ID: 9}},
+		int64(1),
+		nil,
+	).Once()
+
+	shipments, total, err := f.uc.ListShipments(ctx, models.ShipmentListFilter{
+		Search:      "  tracking ",
+		CourierName: " Blue Dart ",
+		Limit:       500,
+		Page:        0,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	require.Len(t, shipments, 1)
+	assert.Equal(t, uint(9), shipments[0].ID)
+}
+
+func TestListShipmentsRejectsInvalidFilters(t *testing.T) {
+	tests := []struct {
+		name   string
+		filter models.ShipmentListFilter
+		want   error
+	}{
+		{
+			name: "invalid shipping status",
+			filter: models.ShipmentListFilter{
+				ShippingStatus: stringPointer("unknown"),
+			},
+			want: domainerrors.ErrInvalidShippingStatus,
+		},
+		{
+			name: "invalid shipment type",
+			filter: models.ShipmentListFilter{
+				Type: shipmentTypePointer("unknown"),
+			},
+			want: domainerrors.ErrInvalidInput,
+		},
+		{
+			name: "invalid sort",
+			filter: models.ShipmentListFilter{
+				Sort: "untrusted",
+			},
+			want: domainerrors.ErrInvalidInput,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := newShipmentFixture(t)
+			_, _, err := f.uc.ListShipments(context.Background(), tt.filter)
+			require.ErrorIs(t, err, tt.want)
+		})
+	}
+}
+
+func stringPointer(value string) *string {
+	return &value
+}
+
+func shipmentTypePointer(value string) *models.ShipmentType {
+	shipmentType := models.ShipmentType(value)
+	return &shipmentType
 }

@@ -86,7 +86,7 @@ export function CartPage() {
           </div>
           <h2 className="cart-empty-title">Your Bag is Empty</h2>
           <p className="cart-empty-desc">
-            Explore our curated collections and timeless tailoring to add silhouettes to your personal wardrobe.
+            Browse our products and add something you like to your cart.
           </p>
           <Link to="/catalog">
             <Button variant="primary" size="lg" rightIcon={<ArrowRight size={14} />}>
@@ -140,7 +140,7 @@ export function CartPage() {
                       <div className="cart-item-header">
                         <div>
                           <span className="cart-item-brand">
-                            {item.brand_name || 'DRAPE ATELIER'}
+                            {item.brand_name || 'DRAPE'}
                           </span>
                           <h3 className="cart-item-title">
                             <Link
@@ -185,7 +185,7 @@ export function CartPage() {
                       {isItemUnavailable && (
                         <div className="cart-item-stock-warning">
                           <StatusPill variant="danger" label="Unavailable" />
-                          <span>{item.availability_reason || 'Out of stock in atelier'}</span>
+                          <span>{item.availability_reason || 'Out of stock'}</span>
                         </div>
                       )}
 
@@ -328,7 +328,7 @@ export function CartPage() {
       >
         <div className="cart-clear-modal" data-testid="clear-cart-modal">
           <p className="cart-clear-modal__desc">
-            Are you sure you wish to remove all items from your shopping bag? All selected silhouettes will be cleared.
+            Are you sure you want to remove all items from your cart?
           </p>
           <div className="cart-clear-modal__actions">
             <Button

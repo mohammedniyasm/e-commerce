@@ -31,6 +31,7 @@ import {
   getCustomerTrackingHistory,
 } from '../../api/orderService';
 import { createReturnRequest } from '../../api/returnService';
+import { getStoreProductById } from '../../api/productService';
 import { formatCurrencyINR, formatDate } from '../../utils/formatters';
 import './OrderDetailsPage.css';
 
@@ -51,10 +52,16 @@ export function OrderDetailsPage() {
   // Return / Exchange Modal State
   const [returnItem, setReturnItem] = useState(null);
   const [requestType, setRequestType] = useState('return'); // 'return' | 'exchange'
+  const [exchangeVariants, setExchangeVariants] = useState([]);
+  const [requestedVariantID, setRequestedVariantID] = useState('');
+  const [isLoadingExchangeVariants, setIsLoadingExchangeVariants] = useState(false);
   const [returnQuantity, setReturnQuantity] = useState(1);
   const [returnReason, setReturnReason] = useState('');
   const [returnError, setReturnError] = useState('');
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+  const availableExchangeVariants = exchangeVariants.filter(
+    (variant) => Number(variant.stock) >= returnQuantity,
+  );
 
   const loadOrderData = useCallback(async () => {
     if (!orderId) return;
@@ -93,6 +100,54 @@ export function OrderDetailsPage() {
   useEffect(() => {
     loadOrderData();
   }, [loadOrderData]);
+
+  useEffect(() => {
+    if (requestType !== 'exchange' || !returnItem) {
+      setExchangeVariants([]);
+      setRequestedVariantID('');
+      setIsLoadingExchangeVariants(false);
+      setReturnError('');
+      return undefined;
+    }
+
+    let isCurrent = true;
+    setExchangeVariants([]);
+    setRequestedVariantID('');
+    setReturnError('');
+
+    if (!returnItem.product_id) {
+      setReturnError('Exchange options are unavailable for this order item. Please refresh the order and try again.');
+      return undefined;
+    }
+
+    setIsLoadingExchangeVariants(true);
+    getStoreProductById(returnItem.product_id)
+      .then((product) => {
+        if (!isCurrent) return;
+        const variants = (product?.variants || []).filter(
+          (variant) =>
+            Number(variant.id) !== Number(returnItem.variant_id) &&
+            variant.in_stock &&
+            Number(variant.stock) > 0,
+        );
+        setExchangeVariants(variants);
+        if (variants.length === 0) {
+          setReturnError('No alternative in-stock variants are available for exchange.');
+        }
+      })
+      .catch((err) => {
+        if (!isCurrent) return;
+        console.error('Failed to load exchange variants:', err);
+        setReturnError(err?.response?.data?.message || 'Failed to load exchange options.');
+      })
+      .finally(() => {
+        if (isCurrent) setIsLoadingExchangeVariants(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [requestType, returnItem?.product_id, returnItem?.variant_id]);
 
   // Invoice Download Handler
   async function handleDownloadInvoice() {
@@ -151,6 +206,8 @@ export function OrderDetailsPage() {
   function openReturnModal(item) {
     setReturnItem(item);
     setRequestType('return');
+    setExchangeVariants([]);
+    setRequestedVariantID('');
     setReturnQuantity(1);
     setReturnReason('');
     setReturnError('');
@@ -162,6 +219,15 @@ export function OrderDetailsPage() {
       setReturnError('Please enter a detailed reason (minimum 5 characters).');
       return;
     }
+    if (requestType === 'exchange') {
+      const selectedVariant = exchangeVariants.find(
+        (variant) => String(variant.id) === String(requestedVariantID),
+      );
+      if (!selectedVariant || Number(selectedVariant.stock) < returnQuantity) {
+        setReturnError('Please select an available exchange variant with enough stock.');
+        return;
+      }
+    }
     setReturnError('');
     setIsSubmittingReturn(true);
 
@@ -170,13 +236,14 @@ export function OrderDetailsPage() {
         order_id: orderId,
         order_item_id: returnItem.id,
         request_type: requestType,
+        requested_variant_id: requestType === 'exchange' ? requestedVariantID : undefined,
         quantity: returnQuantity,
         reason: returnReason.trim(),
       });
 
       showToast({
         title: 'Request Submitted',
-        message: `Your ${requestType} request has been submitted for atelier review. Approved refunds are credited to your Atelier Wallet.`,
+        message: `Your ${requestType} request has been submitted. Approved refunds are credited to your wallet.`,
         type: 'success',
       });
       setReturnItem(null);
@@ -294,13 +361,13 @@ export function OrderDetailsPage() {
         </div>
       </section>
 
-      {/* Atelier Journey Tracker (Shipment & Tracking History) */}
+      {/* Shipment Tracking */}
       <section className="account-card" aria-labelledby="tracking-heading">
         <div className="account-card__header">
           <div className="account-card__title-group">
             <Truck size={18} className="account-card__icon" aria-hidden="true" />
             <h2 id="tracking-heading" className="account-card__title">
-              Atelier Journey & Delivery Tracker
+              Shipment Tracking
             </h2>
           </div>
           {shipment?.tracking_number && (
@@ -348,10 +415,10 @@ export function OrderDetailsPage() {
                 </strong>
                 <p className="tracking-pending-text">
                   {status === 'delivered'
-                    ? 'Garments were delivered successfully.'
+                    ? 'Your order was delivered successfully.'
                     : status === 'cancelled'
                     ? 'This order has been cancelled and will not be dispatched.'
-                    : 'Your bespoke pieces are currently with our master tailors. Tracking events will appear as your shipment moves to dispatch.'}
+                    : 'Your order is being prepared. Tracking updates will appear here after it ships.'}
                 </p>
               </div>
             </div>
@@ -359,13 +426,13 @@ export function OrderDetailsPage() {
         </div>
       </section>
 
-      {/* Ordered Garments List */}
+      {/* Order Items */}
       <section className="account-card" aria-labelledby="items-heading">
         <div className="account-card__header">
           <div className="account-card__title-group">
             <Package size={18} className="account-card__icon" aria-hidden="true" />
             <h2 id="items-heading" className="account-card__title">
-              Ordered Garments ({order.items?.length || 0})
+              Order Items ({order.items?.length || 0})
             </h2>
           </div>
         </div>
@@ -467,12 +534,12 @@ export function OrderDetailsPage() {
               </div>
               {order.discount_amount > 0 && (
                 <div className="order-financial-row is-discount">
-                  <span>Atelier Discount</span>
+                  <span>Discount</span>
                   <span>- {formatCurrencyINR(order.discount_amount)}</span>
                 </div>
               )}
               <div className="order-financial-row">
-                <span>Tailored Shipping</span>
+                <span>Shipping</span>
                 <span>{order.shipping_amount === 0 ? 'Complimentary' : formatCurrencyINR(order.shipping_amount)}</span>
               </div>
               <div className="order-financial-divider" />
@@ -501,7 +568,7 @@ export function OrderDetailsPage() {
           </p>
           <p className="order-cancel-note">
             Inventory reserved for your order will be released immediately. If you have already
-            completed payment, your refund will be processed to your Atelier Wallet or original
+            completed payment, your refund will be processed to your wallet or original
             method upon cancellation.
           </p>
           <div className="order-cancel-actions">
@@ -531,7 +598,7 @@ export function OrderDetailsPage() {
         isOpen={Boolean(returnItem)}
         onClose={() => setReturnItem(null)}
         title={requestType === 'return' ? 'Request Return' : 'Request Exchange'}
-        eyebrow="ATELIER CONCIERGE"
+        eyebrow="RETURN REQUEST"
         size="md"
       >
         {returnItem && (
@@ -560,7 +627,7 @@ export function OrderDetailsPage() {
                   onChange={() => setRequestType('return')}
                   data-testid="return-radio-return"
                 />
-                <span>Return Garment (Refund to Wallet)</span>
+                <span>Return Item (Refund to Wallet)</span>
               </label>
 
               <label className="return-type-option">
@@ -575,6 +642,45 @@ export function OrderDetailsPage() {
                 <span>Exchange Sizing / Variant</span>
               </label>
             </div>
+
+            {requestType === 'exchange' && (
+              <FormField label="EXCHANGE TO" htmlFor="requested-variant" required>
+                {isLoadingExchangeVariants ? (
+                  <p className="return-variant-status">Loading available variants...</p>
+                ) : availableExchangeVariants.length === 0 ? (
+                  <p className="return-variant-status">
+                    No available variants have enough stock for this quantity.
+                  </p>
+                ) : (
+                  <select
+                    id="requested-variant"
+                    className="return-variant-select"
+                    value={
+                      availableExchangeVariants.some(
+                        (variant) => String(variant.id) === String(requestedVariantID),
+                      )
+                        ? requestedVariantID
+                        : ''
+                    }
+                    onChange={(e) => setRequestedVariantID(e.target.value)}
+                    required
+                    data-testid="exchange-variant-select"
+                  >
+                    <option value="">Select an available variant...</option>
+                    {availableExchangeVariants.map((variant) => {
+                      const details = [variant.size, variant.color, variant.sku]
+                        .filter(Boolean)
+                        .join(' · ');
+                      return (
+                        <option key={variant.id} value={variant.id}>
+                          {details || 'Standard variant'} — {formatCurrencyINR(variant.selling_price)} ({variant.stock} available)
+                        </option>
+                      );
+                    })}
+                  </select>
+                )}
+              </FormField>
+            )}
 
             <FormField label="RETURN QUANTITY" htmlFor="return-quantity" required>
               <Input
@@ -595,15 +701,15 @@ export function OrderDetailsPage() {
                 rows={4}
                 value={returnReason}
                 onChange={(e) => setReturnReason(e.target.value)}
-                placeholder="Please describe why you wish to return or exchange this piece (e.g., sizing adjustment, fit preference)..."
+                placeholder="Tell us why you want to return or exchange this item."
                 data-testid="return-reason-textarea"
               />
             </FormField>
 
             <div className="return-policy-notice">
               <p>
-                <strong>Atelier Refund Policy:</strong> Once received and inspected by our Kerala Atelier,
-                approved returns are credited directly to your Atelier Wallet for instant commissioning.
+                <strong>Refund Policy:</strong> Once we receive and inspect your return, approved
+                refunds are credited to your wallet.
               </p>
             </div>
 

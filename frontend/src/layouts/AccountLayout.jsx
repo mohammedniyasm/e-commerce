@@ -189,14 +189,14 @@ export function AccountLayout() {
       <Modal
         isOpen={isSignOutModalOpen}
         onClose={() => setIsSignOutModalOpen(false)}
-        title="Sign Out of Atelier"
+        title="Sign Out"
         eyebrow="SESSION CONFIRMATION"
         size="sm"
       >
         <div className="account-signout-modal" data-testid="signout-modal">
           <p className="account-signout-modal__desc">
-            Are you sure you wish to sign out of Drape Atelier? You can sign back in at any time to
-            access your tailored orders, saved addresses, and curations.
+            Are you sure you want to sign out of your Drape account? You can sign back in at any
+            time to view your orders, saved addresses, and wishlists.
           </p>
           <div className="account-signout-modal__actions">
             <Button

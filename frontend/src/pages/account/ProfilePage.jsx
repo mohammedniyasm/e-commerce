@@ -280,7 +280,7 @@ export function ProfilePage() {
       setConfirmPassword('');
       showToast({
         title: 'Password Updated',
-        message: 'Your atelier account password has been changed securely.',
+        message: 'Your account password has been changed.',
         type: 'success',
       });
     } catch (err) {
@@ -474,7 +474,7 @@ export function ProfilePage() {
               )}
             </div>
             <p className="profile-email-desc">
-              Your email is used for order confirmations, delivery tracking notifications, and atelier security updates.
+              We use your email for order confirmations, delivery updates, and account security notices.
             </p>
 
             {!profile?.email_verified_at && (

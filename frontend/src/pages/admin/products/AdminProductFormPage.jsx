@@ -165,15 +165,7 @@ export function AdminProductFormPage() {
         <div className="admin-page-title-group">
           <Link
             to={isEdit ? `/admin/products/${id}` : '/admin/products'}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              color: '#64748b',
-              fontSize: 13,
-              textDecoration: 'none',
-              marginBottom: 4,
-            }}
+            className="admin-back-link"
           >
             <ArrowLeft size={14} />
             <span>{isEdit ? 'Back to Product Details' : 'Back to Products'}</span>
@@ -221,13 +213,7 @@ export function AdminProductFormPage() {
             {errors.name && <span className="admin-form-error">{errors.name}</span>}
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-              gap: 16,
-            }}
-          >
+          <div className="admin-product-select-grid">
             <div className="admin-form-field">
               <label className="admin-form-label" htmlFor="prod-category">
                 Category <span className="required">*</span>
@@ -283,7 +269,7 @@ export function AdminProductFormPage() {
               id="prod-short-desc"
               type="text"
               className="admin-form-input"
-              placeholder="Luxury tailoring, Italian silk blend, relaxed silhouette..."
+              placeholder="For example: Cotton T-shirt, relaxed fit..."
               value={formData.short_description}
               onChange={(e) => handleChange('short_description', e.target.value)}
             />
@@ -297,26 +283,27 @@ export function AdminProductFormPage() {
               id="prod-desc"
               className="admin-form-textarea"
               style={{ minHeight: 120 }}
-              placeholder="Detailed craftsmanship, fabrication, styling advice, garment care notes..."
+              placeholder="Describe the product, its materials, fit, and care instructions..."
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
-            <Link to={isEdit ? `/admin/products/${id}` : '/admin/products'}>
-              <Button type="button" variant="secondary" size="md">
-                Cancel
-              </Button>
+          <div className="admin-form-actions">
+            <Link
+              to={isEdit ? `/admin/products/${id}` : '/admin/products'}
+              className="drape-btn drape-btn--secondary drape-btn--md admin-button-link"
+            >
+              Cancel
             </Link>
             <Button
               type="submit"
               variant="primary"
               size="md"
+              leftIcon={<Save size={16} />}
               isLoading={isSubmitting}
             >
-              <Save size={16} />
-              <span>{isEdit ? 'Save Changes' : 'Create Product'}</span>
+              {isEdit ? 'Save Changes' : 'Create Product'}
             </Button>
           </div>
         </form>

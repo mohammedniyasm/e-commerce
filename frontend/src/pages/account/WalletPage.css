@@ -173,6 +173,27 @@
   text-align: right;
 }
 
+@media (max-width: 480px) {
+  .wallet-tx-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: start;
+    gap: 0.75rem;
+  }
+
+  .wallet-tx-info {
+    min-width: 0;
+  }
+
+  .wallet-tx-meta {
+    flex-wrap: wrap;
+  }
+
+  .wallet-tx-amount-col {
+    grid-column: 2;
+    text-align: left;
+  }
+}
+
 .wallet-tx-amount {
   font-size: 0.9375rem;
   font-weight: 600;

@@ -3,17 +3,17 @@ package models
 import "time"
 
 type DashboardOverview struct {
-	TotalRevenue     float64 `gorm:"column:total_revenue"`
-	TotalOrders      int64   `gorm:"column:total_orders"`
-	TotalCustomers   int64   `gorm:"column:total_customers"`
-	TotalProducts    int64   `gorm:"column:total_products"`
-	PendingOrders    int64   `gorm:"column:pending_orders"`
-	ConfirmedOrders  int64   `gorm:"column:confirmed_orders"`
-	ProcessingOrders int64   `gorm:"column:processing_orders"`
-	ShippedOrders    int64   `gorm:"column:shipped_orders"`
-	DeliveredOrders  int64   `gorm:"column:delivered_orders"`
-	CancelledOrders  int64   `gorm:"column:cancelled_orders"`
-	ReturnedOrders   int64   `gorm:"column:returned_orders"`
+	TotalRevenue     float64 `gorm:"column:total_revenue" json:"total_revenue"`
+	TotalOrders      int64   `gorm:"column:total_orders" json:"total_orders"`
+	TotalCustomers   int64   `gorm:"column:total_customers" json:"total_customers"`
+	TotalProducts    int64   `gorm:"column:total_products" json:"total_products"`
+	PendingOrders    int64   `gorm:"column:pending_orders" json:"pending_orders"`
+	ConfirmedOrders  int64   `gorm:"column:confirmed_orders" json:"confirmed_orders"`
+	ProcessingOrders int64   `gorm:"column:processing_orders" json:"processing_orders"`
+	ShippedOrders    int64   `gorm:"column:shipped_orders" json:"shipped_orders"`
+	DeliveredOrders  int64   `gorm:"column:delivered_orders" json:"delivered_orders"`
+	CancelledOrders  int64   `gorm:"column:cancelled_orders" json:"cancelled_orders"`
+	ReturnedOrders   int64   `gorm:"column:returned_orders" json:"returned_orders"`
 }
 
 type DashboardFilter struct {

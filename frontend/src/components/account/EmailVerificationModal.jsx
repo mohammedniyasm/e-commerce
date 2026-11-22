@@ -158,7 +158,7 @@ export function EmailVerificationModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isSuccess ? 'Email Verified' : 'Verify Your Email'}
-      eyebrow="ATELIER ACCOUNT SECURITY"
+      eyebrow="ACCOUNT SECURITY"
       size="sm"
     >
       <div className="email-verify-modal" data-testid="email-verification-modal">
@@ -170,7 +170,7 @@ export function EmailVerificationModal({
             <h3 className="email-verify-modal__title">Account Verified</h3>
             <p className="email-verify-modal__desc">
               Your email <strong>{email}</strong> is now verified. You now have full access to
-              tailored atelier updates, order notifications, and verified customer benefits.
+              order updates and important account notifications.
             </p>
             <Button variant="primary" size="md" onClick={onClose} className="w-full">
               CONTINUE TO ACCOUNT

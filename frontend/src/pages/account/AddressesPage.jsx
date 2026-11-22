@@ -212,7 +212,7 @@ export function AddressesPage() {
         <div>
           <h1 className="account-addresses-title">Address Book</h1>
           <p className="account-addresses-subtitle">
-            Manage your saved delivery destinations for seamless tailoring delivery.
+            Add or update the addresses where you want your orders delivered.
           </p>
         </div>
         <Button

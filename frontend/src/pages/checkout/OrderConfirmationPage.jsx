@@ -104,7 +104,7 @@ export function OrderConfirmationPage() {
 
         <h1 className="order-confirm-title">Order Confirmed</h1>
         <p className="order-confirm-subtitle">
-          Thank you for choosing Drape. Your atelier garments are being prepared for dispatch.
+          Thank you for your order. We are preparing it for shipment.
         </p>
 
         {/* Order Reference Badge */}
@@ -176,7 +176,7 @@ export function OrderConfirmationPage() {
           <Truck size={18} />
           <p>
             An order confirmation and insured shipment tracking link will be sent to your registered email
-            address once your package departs our atelier.
+            address once your package ships.
           </p>
         </div>
 

@@ -68,6 +68,7 @@ async function run() {
         order_id: '123e4567-e89b-12d3-a456-426614174000',
         order_item_id: 1,
         request_type: 'return',
+        requested_variant_id: undefined,
         quantity: 2,
         reason: 'Sizing adjustment required for jacket',
       });
@@ -76,6 +77,37 @@ async function run() {
       assert(lastRequest?.data?.request_type === 'return', 'createReturnRequest transmits request_type');
       assert(lastRequest?.data?.quantity === 2, 'createReturnRequest transmits quantity');
       restore();
+    }
+    {
+      const restore = mockApi('post', { id: 11 });
+      await ReturnService.createReturnRequest({
+        order_id: '123e4567-e89b-12d3-a456-426614174000',
+        order_item_id: 1,
+        request_type: 'exchange',
+        requested_variant_id: '22',
+        quantity: 1,
+        reason: 'Exchange for a different size',
+      });
+      assert(
+        lastRequest?.data?.request_type === 'exchange' &&
+          lastRequest?.data?.requested_variant_id === 22,
+        'createReturnRequest submits the selected exchange variant ID',
+      );
+      restore();
+    }
+    {
+      const originalGet = apiClient.get;
+      apiClient.get = async (url, config) => {
+        lastRequest = { method: 'get', url, config };
+        return { data: { success: true, data: [{ id: 42, type: 'return_to_customer' }] } };
+      };
+      const shipments = await ReturnService.getReturnRequestShipments(11);
+      assert(
+        lastRequest?.url === '/user/return-requests/11/shipments' &&
+          shipments?.[0]?.type === 'return_to_customer',
+        'getReturnRequestShipments returns the return-to-customer shipment status data',
+      );
+      apiClient.get = originalGet;
     }
 
     // Wallet top-up mapping
@@ -265,6 +297,16 @@ async function run() {
       ),
     );
     assert(orderDetailsHtml.includes('account-order-details') || orderDetailsHtml.includes('order-details'), 'OrderDetailsPage renders container');
+    const orderDetailsSource = fs.readFileSync(
+      new URL('../src/pages/account/OrderDetailsPage.jsx', import.meta.url),
+      'utf8',
+    );
+    assert(
+      orderDetailsSource.includes('getStoreProductById(returnItem.product_id)') &&
+        orderDetailsSource.includes('data-testid="exchange-variant-select"') &&
+        orderDetailsSource.includes('requested_variant_id: requestType'),
+      'OrderDetailsPage loads and submits a selected exchange variant',
+    );
 
     // 7. ReturnsPage & WalletPage & ReferralPage SSR Rendering
     console.log('\n[7/8] Testing Returns, Wallet & Referral Pages (Milestones 7, 8, 9) SSR Rendering...');
@@ -277,7 +319,21 @@ async function run() {
       ),
     );
     assert(returnsHtml.includes('Returns &amp; Exchanges') || returnsHtml.includes('Returns & Exchanges'), 'ReturnsPage renders title');
-    assert(returnsHtml.includes('Atelier Returns &amp; Wallet Refunds') || returnsHtml.includes('Atelier Returns & Wallet Refunds'), 'ReturnsPage renders returns guide card');
+    assert(returnsHtml.includes('How Returns Work'), 'ReturnsPage renders returns guide card');
+    const returnsPageSource = fs.readFileSync(
+      new URL('../src/pages/account/ReturnsPage.jsx', import.meta.url),
+      'utf8',
+    );
+    assert(
+      returnsPageSource.includes('getReturnRequestShipments(requestId)') &&
+        returnsPageSource.includes("type === 'return_to_customer'") &&
+        returnsPageSource.includes('shipment.shipping_status') &&
+        returnsPageSource.includes('return-shipment-tracking-') &&
+        returnsPageSource.includes('View Details') &&
+        returnsPageSource.includes('Requested Item') &&
+        returnsPageSource.includes('Requested Exchange Variant'),
+      'ReturnsPage displays request details and return-to-customer shipment tracking',
+    );
 
     const { AuthProvider } = await vite.ssrLoadModule('/src/context/AuthContext.jsx');
     const { WalletPage } = await vite.ssrLoadModule('/src/pages/account/WalletPage.jsx');
@@ -296,12 +352,12 @@ async function run() {
         ),
       ),
     );
-    assert(walletHtml.includes('Atelier Wallet'), 'WalletPage renders title');
+    assert(walletHtml.includes('>Wallet<'), 'WalletPage renders title');
     assert(walletHtml.includes('AVAILABLE BALANCE'), 'WalletPage renders available balance card');
     assert(walletHtml.includes('TOP UP WALLET'), 'WalletPage renders top up action button');
     assert(walletHtml.includes('Transaction History'), 'WalletPage renders transaction history section');
 
-    const { ReferralPage } = await vite.ssrLoadModule('/src/pages/account/ReferralPage.jsx');
+    const { ReferralPage, buildReferralLink } = await vite.ssrLoadModule('/src/pages/account/ReferralPage.jsx');
     const referralHtml = renderToString(
       React.createElement(
         MemoryRouter,
@@ -320,6 +376,20 @@ async function run() {
     assert(referralHtml.includes('TOTAL REFERRALS'), 'ReferralPage renders Total Referrals metric');
     assert(referralHtml.includes('TOTAL REWARDS EARNED'), 'ReferralPage renders Total Rewards metric');
     assert(referralHtml.includes('How The Program Works'), 'ReferralPage renders how program works section');
+    assert(
+      buildReferralLink('FRIEND/2026', 'https://shop.example') ===
+        'https://shop.example/register?ref=FRIEND%2F2026',
+      'ReferralPage builds an encoded link from the current origin and referral code',
+    );
+    const referralPageSource = fs.readFileSync(
+      new URL('../src/pages/account/ReferralPage.jsx', import.meta.url),
+      'utf8',
+    );
+    assert(
+      referralPageSource.includes('buildReferralLink(referralCode)') &&
+        !referralPageSource.includes('dashboardData?.referral_link'),
+      'ReferralPage ignores any prebuilt API host and uses the current site URL',
+    );
 
     // 8. Verification that No Placeholder Pages Remain in AppRoutes
     console.log('\n[8/8] Verifying AppRoutes Route Integration & Zero Placeholders...');

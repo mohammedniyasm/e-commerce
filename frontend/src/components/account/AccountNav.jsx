@@ -36,7 +36,7 @@ const NAV_ITEMS = [
   },
   {
     to: '/account/wallet',
-    label: 'Atelier Wallet',
+    label: 'Wallet',
     icon: Wallet,
   },
   {

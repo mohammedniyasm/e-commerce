@@ -20,12 +20,14 @@ import { AdminCategoriesPage } from '../pages/admin/categories/AdminCategoriesPa
 import { AdminBrandsPage } from '../pages/admin/brands/AdminBrandsPage';
 import { AdminOrdersPage } from '../pages/admin/orders/AdminOrdersPage';
 import { AdminOrderDetailsPage } from '../pages/admin/orders/AdminOrderDetailsPage';
+import { AdminShipmentsPage } from '../pages/admin/shipments/AdminShipmentsPage';
 import { AdminPaymentsPage } from '../pages/admin/payments/AdminPaymentsPage';
 import { AdminReturnsPage } from '../pages/admin/returns/AdminReturnsPage';
 import { AdminCouponsPage } from '../pages/admin/coupons/AdminCouponsPage';
 import { AdminReviewsPage } from '../pages/admin/reviews/AdminReviewsPage';
 import { AdminCustomersPage } from '../pages/admin/customers/AdminCustomersPage';
 import { AdminReportsPage } from '../pages/admin/reports/AdminReportsPage';
+import { AdminReferralsPage } from '../pages/admin/referrals/AdminReferralsPage';
 import { AdminSettingsPage } from '../pages/admin/settings/AdminSettingsPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 import { LoginPage } from '../pages/auth/LoginPage';
@@ -100,12 +102,14 @@ export function AppRoutes() {
           <Route path="brands" element={<AdminBrandsPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/:orderId" element={<AdminOrderDetailsPage />} />
+          <Route path="shipments" element={<AdminShipmentsPage />} />
           <Route path="payments" element={<AdminPaymentsPage />} />
           <Route path="returns" element={<AdminReturnsPage />} />
           <Route path="coupons" element={<AdminCouponsPage />} />
           <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="customers" element={<AdminCustomersPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="referrals" element={<AdminReferralsPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
       </Route>

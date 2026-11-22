@@ -243,6 +243,7 @@ export function AdminProductsPage() {
           className="admin-status-pill"
           onClick={() => activeTab === 'active' && handleToggleActive(p)}
           title={activeTab === 'active' ? 'Click to toggle active' : undefined}
+          aria-label={`${p.is_active ? 'Deactivate' : 'Activate'} ${p.name}`}
           disabled={activeTab !== 'active'}
         >
           <Badge variant={p.is_active ? 'success' : 'neutral'} size="sm">
@@ -261,6 +262,7 @@ export function AdminProductsPage() {
           className="admin-status-pill"
           onClick={() => activeTab === 'active' && handleToggleListed(p)}
           title={activeTab === 'active' ? 'Click to toggle listed' : undefined}
+          aria-label={`${p.is_listed ? 'Hide' : 'List'} ${p.name} ${p.is_listed ? 'from' : 'on'} storefront`}
           disabled={activeTab !== 'active'}
         >
           <Badge variant={p.is_listed ? 'info' : 'warning'} size="sm">
@@ -284,6 +286,7 @@ export function AdminProductsPage() {
             to={`/admin/products/${p.id}`}
             className="admin-icon-btn"
             title="View Details & Variants"
+            aria-label={`View ${p.name} details and variants`}
           >
             <Eye size={14} />
           </Link>
@@ -294,6 +297,7 @@ export function AdminProductsPage() {
                 type="button"
                 className="admin-icon-btn"
                 title={p.is_active ? 'Deactivate Product' : 'Activate Product'}
+                aria-label={`${p.is_active ? 'Deactivate' : 'Activate'} ${p.name}`}
                 onClick={() => handleToggleActive(p)}
               >
                 <Power size={14} color={p.is_active ? '#059669' : '#94a3b8'} />
@@ -302,6 +306,7 @@ export function AdminProductsPage() {
                 type="button"
                 className="admin-icon-btn danger"
                 title="Delete Product"
+                aria-label={`Delete ${p.name}`}
                 onClick={() => {
                   setProductToDelete(p);
                   setIsDeleteOpen(true);
@@ -315,6 +320,7 @@ export function AdminProductsPage() {
               type="button"
               className="admin-icon-btn success"
               title="Restore Product"
+              aria-label={`Restore ${p.name}`}
               onClick={() => handleRestoreProduct(p)}
             >
               <RotateCcw size={14} />
@@ -337,17 +343,18 @@ export function AdminProductsPage() {
         </div>
 
         <div className="admin-header-actions">
-          <Link to="/admin/products/new">
-            <Button variant="primary" size="md">
-              <PackagePlus size={16} />
-              <span>Create Product</span>
-            </Button>
+          <Link
+            to="/admin/products/new"
+            className="drape-btn drape-btn--primary drape-btn--md admin-button-link"
+          >
+            <PackagePlus size={16} />
+            <span>Create Product</span>
           </Link>
         </div>
       </div>
 
       {/* Toolbar / Filters */}
-      <div className="admin-toolbar-card">
+      <div className="admin-toolbar-card admin-product-filter-card">
         <div className="admin-tabs-group" role="tablist">
           <button
             type="button"
@@ -442,6 +449,7 @@ export function AdminProductsPage() {
 
       {/* Table */}
       <DataTable
+        className="admin-products-table"
         columns={columns}
         data={products}
         keyField="id"

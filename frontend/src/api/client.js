@@ -20,7 +20,7 @@ const refreshClient = axios.create({
   },
 });
 
-let refreshPromise = null;
+const refreshPromises = new Map();
 const expiredSessionListeners = new Set();
 
 function notifyExpiredSession(error) {
@@ -42,10 +42,17 @@ export function subscribeToExpiredSession(listener) {
   return () => expiredSessionListeners.delete(listener);
 }
 
-export function refreshAccessToken() {
-  if (!refreshPromise) {
-    refreshPromise = refreshClient
-      .post('/auth/refresh-token')
+export function getRefreshEndpoint(requestUrl) {
+  const path = typeof requestUrl === 'string' ? requestUrl.split('?')[0] : '';
+  return path === '/admin' || path.startsWith('/admin/')
+    ? '/admin/auth/refresh-token'
+    : '/auth/refresh-token';
+}
+
+export function refreshAccessToken(endpoint = '/auth/refresh-token') {
+  if (!refreshPromises.has(endpoint)) {
+    const refreshPromise = refreshClient
+      .post(endpoint)
       .then(extractAccessToken)
       .then((accessToken) => {
         setAccessToken(accessToken);
@@ -58,11 +65,12 @@ export function refreshAccessToken() {
         throw apiError;
       })
       .finally(() => {
-        refreshPromise = null;
+        refreshPromises.delete(endpoint);
       });
+    refreshPromises.set(endpoint, refreshPromise);
   }
 
-  return refreshPromise;
+  return refreshPromises.get(endpoint);
 }
 
 apiClient.interceptors.request.use((config) => {
@@ -93,7 +101,7 @@ apiClient.interceptors.response.use(
     originalRequest._retry = true;
 
     try {
-      const accessToken = await refreshAccessToken();
+      const accessToken = await refreshAccessToken(getRefreshEndpoint(originalRequest.url));
       originalRequest.headers = originalRequest.headers ?? {};
       originalRequest.headers.Authorization = `Bearer ${accessToken}`;
       return apiClient(originalRequest);

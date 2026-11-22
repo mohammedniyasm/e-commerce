@@ -120,82 +120,63 @@ export function AdminReportsPage() {
   const getColumns = () => {
     if (activeReport === 'sales') {
       return [
-        { key: 'date', header: 'Period / Date' },
+        { key: 'date', header: 'Period / Date', render: (value) => formatDate(value) },
         {
-          key: 'orders_count',
+          key: 'orders',
           header: 'Total Orders',
           align: 'center',
-          render: (val, record) => {
-            const row = (typeof val === 'object' && val !== null) ? val : (record || {});
-            return row.orders_count || row.total_orders || (typeof val === 'number' ? val : 0);
-          },
         },
         {
-          key: 'revenue',
+          key: 'sales',
           header: 'Revenue',
           align: 'right',
-          render: (val, record) => {
-            const row = (typeof val === 'object' && val !== null) ? val : (record || {});
-            const rev = row.revenue || row.total_revenue || (typeof val === 'number' ? val : 0);
-            return <span className="font-semibold">{formatCurrency(rev)}</span>;
-          },
+          render: (value) => <span className="font-semibold">{formatCurrency(value || 0)}</span>,
         },
-        {
-          key: 'average_order_value',
-          header: 'Avg Order Value',
-          align: 'right',
-          render: (val, record) => {
-            const row = (typeof val === 'object' && val !== null) ? val : (record || {});
-            const revenue = row.revenue || row.total_revenue || 0;
-            const orders = row.orders_count || row.total_orders || 1;
-            return formatCurrency(revenue / Math.max(1, orders));
-          },
-        },
+        { key: 'units_sold', header: 'Units Sold', align: 'center' },
       ];
     }
 
     if (activeReport === 'orders') {
       return [
-        { key: 'date', header: 'Date' },
+        { key: 'date', header: 'Date', render: (value) => formatDate(value) },
         { key: 'total_orders', header: 'Orders Placed', align: 'center' },
-        { key: 'completed_orders', header: 'Delivered', align: 'center' },
-        { key: 'cancelled_orders', header: 'Cancelled', align: 'center' },
-        {
-          key: 'total_value',
-          header: 'Gross Value',
-          align: 'right',
-          render: (val, record) => {
-            const row = (typeof val === 'object' && val !== null) ? val : (record || {});
-            const valNum = row.total_value || (typeof val === 'number' ? val : 0);
-            return <span className="font-semibold">{formatCurrency(valNum)}</span>;
-          },
-        },
       ];
     }
 
     return [
       { key: 'product_name', header: 'Product Name' },
-      { key: 'sku', header: 'SKU / Variant' },
+      { key: 'product_id', header: 'Product ID' },
       { key: 'units_sold', header: 'Units Sold', align: 'center' },
       {
         key: 'revenue',
         header: 'Total Revenue',
         align: 'right',
-        render: (val, record) => {
-          const row = (typeof val === 'object' && val !== null) ? val : (record || {});
-          const rev = row.revenue || (typeof val === 'number' ? val : 0);
-          return <span className="font-semibold">{formatCurrency(rev)}</span>;
-        },
+        render: (value, record) => (
+          <span className="font-semibold">{formatCurrency(record.revenue || 0)}</span>
+        ),
       },
     ];
   };
 
-  const tableData =
-    activeReport === 'sales'
-      ? reportData?.sales || reportData?.items || []
-      : activeReport === 'orders'
-      ? reportData?.orders || reportData?.items || []
-      : reportData?.products || reportData?.items || [];
+  const tableData = Array.isArray(reportData?.breakdown) ? reportData.breakdown : [];
+  const summary = reportData?.summary || {};
+  const kpis = activeReport === 'sales'
+    ? [
+        { title: 'Total Sales', value: formatCurrency(summary.total_sales || 0), icon: DollarSign },
+        { title: 'Total Orders', value: summary.total_orders || 0, icon: ShoppingBag },
+        { title: 'Units Sold', value: summary.total_units_sold || 0, icon: Package },
+      ]
+    : activeReport === 'orders'
+    ? [
+        { title: 'Total Orders', value: summary.total_orders || 0, icon: ShoppingBag },
+        { title: 'Delivered Orders', value: summary.delivered_orders || 0, icon: TrendingUp },
+        { title: 'Cancelled Orders', value: summary.cancelled_orders || 0, icon: Package },
+      ]
+    : [
+        { title: 'Products Sold', value: summary.total_products_sold || 0, icon: Package },
+        { title: 'Units Sold', value: summary.total_units_sold || 0, icon: ShoppingBag },
+        { title: 'Product Revenue', value: formatCurrency(summary.total_revenue || 0), icon: DollarSign },
+      ];
 
   return (
     <div className="admin-reports-page">
@@ -212,7 +193,7 @@ export function AdminReportsPage() {
           <Button
             variant="outline"
             size="sm"
-            icon={<FileSpreadsheet size={14} />}
+            leftIcon={<FileSpreadsheet size={14} />}
             onClick={() => handleExport('excel')}
             disabled={isExporting}
           >
@@ -223,7 +204,7 @@ export function AdminReportsPage() {
             <Button
               variant="outline"
               size="sm"
-              icon={<FileText size={14} />}
+              leftIcon={<FileText size={14} />}
               onClick={() => handleExport('pdf')}
               disabled={isExporting}
             >
@@ -234,7 +215,7 @@ export function AdminReportsPage() {
           <Button
             variant="secondary"
             size="sm"
-            icon={<RefreshCw size={14} className={isLoading ? 'spin-icon' : ''} />}
+            leftIcon={<RefreshCw size={14} className={isLoading ? 'spin-icon' : ''} />}
             onClick={fetchReport}
             disabled={isLoading}
           >
@@ -319,41 +300,20 @@ export function AdminReportsPage() {
 
       {/* KPI Overview Summary */}
       <div className="admin-report-kpis">
-        <div className="admin-kpi-card">
-          <span className="admin-kpi-title">Total Gross Revenue</span>
-          <span className="admin-kpi-value font-heading">
-            {formatCurrency(
-              reportData?.total_revenue ||
-                reportData?.summary?.total_revenue ||
-                reportData?.total_sales ||
-                0
-            )}
-          </span>
-        </div>
-        <div className="admin-kpi-card">
-          <span className="admin-kpi-title">Total Orders Count</span>
-          <span className="admin-kpi-value">
-            {reportData?.total_orders ||
-              reportData?.summary?.total_orders ||
-              tableData.length}
-          </span>
-        </div>
-        <div className="admin-kpi-card">
-          <span className="admin-kpi-title">Average Order Value</span>
-          <span className="admin-kpi-value font-heading">
-            {formatCurrency(
-              (reportData?.total_revenue || 0) /
-                Math.max(1, reportData?.total_orders || 1)
-            )}
-          </span>
-        </div>
+        {kpis.map(({ title, value, icon: Icon }) => (
+          <div className="admin-kpi-card" key={title}>
+            <span className="admin-kpi-title">{title}</span>
+            <span className="admin-kpi-value">{value}</span>
+            <Icon className="admin-kpi-icon" size={18} aria-hidden="true" />
+          </div>
+        ))}
       </div>
 
       {/* Data Table */}
       <DataTable
         columns={getColumns()}
         data={tableData}
-        keyField="date"
+        keyField={activeReport === 'products' ? 'product_id' : 'date'}
         isLoading={isLoading}
         emptyMessage="No analytics data available for the specified range."
       />

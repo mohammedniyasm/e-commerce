@@ -127,7 +127,7 @@ export function StorefrontHeader() {
                       {session?.name || 'Customer Account'}
                     </span>
                     <span className="storefront-header__user-role">
-                      {session?.role === 'admin' ? 'Administrator' : 'Atelier Member'}
+                      {session?.role === 'admin' ? 'Administrator' : 'Customer'}
                     </span>
                   </div>
                   <div className="storefront-header__dropdown-divider" />

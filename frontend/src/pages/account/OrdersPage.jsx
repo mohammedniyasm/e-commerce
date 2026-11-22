@@ -108,7 +108,7 @@ export function OrdersPage() {
         <div>
           <h1 className="account-orders-title">My Orders</h1>
           <p className="account-orders-subtitle">
-            Review your tailored garments, delivery status, and historical invoices.
+            Review your orders, delivery status, and invoices.
           </p>
         </div>
       </div>
@@ -198,7 +198,7 @@ export function OrdersPage() {
                           {item.image_url ? (
                             <img
                               src={item.image_url}
-                              alt={item.product_name || 'Garment'}
+                              alt={item.product_name || 'Product'}
                               className="order-preview-thumb"
                             />
                           ) : (
@@ -219,7 +219,7 @@ export function OrdersPage() {
                       ))
                     ) : (
                       <p className="order-card__summary-text">
-                        {itemsCount} {itemsCount === 1 ? 'Garment' : 'Garments'} in collection
+                        {itemsCount} {itemsCount === 1 ? 'item' : 'items'} in this order
                       </p>
                     )}
                   </div>
@@ -271,11 +271,11 @@ export function OrdersPage() {
               : `No ${activeFilter.toUpperCase()} Orders Found`}
           </h2>
           <p className="account-empty-text">
-            Explore our curated collections and commission your next tailored essential.
+            Browse our products and find something you like.
           </p>
           <Link to="/catalog">
             <Button variant="primary" size="sm">
-              EXPLORE ATELIER COLLECTION
+              SHOP PRODUCTS
             </Button>
           </Link>
         </div>
@@ -323,7 +323,7 @@ export function OrdersPage() {
           </p>
           <p className="order-cancel-note">
             Reserved inventory will be released immediately. If you made an online payment, refund
-            processing will initiate to your Atelier Wallet or original method.
+            processing will be sent to your wallet or original payment method.
           </p>
           <div className="order-cancel-actions">
             <Button

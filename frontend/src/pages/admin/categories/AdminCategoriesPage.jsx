@@ -254,6 +254,11 @@ export function AdminCategoriesPage() {
           className="admin-status-pill"
           onClick={() => activeTab === 'active' && handleToggleActive(cat)}
           title={activeTab === 'active' ? 'Click to toggle active status' : undefined}
+          aria-label={
+            activeTab === 'active'
+              ? `Toggle active status for category ${cat.name}`
+              : `Category ${cat.name} is ${cat.is_active ? 'active' : 'inactive'}`
+          }
           disabled={activeTab !== 'active'}
         >
           <Badge variant={cat.is_active ? 'success' : 'neutral'} size="sm">
@@ -279,6 +284,7 @@ export function AdminCategoriesPage() {
                 type="button"
                 className="admin-icon-btn"
                 title={cat.is_active ? 'Deactivate Category' : 'Activate Category'}
+                aria-label={`${cat.is_active ? 'Deactivate' : 'Activate'} category ${cat.name}`}
                 onClick={() => handleToggleActive(cat)}
               >
                 <Power size={14} color={cat.is_active ? '#059669' : '#94a3b8'} />
@@ -287,6 +293,7 @@ export function AdminCategoriesPage() {
                 type="button"
                 className="admin-icon-btn"
                 title="Edit Category"
+                aria-label={`Edit category ${cat.name}`}
                 onClick={() => openEditModal(cat)}
               >
                 <Edit2 size={14} />
@@ -295,6 +302,7 @@ export function AdminCategoriesPage() {
                 type="button"
                 className="admin-icon-btn danger"
                 title="Delete Category"
+                aria-label={`Delete category ${cat.name}`}
                 onClick={() => openDeleteModal(cat)}
               >
                 <Trash2 size={14} />
@@ -305,6 +313,7 @@ export function AdminCategoriesPage() {
               type="button"
               className="admin-icon-btn success"
               title="Restore Category"
+              aria-label={`Restore category ${cat.name}`}
               onClick={() => handleRestore(cat)}
             >
               <RotateCcw size={14} />
@@ -327,15 +336,20 @@ export function AdminCategoriesPage() {
         </div>
 
         <div className="admin-header-actions">
-          <Button variant="primary" size="md" onClick={openCreateModal}>
-            <FolderPlus size={16} />
-            <span>New Category</span>
+          <Button
+            variant="primary"
+            size="md"
+            className="admin-category-create-btn"
+            leftIcon={<FolderPlus size={16} />}
+            onClick={openCreateModal}
+          >
+            New Category
           </Button>
         </div>
       </div>
 
       {/* Toolbar / Search / Tabs */}
-      <div className="admin-toolbar-card">
+      <div className="admin-toolbar-card admin-category-toolbar">
         <div className="admin-tabs-group" role="tablist">
           <button
             type="button"
@@ -385,6 +399,7 @@ export function AdminCategoriesPage() {
         columns={columns}
         data={categories}
         keyField="id"
+        className="admin-category-table"
         isLoading={isLoading}
         emptyMessage={
           search
@@ -408,7 +423,7 @@ export function AdminCategoriesPage() {
         onClose={() => setIsCreateOpen(false)}
         title="Create Category"
         eyebrow="Category Management"
-        description="Add a new product category to the Drape luxury catalog."
+        description="Add a new product category to the Drape catalog."
         confirmText="Create Category"
         cancelText="Cancel"
         isConfirmLoading={isActionLoading}

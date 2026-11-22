@@ -77,13 +77,14 @@
 /* Responsive */
 @media (max-width: 900px) {
   .account-layout__container {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 24px;
     padding: 0 20px;
   }
 
   .account-layout__sidebar {
     position: static;
+    min-width: 0;
   }
 
   .account-breadcrumb__inner {

@@ -13,6 +13,7 @@ import {
   ShoppingBag,
   TicketPercent,
   TrendingUp,
+  Truck,
   Users,
 } from 'lucide-react';
 import {
@@ -26,6 +27,55 @@ import {
 import { Badge } from '../../components/common/Badge';
 import { formatCurrency, formatDate, formatOrderStatus } from '../../utils/formatters';
 import './AdminDashboardPage.css';
+
+export function fillMissingSalesBuckets(salesData, filter) {
+  if (!Array.isArray(salesData) || salesData.length === 0) return [];
+  if (!filter?.start_date || !filter?.end_date || !['day', 'month'].includes(filter.group_by)) {
+    return salesData;
+  }
+
+  const bucketKey = (date) => {
+    const dateText = date instanceof Date ? date.toISOString().slice(0, 10) : String(date || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateText)) return null;
+    return filter.group_by === 'month' ? dateText.slice(0, 7) : dateText;
+  };
+  const salesByBucket = new Map();
+  for (const row of salesData) {
+    const key = bucketKey(row.date);
+    if (key) salesByBucket.set(key, row);
+  }
+
+  const cursor = new Date(`${filter.start_date}T00:00:00.000Z`);
+  const lastDate = new Date(`${filter.end_date}T00:00:00.000Z`);
+  if (Number.isNaN(cursor.getTime()) || Number.isNaN(lastDate.getTime()) || cursor > lastDate) {
+    return salesData;
+  }
+  if (filter.group_by === 'month') {
+    cursor.setUTCDate(1);
+    lastDate.setUTCDate(1);
+  }
+
+  const buckets = [];
+  while (cursor <= lastDate) {
+    const dateText = cursor.toISOString().slice(0, 10);
+    const key = filter.group_by === 'month' ? dateText.slice(0, 7) : dateText;
+    const row = salesByBucket.get(key);
+    buckets.push({
+      date: row?.date ?? `${filter.group_by === 'month' ? `${key}-01` : key}T00:00:00.000Z`,
+      total_revenue: Number(row?.total_revenue) || 0,
+      total_orders: Number(row?.total_orders) || 0,
+      hasActivity: Boolean(row),
+    });
+
+    if (filter.group_by === 'month') {
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    } else {
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  }
+
+  return buckets;
+}
 
 export function AdminDashboardPage() {
   const [overview, setOverview] = useState(null);
@@ -94,6 +144,7 @@ export function AdminDashboardPage() {
       ]);
 
       if (overviewResult.status === 'fulfilled' && overviewResult.value) {
+        console.log(orderStatsResult)
         setOverview(overviewResult.value);
       }
       if (salesResult.status === 'fulfilled' && Array.isArray(salesResult.value)) {
@@ -132,7 +183,7 @@ export function AdminDashboardPage() {
           setSalesData(data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     return () => {
       isCurrent = false;
@@ -156,22 +207,23 @@ export function AdminDashboardPage() {
 
   // SVG Chart Geometry Calculation
   const chartGeometry = useMemo(() => {
-    if (!salesData || salesData.length === 0) return null;
+    const chartSalesData = fillMissingSalesBuckets(salesData, salesFilter);
+    if (chartSalesData.length === 0) return null;
 
     const width = 800;
     const height = 200;
     const paddingX = 40;
     const paddingY = 25;
 
-    const revenues = salesData.map((d) => Number(d.total_revenue) || 0);
+    const revenues = chartSalesData.map((d) => Number(d.total_revenue) || 0);
     const maxRevenue = Math.max(...revenues, 100);
     const minRevenue = 0;
 
-    const points = salesData.map((d, index) => {
+    const points = chartSalesData.map((d, index) => {
       const x =
-        salesData.length === 1
+        chartSalesData.length === 1
           ? width / 2
-          : paddingX + (index / (salesData.length - 1)) * (width - 2 * paddingX);
+          : paddingX + (index / (chartSalesData.length - 1)) * (width - 2 * paddingX);
       const revenue = Number(d.total_revenue) || 0;
       const y =
         height -
@@ -183,6 +235,7 @@ export function AdminDashboardPage() {
         date: d.date,
         revenue,
         orders: d.total_orders || 0,
+        hasActivity: d.hasActivity !== false,
       };
     });
 
@@ -198,7 +251,7 @@ export function AdminDashboardPage() {
       maxRevenue,
       paddingY,
     };
-  }, [salesData]);
+  }, [salesData, salesFilter]);
 
   return (
     <div className="admin-dashboard">
@@ -263,6 +316,10 @@ export function AdminDashboardPage() {
           <RotateCcw size={15} />
           <span>Returns</span>
         </Link>
+        <Link to="/admin/shipments" className="admin-op-tab">
+          <Truck size={15} />
+          <span>Shipments</span>
+        </Link>
         <Link to="/admin/coupons" className="admin-op-tab">
           <TicketPercent size={15} />
           <span>Coupons</span>
@@ -285,14 +342,14 @@ export function AdminDashboardPage() {
           </div>
           <div className="admin-kpi-body">
             <span className="admin-kpi-value">
-              {overview?.total_orders != null ? Number(overview.total_orders).toLocaleString() : '0'}
+              {Number(orderStats?.total_orders ?? overview?.total_orders ?? 0).toLocaleString()}
             </span>
             <div className="admin-kpi-detail">
               <span className="admin-kpi-trend positive">
                 <TrendingUp size={12} />
                 <span>Active Store</span>
               </span>
-              <span>{overview?.pending_orders || 0} pending processing</span>
+              <span>{orderStats?.pending_orders ?? overview?.pending_orders ?? 0} pending processing</span>
             </div>
           </div>
         </Link>
@@ -314,7 +371,7 @@ export function AdminDashboardPage() {
                 <ArrowUpRight size={12} />
                 <span>Gross</span>
               </span>
-              <span>{overview?.delivered_orders || 0} orders delivered</span>
+              <span>{orderStats?.delivered_orders ?? overview?.delivered_orders ?? 0} orders delivered</span>
             </div>
           </div>
         </Link>
@@ -462,7 +519,7 @@ export function AdminDashboardPage() {
                 <path d={chartGeometry.linePath} className="chart-line" />
 
                 {/* Data points */}
-                {chartGeometry.points.map((pt, i) => (
+                {chartGeometry.points.filter((pt) => pt.hasActivity).map((pt, i) => (
                   <circle
                     key={i}
                     cx={pt.x}
@@ -511,6 +568,7 @@ export function AdminDashboardPage() {
                 {recentOrders && recentOrders.length > 0 ? (
                   recentOrders.map((order) => {
                     const statusMeta = formatOrderStatus(order.order_status || order.status);
+                    const orderNumber = order.order_number || String(order.id).padStart(5, '0');
                     const customerName =
                       order.shipping_address?.full_name ||
                       order.user?.email ||
@@ -519,24 +577,24 @@ export function AdminDashboardPage() {
 
                     return (
                       <tr key={order.id}>
-                        <td>
-                          <span className="admin-order-id">
-                            #{order.order_number || String(order.id).padStart(5, '0')}
+                        <td data-label="Order #">
+                          <span className="admin-order-id" title={`#${orderNumber}`}>
+                            #{orderNumber}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Customer">
                           <div className="admin-customer-cell">
                             <div className="admin-customer-avatar">{initials}</div>
                             <span className="admin-customer-name">{customerName}</span>
                           </div>
                         </td>
-                        <td>{formatDate(order.created_at)}</td>
-                        <td>
+                        <td data-label="Date">{formatDate(order.created_at)}</td>
+                        <td data-label="Status">
                           <Badge variant={statusMeta.variant} size="sm">
                             {statusMeta.label}
                           </Badge>
                         </td>
-                        <td className="admin-amount-cell">
+                        <td data-label="Amount" className="admin-amount-cell">
                           {formatCurrency(order.total_amount || order.grand_total || 0)}
                         </td>
                       </tr>

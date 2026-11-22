@@ -58,10 +58,7 @@ func isValidOrderTransition(currentStatus, nextStatus string) bool {
 			"delivered",
 			"cancelled",
 		},
-		"delivered": {
-			"returned",
-			"processing",
-		},
+		"delivered": {},
 	}
 	for _, allowedStatus := range allowedTransitions[currentStatus] {
 		if allowedStatus == nextStatus {
@@ -287,7 +284,7 @@ func (u *OrderUseCase) PlaceOrder(ctx context.Context, userID uint, cartItemIDs 
 			discountAmount float64
 		)
 		if couponCode != nil {
-			coupon, err := repos.Coupon.GetByCodeForUpdate(ctx, *couponCode)
+			coupon, err = repos.Coupon.GetByCodeForUpdate(ctx, *couponCode)
 			if err != nil {
 				return err
 			}
@@ -794,6 +791,9 @@ func (u *OrderUseCase) UpdateCODPaymentStatus(ctx context.Context, orderID uuid.
 			}
 			if order.PaymentStatus == "paid" {
 				return domainerrors.ErrInvalidInput
+			}
+			if order.OrderStatus == "cancelled" || order.OrderStatus == "returned" {
+				return domainerrors.ErrInvalidOrderTransition
 			}
 			payments, err := repos.Payment.GetByOrderID(ctx, orderID)
 			if err != nil {

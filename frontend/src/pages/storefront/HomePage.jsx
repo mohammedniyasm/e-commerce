@@ -55,11 +55,11 @@ export function HomePage() {
   return (
     <div className="home-page" data-testid="home-page">
       {/* 1. Hero Campaign Banner */}
-      <section className="home-hero" aria-label="Spring Summer 2025 Campaign">
+      <section className="home-hero" aria-label="New season collection">
         <div className="home-hero__image-wrapper">
           <img
             src={heroCampaignImg}
-            alt="Drape SS25 Tailored Linen Collection"
+            alt="Drape clothing collection"
             className="home-hero__image"
           />
           <div className="home-hero__overlay" />
@@ -68,26 +68,26 @@ export function HomePage() {
         <div className="home-hero__content">
           <div className="home-hero__pill">
             <span className="home-hero__pill-dot" />
-            <span>EDITION 01 / SS25 • KOCHI FLAGSHIP</span>
+            <span>NEW SEASON • KOCHI</span>
           </div>
 
           <h1 className="home-hero__title">
-            Tactile Permanence &amp; Timeless Utility
+            Clothes for Every Day
           </h1>
 
           <p className="home-hero__subtitle">
-            Slow-fashion tailoring, breathable linen silhouettes, and raw fibre essentials crafted with architectural precision.
+            Comfortable, well-made clothing for work, weekends, and everything in between.
           </p>
 
           <div className="home-hero__actions">
             <Link to="/catalog">
               <Button variant="primary" size="lg" rightIcon={<ArrowRight size={14} />}>
-                EXPLORE COLLECTION
+                SHOP COLLECTION
               </Button>
             </Link>
-            <Link to="/catalog?sort=price_desc">
+            <Link to="/catalog">
               <Button variant="outline" size="lg" className="home-hero__btn-secondary">
-                NEW ARRIVALS
+                VIEW ALL PRODUCTS
               </Button>
             </Link>
           </div>
@@ -95,27 +95,27 @@ export function HomePage() {
       </section>
 
       {/* 2. Value Pillars */}
-      <section className="home-features" aria-label="Atelier Features">
+      <section className="home-features" aria-label="Store benefits">
         <div className="home-features__inner">
           <div className="home-feature-item">
             <Truck size={20} className="home-feature-icon" />
             <div>
               <h3 className="home-feature-title">INSURED SHIPPING</h3>
-              <p className="home-feature-desc">Secure tracking on all domestic collection dispatches</p>
+              <p className="home-feature-desc">Track your order from dispatch to delivery.</p>
             </div>
           </div>
           <div className="home-feature-item">
             <Sparkles size={20} className="home-feature-icon" />
             <div>
-              <h3 className="home-feature-title">TEXTILE INTEGRITY</h3>
-              <p className="home-feature-desc">Focused tailoring crafted with intentional minimalist silhouettes</p>
+              <h3 className="home-feature-title">QUALITY MATERIALS</h3>
+              <p className="home-feature-desc">Everyday clothing made with quality fabrics.</p>
             </div>
           </div>
           <div className="home-feature-item">
             <ShieldCheck size={20} className="home-feature-icon" />
             <div>
-              <h3 className="home-feature-title">RETURNS &amp; EXCHANGES</h3>
-              <p className="home-feature-desc">Direct return and exchange requests supported on delivered items</p>
+              <h3 className="home-feature-title">EASY RETURNS</h3>
+              <p className="home-feature-desc">Request a return or exchange for eligible orders.</p>
             </div>
           </div>
         </div>
@@ -123,11 +123,11 @@ export function HomePage() {
 
       {/* 3. Featured Categories Grid */}
       {categories.length > 0 && (
-        <section className="home-section" aria-labelledby="curated-categories-title">
+        <section className="home-section" aria-labelledby="shop-categories-title">
           <div className="home-section__header">
             <div>
-              <span className="home-section__eyebrow">CURATED DISCOVERY</span>
-              <h2 id="curated-categories-title" className="home-section__title">
+              <span className="home-section__eyebrow">BROWSE CATEGORIES</span>
+              <h2 id="shop-categories-title" className="home-section__title">
                 Shop By Category
               </h2>
             </div>
@@ -161,9 +161,9 @@ export function HomePage() {
       <section className="home-section" aria-labelledby="featured-arrivals-title">
         <div className="home-section__header">
           <div>
-            <span className="home-section__eyebrow">ATELIER SELECTIONS</span>
+            <span className="home-section__eyebrow">SHOP FAVORITES</span>
             <h2 id="featured-arrivals-title" className="home-section__title">
-              Featured Arrivals
+              Popular Products
             </h2>
           </div>
           <Link to="/catalog" className="home-section__link">
@@ -202,7 +202,7 @@ export function HomePage() {
           </div>
         ) : (
           <div className="home-state-banner">
-            <p>Our upcoming collection items are currently being curated in the atelier.</p>
+            <p>No products are available right now. Please check back soon.</p>
             <Link to="/catalog">
               <Button variant="primary" size="md">
                 Browse Catalog
@@ -216,9 +216,9 @@ export function HomePage() {
       <section className="home-manifesto">
         <div className="home-manifesto__inner">
           <blockquote className="home-manifesto__quote">
-            “The intention of DRAPE is not volume, but tactile permanence, structural integrity, and effortless everyday utility.”
+            “Drape brings together comfortable clothing and quality you can rely on.”
           </blockquote>
-          <p className="home-manifesto__author">— DRAPE ATELIER STUDIO, KOCHI</p>
+          <p className="home-manifesto__author">— DRAPE, KOCHI</p>
         </div>
       </section>
     </div>
