@@ -57,10 +57,10 @@ func (s *S3Storage) Delete(ctx context.Context, objectKey string) error {
 	}
 	return nil
 }
-func (s *S3Storage) DeleteByURL(ctx context.Context, imageURL string) error {
+func (s *S3Storage) objectKeyFromURL(imageURL string) (string, error) {
 	parsedURL, err := url.Parse(imageURL)
 	if err != nil {
-		return fmt.Errorf("parse image URL: %w", err)
+		return "", fmt.Errorf("parse image URL: %w", err)
 	}
 	expectedHost := fmt.Sprintf(
 		"%s.s3.%s.amazonaws.com",
@@ -68,13 +68,36 @@ func (s *S3Storage) DeleteByURL(ctx context.Context, imageURL string) error {
 		s.region,
 	)
 	if parsedURL.Host != expectedHost {
-		return fmt.Errorf("Invalid Storage URL")
+		return "", fmt.Errorf("invalid storage URL")
 	}
 	objectKey := strings.TrimPrefix(parsedURL.Path, "/")
 	if objectKey == "" {
-		return fmt.Errorf("invalid object key")
+		return "", fmt.Errorf("invalid object key")
+	}
+	return objectKey, nil
+}
+
+func (s *S3Storage) DeleteByURL(ctx context.Context, imageURL string) error {
+	objectKey, err := s.objectKeyFromURL(imageURL)
+	if err != nil {
+		return err
 	}
 	return s.Delete(ctx, objectKey)
+}
+
+func (s *S3Storage) DownloadByURL(ctx context.Context, imageURL string) (io.ReadCloser, string, error) {
+	objectKey, err := s.objectKeyFromURL(imageURL)
+	if err != nil {
+		return nil, "", err
+	}
+	object, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(objectKey),
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("download object from S3: %w", err)
+	}
+	return object.Body, aws.ToString(object.ContentType), nil
 }
 
 var _ interfaces.ObjectStorage = (*S3Storage)(nil)

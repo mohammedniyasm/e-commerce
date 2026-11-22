@@ -88,8 +88,10 @@ async function run() {
     assert(typeof CatalogService.listProductImages === 'function', 'exports listProductImages');
     assert(typeof CatalogService.listVariantImages === 'function', 'exports listVariantImages');
     assert(typeof CatalogService.getProductImageById === 'function', 'exports getProductImageById');
+    assert(typeof CatalogService.getProductImageContent === 'function', 'exports getProductImageContent');
     assert(typeof CatalogService.uploadProductImages === 'function', 'exports uploadProductImages');
     assert(typeof CatalogService.updateProductImage === 'function', 'exports updateProductImage');
+    assert(typeof CatalogService.replaceProductImage === 'function', 'exports replaceProductImage');
     assert(typeof CatalogService.deleteProductImage === 'function', 'exports deleteProductImage');
 
     // 2. HTTP Endpoint Mappings & Payloads
@@ -193,10 +195,26 @@ async function run() {
     assert(lastRequest.url === '/admin/products/10/images', 'listProductImages hits /admin/products/10/images');
     restore();
 
+    restore = mockApi('get', new Blob(['image'], { type: 'image/jpeg' }));
+    await CatalogService.getProductImageContent(1);
+    assert(lastRequest.url === '/admin/product-images/1/content', 'getProductImageContent hits image content endpoint');
+    assert(lastRequest.config?.responseType === 'blob', 'getProductImageContent requests a file blob');
+    restore();
+
     restore = mockApi('put', { id: 1, is_primary: true });
-    await CatalogService.updateProductImage(1, { is_primary: true });
+    await CatalogService.updateProductImage(1, { is_primary: true, variant_id: 7 });
     assert(lastRequest.url === '/admin/product-images/1', 'updateProductImage hits /admin/product-images/1');
     assert(lastRequest.data?.is_primary === true, 'updateProductImage sends is_primary');
+    assert(lastRequest.data?.variant_id === 7, 'updateProductImage sends variant assignment');
+    restore();
+
+    restore = mockApi('put', { id: 1, image_url: 'https://cdn.drape/p1-edited.jpg' });
+    await CatalogService.replaceProductImage(
+      1,
+      new Blob(['edited-image'], { type: 'image/jpeg' }),
+    );
+    assert(lastRequest.url === '/admin/product-images/1/content', 'replaceProductImage hits image content endpoint');
+    assert(lastRequest.data?.get('image') instanceof Blob, 'replaceProductImage sends image file data');
     restore();
 
     restore = mockApi('delete', null);

@@ -111,28 +111,46 @@ func (s *MinIOStorage) Delete(ctx context.Context, objectKey string) error {
 	)
 }
 func (s *MinIOStorage) DeleteByURL(ctx context.Context, imageURL string) error {
-
-	parsedURL, err := url.Parse(imageURL)
+	objectKey, err := s.objectKeyFromURL(imageURL)
 	if err != nil {
 		return err
 	}
-
-	// Expected URL:
-	// http://localhost:9000/ecommerce/products/1/images/abc123
-
-	path := strings.TrimPrefix(parsedURL.Path, "/")
-
-	prefix := s.bucket + "/"
-
-	if !strings.HasPrefix(path, prefix) {
-		return fmt.Errorf("invalid storage URL")
-	}
-
-	objectKey := strings.TrimPrefix(path, prefix)
-
-	if objectKey == "" {
-		return fmt.Errorf("invalid object key")
-	}
-
 	return s.Delete(ctx, objectKey)
+}
+
+func (s *MinIOStorage) objectKeyFromURL(imageURL string) (string, error) {
+	parsedURL, err := url.Parse(imageURL)
+	if err != nil {
+		return "", err
+	}
+	if parsedURL.Host != s.endpoint {
+		return "", fmt.Errorf("invalid storage URL")
+	}
+	path := strings.TrimPrefix(parsedURL.Path, "/")
+	prefix := s.bucket + "/"
+	if !strings.HasPrefix(path, prefix) {
+		return "", fmt.Errorf("invalid storage URL")
+	}
+	objectKey := strings.TrimPrefix(path, prefix)
+	if objectKey == "" {
+		return "", fmt.Errorf("invalid object key")
+	}
+	return objectKey, nil
+}
+
+func (s *MinIOStorage) DownloadByURL(ctx context.Context, imageURL string) (io.ReadCloser, string, error) {
+	objectKey, err := s.objectKeyFromURL(imageURL)
+	if err != nil {
+		return nil, "", err
+	}
+	object, err := s.client.GetObject(ctx, s.bucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, "", err
+	}
+	info, err := object.Stat()
+	if err != nil {
+		_ = object.Close()
+		return nil, "", err
+	}
+	return object, info.ContentType, nil
 }

@@ -296,6 +296,31 @@ func (h *ProductImageHandler) GetProductImage(c *gin.Context) {
 		Data:    response.ToProductImageResponse(image),
 	})
 }
+
+func (h *ProductImageHandler) GetProductImageContent(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid image id",
+		})
+		return
+	}
+
+	content, contentType, err := h.imageUseCase.GetProductImageContent(
+		c.Request.Context(),
+		id,
+	)
+	if err != nil {
+		h.handleProductImageError(c, err, "failed to fetch product image content")
+		return
+	}
+	defer content.Close()
+
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.DataFromReader(http.StatusOK, -1, contentType, content, nil)
+}
+
 func (h *ProductImageHandler) UpdateProductImage(c *gin.Context) {
 
 	id, err := strconv.ParseInt(
@@ -345,6 +370,56 @@ func (h *ProductImageHandler) UpdateProductImage(c *gin.Context) {
 		Data:    response.ToProductImageResponse(image),
 	})
 }
+
+func (h *ProductImageHandler) ReplaceProductImage(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "invalid image id",
+		})
+		return
+	}
+
+	fileHeader, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.APIResponse{
+			Success: false,
+			Message: "replacement image is required",
+		})
+		return
+	}
+	file, err := fileHeader.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Success: false,
+			Message: "failed to open replacement image",
+		})
+		return
+	}
+	defer file.Close()
+
+	image, err := h.imageUseCase.ReplaceProductImage(
+		c.Request.Context(),
+		id,
+		interfaces.ProductImageUpload{
+			File:        file,
+			Size:        fileHeader.Size,
+			ContentType: fileHeader.Header.Get("Content-Type"),
+		},
+	)
+	if err != nil {
+		h.handleProductImageError(c, err, "failed to replace product image")
+		return
+	}
+
+	c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Message: "product image replaced successfully",
+		Data:    response.ToProductImageResponse(image),
+	})
+}
+
 func (h *ProductImageHandler) DeleteProductImage(c *gin.Context) {
 	id, err := strconv.ParseInt(
 		c.Param("id"),

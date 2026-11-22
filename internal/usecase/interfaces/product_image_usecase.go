@@ -15,6 +15,8 @@ type ProductImageUpload struct {
 
 type ProductImageUseCase interface {
 	UploadProductImages(ctx context.Context, productID int64, variantID *int64, files []ProductImageUpload) ([]models.ProductImage, error)
+	ReplaceProductImage(ctx context.Context, id int64, file ProductImageUpload) (*models.ProductImage, error)
+	GetProductImageContent(ctx context.Context, id int64) (io.ReadCloser, string, error)
 	GetProductImage(ctx context.Context, id int64) (*models.ProductImage, error)
 	ListProductImages(ctx context.Context, productID int64) ([]models.ProductImage, error)
 	ListVariantImages(ctx context.Context, variantID int64) ([]models.ProductImage, error)

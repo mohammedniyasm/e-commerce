@@ -47,6 +47,26 @@ func (_m *MockObjectStorage) EXPECT() *MockObjectStorage_Expecter {
 	return &MockObjectStorage_Expecter{mock: &_m.Mock}
 }
 
+func (_mock *MockObjectStorage) DownloadByURL(ctx context.Context, imageURL string) (io.ReadCloser, string, error) {
+	ret := _mock.Called(ctx, imageURL)
+	if len(ret) == 0 {
+		panic("no return value specified for DownloadByURL")
+	}
+
+	var reader io.ReadCloser
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (io.ReadCloser, string, error)); ok {
+		return returnFunc(ctx, imageURL)
+	}
+	if ret.Get(0) != nil {
+		reader = ret.Get(0).(io.ReadCloser)
+	}
+	var contentType string
+	if ret.Get(1) != nil {
+		contentType = ret.Get(1).(string)
+	}
+	return reader, contentType, ret.Error(2)
+}
+
 // Delete provides a mock function for the type MockObjectStorage
 func (_mock *MockObjectStorage) Delete(ctx context.Context, objectKey string) error {
 	ret := _mock.Called(ctx, objectKey)

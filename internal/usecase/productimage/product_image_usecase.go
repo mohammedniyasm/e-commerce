@@ -6,6 +6,7 @@ import (
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/usecase/interfaces"
 	"fmt"
+	"io"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -230,6 +231,94 @@ func (u *ProductImageUseCase) GetProductImage(ctx context.Context, id int64) (*m
 
 	return image, nil
 }
+func (u *ProductImageUseCase) ReplaceProductImage(ctx context.Context, id int64, file interfaces.ProductImageUpload) (*models.ProductImage, error) {
+	if id <= 0 {
+		return nil, domainerrors.ErrInvalidProductImageID
+	}
+	if err := validateImage(file.Size, file.ContentType); err != nil {
+		return nil, err
+	}
+
+	image, err := u.imageRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	objectKey := fmt.Sprintf(
+		"products/%d/images/%s",
+		image.ProductID,
+		uuid.NewString(),
+	)
+	imageURL, err := u.objectStorage.Upload(
+		ctx,
+		objectKey,
+		file.File,
+		file.Size,
+		file.ContentType,
+	)
+	if err != nil {
+		u.log.Error(
+			"failed to upload replacement product image",
+			"image_id", id,
+			"product_id", image.ProductID,
+			"error", err,
+		)
+		return nil, err
+	}
+
+	previousURL := image.ImageURL
+	image.ImageURL = imageURL
+	if err := u.imageRepo.Update(ctx, image); err != nil {
+		if cleanupErr := u.objectStorage.DeleteByURL(ctx, imageURL); cleanupErr != nil {
+			u.log.Error(
+				"failed to clean up replacement image after database update failed",
+				"image_id", id,
+				"error", cleanupErr,
+			)
+			return nil, fmt.Errorf("update product image: %w; cleanup replacement image: %v", err, cleanupErr)
+		}
+		return nil, err
+	}
+
+	if err := u.objectStorage.DeleteByURL(ctx, previousURL); err != nil {
+		u.log.Error(
+			"failed to delete replaced product image",
+			"image_id", id,
+			"product_id", image.ProductID,
+			"error", err,
+		)
+		return nil, fmt.Errorf("image was replaced, but the previous file could not be deleted: %w", err)
+	}
+
+	u.log.Info(
+		"product image replaced",
+		"image_id", id,
+		"product_id", image.ProductID,
+	)
+	return image, nil
+}
+
+func (u *ProductImageUseCase) GetProductImageContent(ctx context.Context, id int64) (io.ReadCloser, string, error) {
+	if id <= 0 {
+		return nil, "", domainerrors.ErrInvalidProductImageID
+	}
+	image, err := u.imageRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, "", err
+	}
+	content, contentType, err := u.objectStorage.DownloadByURL(ctx, image.ImageURL)
+	if err != nil {
+		u.log.Error(
+			"failed to download product image",
+			"image_id", id,
+			"product_id", image.ProductID,
+			"error", err,
+		)
+		return nil, "", err
+	}
+	return content, contentType, nil
+}
+
 func (u *ProductImageUseCase) ListProductImages(ctx context.Context, productID int64) ([]models.ProductImage, error) {
 
 	if err := u.validateProduct(ctx, productID); err != nil {
@@ -266,24 +355,30 @@ func (u *ProductImageUseCase) UpdateProductImage(ctx context.Context, id int64, 
 		return nil, err
 	}
 	if variantID != nil {
-		if *variantID <= 0 {
+		if *variantID < 0 {
 			return nil, domainerrors.ErrInvalidVariantID
 		}
-		variant, err := u.variantRepo.GetByID(ctx, *variantID)
-		if err != nil {
-			return nil, err
+		if *variantID == 0 {
+			image.VariantID = nil
+		} else {
+			variant, err := u.variantRepo.GetByID(ctx, *variantID)
+			if err != nil {
+				return nil, err
+			}
+			if int64(variant.ProductID) != int64(image.ProductID) {
+				return nil, domainerrors.ErrVariantDoesNotBelongToProduct
+			}
+			newVariantID := uint(*variantID)
+			image.VariantID = &newVariantID
 		}
-		if int64(variant.ProductID) != int64(image.ProductID) {
-			return nil, domainerrors.ErrVariantDoesNotBelongToProduct
-		}
-		newVariantID := uint(*variantID)
-		image.VariantID = &newVariantID
 	}
 	if displayOrder != nil {
 		if *displayOrder < 0 {
 			return nil, domainerrors.ErrInvalidDisplayOrder
 		}
-		u.imageRepo.UpdateDisplayOrder(ctx, id, *displayOrder)
+		if err := u.imageRepo.UpdateDisplayOrder(ctx, id, *displayOrder); err != nil {
+			return nil, err
+		}
 		image.DisplayOrder = *displayOrder
 	}
 	if isPrimary != nil {

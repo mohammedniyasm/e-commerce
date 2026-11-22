@@ -247,8 +247,10 @@ func RegisterRoutes(r *gin.Engine,
 		admin.GET("/products/:id/images", productImageHandler.ListProductImages)
 		admin.GET("/variants/:id/images", productImageHandler.ListVariantImages)
 		admin.GET("/product-images/:id", productImageHandler.GetProductImage)
+		admin.GET("/product-images/:id/content", productImageHandler.GetProductImageContent)
 		admin.POST("/products/:id/images", productImageHandler.UploadProductImages)
 		admin.PUT("/product-images/:id", productImageHandler.UpdateProductImage)
+		admin.PUT("/product-images/:id/content", productImageHandler.ReplaceProductImage)
 		admin.DELETE("/product-images/:id", productImageHandler.DeleteProductImage)
 
 		//notifications

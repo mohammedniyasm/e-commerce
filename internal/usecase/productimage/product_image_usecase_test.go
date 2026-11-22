@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 
 	domainerrors "ecommerce/internal/domain/errors"
@@ -203,6 +204,62 @@ func TestProductImageUseCase_UploadProductImages(t *testing.T) {
 func TestProductImageUseCase_GetListUpdateDelete(t *testing.T) {
 	ctx := context.Background()
 
+	t.Run("ReplaceProductImage", func(t *testing.T) {
+		f := newProductImageFixture(t)
+		existing := &models.ProductImage{
+			ID:           3,
+			ProductID:    1,
+			ImageURL:     "https://cdn.example.com/old.jpg",
+			DisplayOrder: 2,
+			IsPrimary:    true,
+		}
+		upload := interfaces.ProductImageUpload{
+			File:        bytes.NewReader([]byte("edited-image")),
+			Size:        1024,
+			ContentType: "image/jpeg",
+		}
+
+		f.imageRepo.EXPECT().GetByID(ctx, int64(3)).Return(existing, nil).Once()
+		f.storage.EXPECT().
+			Upload(ctx, mock.MatchedBy(func(key string) bool {
+				return strings.HasPrefix(key, "products/1/images/")
+			}), mock.Anything, int64(1024), "image/jpeg").
+			Return("https://cdn.example.com/new.jpg", nil).Once()
+		f.imageRepo.EXPECT().Update(ctx, mock.MatchedBy(func(image *models.ProductImage) bool {
+			return image.ID == 3 &&
+				image.ImageURL == "https://cdn.example.com/new.jpg" &&
+				image.DisplayOrder == 2 &&
+				image.IsPrimary
+		})).Return(nil).Once()
+		f.storage.EXPECT().
+			DeleteByURL(ctx, "https://cdn.example.com/old.jpg").
+			Return(nil).Once()
+
+		got, err := f.uc.ReplaceProductImage(ctx, 3, upload)
+		require.NoError(t, err)
+		assert.Equal(t, "https://cdn.example.com/new.jpg", got.ImageURL)
+		assert.Equal(t, 2, got.DisplayOrder)
+		assert.True(t, got.IsPrimary)
+	})
+
+	t.Run("GetProductImageContent", func(t *testing.T) {
+		f := newProductImageFixture(t)
+		existing := &models.ProductImage{
+			ID:        3,
+			ProductID: 1,
+			ImageURL:  "https://cdn.example.com/image.jpg",
+		}
+		f.imageRepo.EXPECT().GetByID(ctx, int64(3)).Return(existing, nil).Once()
+		f.storage.On("DownloadByURL", ctx, existing.ImageURL).
+			Return(io.NopCloser(strings.NewReader("image")), "image/jpeg", nil).
+			Once()
+
+		content, contentType, err := f.uc.GetProductImageContent(ctx, 3)
+		require.NoError(t, err)
+		assert.Equal(t, "image/jpeg", contentType)
+		require.NoError(t, content.Close())
+	})
+
 	t.Run("GetProductImage ListProductImages ListVariantImages", func(t *testing.T) {
 		f := newProductImageFixture(t)
 		_, err := f.uc.GetProductImage(ctx, 0)
@@ -254,6 +311,29 @@ func TestProductImageUseCase_GetListUpdateDelete(t *testing.T) {
 		got, err := f.uc.UpdateProductImage(ctx, 3, nil, &order, &primary)
 		require.NoError(t, err)
 		assert.True(t, got.IsPrimary)
+
+		orderUpdateErr := errors.New("failed to update display order")
+		f.imageRepo.EXPECT().GetByID(ctx, int64(3)).Return(existing, nil).Once()
+		f.imageRepo.EXPECT().UpdateDisplayOrder(ctx, int64(3), 2).Return(orderUpdateErr).Once()
+
+		_, err = f.uc.UpdateProductImage(ctx, 3, nil, &order, nil)
+		assert.ErrorIs(t, err, orderUpdateErr)
+	})
+
+	t.Run("assign image to product level", func(t *testing.T) {
+		f := newProductImageFixture(t)
+		variantID := uint(12)
+		existing := &models.ProductImage{ID: 8, ProductID: 1, VariantID: &variantID}
+		productLevel := int64(0)
+
+		f.imageRepo.EXPECT().GetByID(ctx, int64(8)).Return(existing, nil).Once()
+		f.imageRepo.EXPECT().Update(ctx, mock.MatchedBy(func(img *models.ProductImage) bool {
+			return img.ID == 8 && img.VariantID == nil
+		})).Return(nil).Once()
+
+		got, err := f.uc.UpdateProductImage(ctx, 8, &productLevel, nil, nil)
+		require.NoError(t, err)
+		assert.Nil(t, got.VariantID)
 	})
 
 	t.Run("DeleteProductImage", func(t *testing.T) {

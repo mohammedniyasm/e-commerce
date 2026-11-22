@@ -1,6 +1,7 @@
 .drape-product-card {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   background-color: #ffffff;
   border: 1px solid var(--color-border-subtle, #ebebee);
   border-radius: var(--radius-sm, 4px);
@@ -35,7 +36,9 @@
 }
 
 .drape-product-card__image {
+  display: block;
   width: 100%;
+  max-width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center top;

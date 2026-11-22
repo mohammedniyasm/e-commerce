@@ -8,6 +8,7 @@ import (
 	"context"
 	"ecommerce/internal/domain/models"
 	"ecommerce/internal/usecase/interfaces"
+	"io"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -46,6 +47,42 @@ type MockProductImageUseCase_Expecter struct {
 
 func (_m *MockProductImageUseCase) EXPECT() *MockProductImageUseCase_Expecter {
 	return &MockProductImageUseCase_Expecter{mock: &_m.Mock}
+}
+
+func (_mock *MockProductImageUseCase) GetProductImageContent(ctx context.Context, id int64) (io.ReadCloser, string, error) {
+	ret := _mock.Called(ctx, id)
+	if len(ret) == 0 {
+		panic("no return value specified for GetProductImageContent")
+	}
+
+	var content io.ReadCloser
+	var contentType string
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64) (io.ReadCloser, string, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if ret.Get(0) != nil {
+		content = ret.Get(0).(io.ReadCloser)
+	}
+	if ret.Get(1) != nil {
+		contentType = ret.Get(1).(string)
+	}
+	return content, contentType, ret.Error(2)
+}
+
+func (_mock *MockProductImageUseCase) ReplaceProductImage(ctx context.Context, id int64, file interfaces.ProductImageUpload) (*models.ProductImage, error) {
+	ret := _mock.Called(ctx, id, file)
+	if len(ret) == 0 {
+		panic("no return value specified for ReplaceProductImage")
+	}
+
+	var image *models.ProductImage
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, interfaces.ProductImageUpload) (*models.ProductImage, error)); ok {
+		return returnFunc(ctx, id, file)
+	}
+	if ret.Get(0) != nil {
+		image = ret.Get(0).(*models.ProductImage)
+	}
+	return image, ret.Error(1)
 }
 
 // DeleteProductImage provides a mock function for the type MockProductImageUseCase

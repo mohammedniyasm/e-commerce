@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AccountLayout } from '../layouts/AccountLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
@@ -44,9 +45,21 @@ import { ProductDetailPage } from '../pages/storefront/ProductDetailPage';
 import { WishlistPage } from '../pages/wishlist/WishlistPage';
 import { RequireAuth } from './RequireAuth';
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 export function AppRoutes() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       {/* Customer Authentication Flow */}
       <Route element={<AuthLayout />}>
         <Route path="login" element={<LoginPage />} />
@@ -116,6 +129,7 @@ export function AppRoutes() {
 
       {/* 404 Route */}
       <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }

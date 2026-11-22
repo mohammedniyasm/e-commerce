@@ -257,6 +257,14 @@ export async function getProductImageById(id) {
   return response?.data?.data ?? null;
 }
 
+export async function getProductImageContent(id) {
+  const response = await apiClient.get(`/admin/product-images/${id}/content`, {
+    requiresAuth: true,
+    responseType: 'blob',
+  });
+  return response?.data ?? null;
+}
+
 export async function uploadProductImages(productId, files, variantId = null) {
   const formData = new FormData();
   if (variantId) {
@@ -274,6 +282,16 @@ export async function uploadProductImages(productId, files, variantId = null) {
 
 export async function updateProductImage(id, payload) {
   const response = await apiClient.put(`/admin/product-images/${id}`, payload, { requiresAuth: true });
+  return response?.data?.data ?? null;
+}
+
+export async function replaceProductImage(id, file) {
+  const formData = new FormData();
+  formData.append('image', file);
+  const response = await apiClient.put(`/admin/product-images/${id}/content`, formData, {
+    requiresAuth: true,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return response?.data?.data ?? null;
 }
 

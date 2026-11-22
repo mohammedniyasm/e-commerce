@@ -178,6 +178,27 @@ export function ProductDetailPage() {
     return imgs.length > 0 ? imgs : [{ id: 0, image_url: '/placeholder-product.svg' }];
   }, [product]);
 
+  useEffect(() => {
+    const variantImages = selectedVariant?.images?.filter((image) => image.image_url) || [];
+    const productImage =
+      product?.images?.find((image) => image.is_primary && image.image_url) ||
+      product?.images?.find((image) => image.image_url);
+    const imageToSelect =
+      variantImages.find((image) => image.is_primary) ||
+      variantImages[0] ||
+      productImage ||
+      allImages[0];
+
+    if (!imageToSelect) return;
+
+    const imageIndex = allImages.findIndex(
+      (image) => image.image_url === imageToSelect.image_url,
+    );
+    if (imageIndex >= 0) {
+      setActiveImageIndex(imageIndex);
+    }
+  }, [selectedVariant, product, allImages]);
+
   // Reset quantity if stock changes
   useEffect(() => {
     setQuantity(1);

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
   Check,
   Edit2,
   Image as ImageIcon,
@@ -48,6 +50,8 @@ export function AdminProductDetailsPage() {
   const [brand, setBrand] = useState(null);
   const [variants, setVariants] = useState([]);
   const [images, setImages] = useState([]);
+  const [draggedImageId, setDraggedImageId] = useState(null);
+  const [dropTargetImageId, setDropTargetImageId] = useState(null);
   const [activeTab, setActiveTab] = useState('variants'); // 'variants' | 'images' | 'details'
 
   const [isLoading, setIsLoading] = useState(true);
@@ -72,6 +76,7 @@ export function AdminProductDetailsPage() {
   const [isUploadImageOpen, setIsUploadImageOpen] = useState(false);
   const [selectedImageFiles, setSelectedImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [pendingImageVariants, setPendingImageVariants] = useState({});
   const [targetVariantId, setTargetVariantId] = useState('');
   const [isDeleteImageOpen, setIsDeleteImageOpen] = useState(false);
   const [imageToDelete, setImageToDelete] = useState(null);
@@ -287,6 +292,7 @@ export function AdminProductDetailsPage() {
   // -------------------------------------------------------------
   function handleImageFileSelect(e) {
     const files = Array.from(e.target.files || []);
+    e.target.value = '';
     if (!files.length) return;
 
     setSelectedImageFiles((prev) => [...prev, ...files]);
@@ -296,8 +302,19 @@ export function AdminProductDetailsPage() {
   }
 
   function removeSelectedFile(index) {
+    if (imagePreviews[index]) {
+      URL.revokeObjectURL(imagePreviews[index]);
+    }
     setSelectedImageFiles((prev) => prev.filter((_, i) => i !== index));
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function closeUploadModal() {
+    setIsUploadImageOpen(false);
+    setSelectedImageFiles([]);
+    imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+    setImagePreviews([]);
+    setTargetVariantId('');
   }
 
   async function handleUploadImages() {
@@ -317,6 +334,7 @@ export function AdminProductDetailsPage() {
       });
 
       setSelectedImageFiles([]);
+      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
       setImagePreviews([]);
       setTargetVariantId('');
       setIsUploadImageOpen(false);
@@ -351,6 +369,122 @@ export function AdminProductDetailsPage() {
         message: err?.response?.data?.message || 'Could not set image as primary.',
       });
     }
+  }
+
+  async function handleAssignImageToVariant(img) {
+    const variantId = pendingImageVariants[img.id];
+    if (variantId === undefined || isActionLoading) return;
+
+    setIsActionLoading(true);
+    try {
+      const updatedImage = await updateProductImage(img.id, {
+        variant_id: variantId ? Number(variantId) : null,
+      });
+      setImages((current) =>
+        current.map((image) => (image.id === img.id ? updatedImage : image)),
+      );
+      setPendingImageVariants((current) => {
+        const next = { ...current };
+        delete next[img.id];
+        return next;
+      });
+      showToast({
+        type: 'success',
+        title: 'Image Assignment Updated',
+        message: variantId
+          ? 'Image is now assigned to the selected variant.'
+          : 'Image is now available at the product level.',
+      });
+    } catch (err) {
+      showToast({
+        type: 'error',
+        title: 'Assignment Failed',
+        message: err?.response?.data?.message || err?.message || 'Could not assign image to variant.',
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
+  }
+
+  async function handleReorderImages(sourceIndex, targetIndex) {
+    if (
+      isActionLoading ||
+      sourceIndex < 0 ||
+      targetIndex < 0 ||
+      sourceIndex >= images.length ||
+      targetIndex >= images.length ||
+      sourceIndex === targetIndex
+    ) {
+      return;
+    }
+
+    let reorderedImages = [...images];
+    const direction = targetIndex > sourceIndex ? 1 : -1;
+    setIsActionLoading(true);
+    try {
+      let currentIndex = sourceIndex;
+      while (currentIndex !== targetIndex) {
+        const nextIndex = currentIndex + direction;
+        const movingImage = reorderedImages[currentIndex];
+        const displacedImage = reorderedImages[nextIndex];
+
+        await updateProductImage(movingImage.id, {
+          display_order: displacedImage.display_order,
+        });
+
+        reorderedImages[currentIndex] = {
+          ...displacedImage,
+          display_order: movingImage.display_order,
+        };
+        reorderedImages[nextIndex] = {
+          ...movingImage,
+          display_order: displacedImage.display_order,
+        };
+        currentIndex = nextIndex;
+      }
+
+      setImages(reorderedImages);
+      showToast({
+        type: 'success',
+        title: 'Image Order Updated',
+        message: 'Product gallery order has been updated.',
+      });
+    } catch (err) {
+      let message =
+        err?.response?.data?.message || err?.message || 'Could not reorder product images.';
+      try {
+        const refreshed = await listProductImages(product.id);
+        setImages(refreshed);
+      } catch (refreshError) {
+        setImages(reorderedImages);
+        message = `${message} The gallery could not be refreshed: ${
+          refreshError?.message || 'refresh failed'
+        }`;
+      }
+      showToast({
+        type: 'error',
+        title: 'Reorder Failed',
+        message,
+      });
+    } finally {
+      setIsActionLoading(false);
+      setDraggedImageId(null);
+      setDropTargetImageId(null);
+    }
+  }
+
+  function handleImageDragStart(event, image) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(image.id));
+    setDraggedImageId(image.id);
+  }
+
+  function handleImageDrop(event, targetIndex) {
+    event.preventDefault();
+    const draggedId = event.dataTransfer.getData('text/plain') || draggedImageId;
+    const sourceIndex = images.findIndex((image) => String(image.id) === String(draggedId));
+    setDropTargetImageId(null);
+    void handleReorderImages(sourceIndex, targetIndex);
   }
 
   async function handleDeleteImage() {
@@ -594,13 +728,14 @@ export function AdminProductDetailsPage() {
         <div className="admin-product-section">
           <div className="admin-product-section-toolbar">
             <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-              Upload gallery images and designate a primary thumbnail image for storefront listings.
+              Drag or reorder images, edit or remove photos, assign them to variants, and choose a primary image.
             </p>
             <Button
               variant="primary"
               size="sm"
               leftIcon={<Upload size={14} />}
               onClick={() => {
+                imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
                 setSelectedImageFiles([]);
                 setImagePreviews([]);
                 setTargetVariantId('');
@@ -613,41 +748,132 @@ export function AdminProductDetailsPage() {
 
           {images.length > 0 ? (
             <div className="admin-images-grid">
-              {images.map((img) => (
-                <div key={img.id} className="admin-image-card">
-                  {img.is_primary && (
-                    <span className="admin-primary-tag">
-                      <Star size={10} style={{ display: 'inline', marginRight: 2 }} /> Primary
-                    </span>
-                  )}
-                  <img src={img.image_url} alt={product.name} />
-
-                  <div className="admin-image-overlay">
-                    {!img.is_primary && (
-                      <button
-                        type="button"
-                        className="admin-icon-btn"
-                        aria-label={`Set ${product.name} image as primary`}
-                        style={{ background: '#ffffff', color: '#0f172a' }}
-                        title="Set as Primary"
-                        onClick={() => handleSetPrimaryImage(img)}
-                      >
-                        <Star size={14} />
-                      </button>
+              {images.map((img, index) => (
+                <div key={img.id} className="admin-managed-image">
+                  <div
+                    className={`admin-image-card ${
+                      draggedImageId === img.id ? 'is-dragging' : ''
+                    } ${dropTargetImageId === img.id ? 'is-drop-target' : ''}`}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = 'move';
+                      setDropTargetImageId((current) =>
+                        current === img.id ? current : img.id,
+                      );
+                    }}
+                    onDrop={(event) => handleImageDrop(event, index)}
+                  >
+                    {img.is_primary && (
+                      <span className="admin-primary-tag">
+                        <Star size={10} style={{ display: 'inline', marginRight: 2 }} /> Primary
+                      </span>
                     )}
-                    <button
-                      type="button"
-                      className="admin-icon-btn danger"
-                      aria-label={`Delete ${product.name} image`}
-                      style={{ background: '#ffffff' }}
-                      title="Delete Image"
-                      onClick={() => {
-                        setImageToDelete(img);
-                        setIsDeleteImageOpen(true);
+                    <img
+                      src={img.image_url}
+                      alt={product.name}
+                      draggable={!isActionLoading}
+                      onDragStart={(event) => handleImageDragStart(event, img)}
+                      onDragEnd={() => {
+                        setDraggedImageId(null);
+                        setDropTargetImageId(null);
                       }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    />
+
+                    <div className="admin-image-overlay">
+                      <div className="admin-image-overlay__actions">
+                        <button
+                          type="button"
+                          className="admin-icon-btn"
+                          aria-label={`Move image ${index + 1} up`}
+                          title="Move Up"
+                          disabled={isActionLoading || index === 0}
+                          onClick={() => void handleReorderImages(index, index - 1)}
+                        >
+                          <ArrowUp size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-icon-btn"
+                          aria-label={`Move image ${index + 1} down`}
+                          title="Move Down"
+                          disabled={isActionLoading || index === images.length - 1}
+                          onClick={() => void handleReorderImages(index, index + 1)}
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+                        {!img.is_primary && (
+                          <button
+                            type="button"
+                            className="admin-icon-btn"
+                            aria-label={`Set ${product.name} image as primary`}
+                            title="Set as Primary"
+                            disabled={isActionLoading}
+                            onClick={() => handleSetPrimaryImage(img)}
+                          >
+                            <Star size={14} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="admin-icon-btn danger"
+                          aria-label={`Delete ${product.name} image`}
+                          title="Delete Image"
+                          disabled={isActionLoading}
+                          onClick={() => {
+                            setImageToDelete(img);
+                            setIsDeleteImageOpen(true);
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      {variants.length > 0 && (
+                        <div className="admin-image-variant-assignment">
+                          <label htmlFor={`image-variant-${img.id}`}>
+                            ASSIGN IMAGE TO
+                          </label>
+                          <select
+                            id={`image-variant-${img.id}`}
+                            className="admin-form-select"
+                            aria-label={`Assign image ${index + 1} to a variant or product level`}
+                            value={
+                              pendingImageVariants[img.id] ??
+                              (img.variant_id ? String(img.variant_id) : '')
+                            }
+                            disabled={isActionLoading}
+                            onChange={(event) =>
+                              setPendingImageVariants((current) => ({
+                                ...current,
+                                [img.id]: event.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">Product-level (all variants)</option>
+                            {variants.map((variant) => (
+                              <option key={variant.id} value={String(variant.id)}>
+                                {variant.sku}
+                                {variant.color ? ` — ${variant.color}` : ''}
+                                {variant.size ? ` / ${variant.size}` : ''}
+                              </option>
+                            ))}
+                          </select>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            disabled={
+                              isActionLoading ||
+                              pendingImageVariants[img.id] === undefined ||
+                              pendingImageVariants[img.id] === String(img.variant_id || '')
+                            }
+                            onClick={() => void handleAssignImageToVariant(img)}
+                          >
+                            Assign
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -880,10 +1106,10 @@ export function AdminProductDetailsPage() {
       {/* Upload Product Images Modal */}
       <Modal
         isOpen={isUploadImageOpen}
-        onClose={() => setIsUploadImageOpen(false)}
+        onClose={closeUploadModal}
         title="Upload Product Images"
         eyebrow="Asset Management"
-        description="Select image files from your computer. You may optionally associate them with a specific variant."
+        description="Upload product images and optionally assign them to a variant."
         confirmText="Upload"
         cancelText="Cancel"
         isConfirmLoading={isActionLoading}
@@ -912,7 +1138,7 @@ export function AdminProductDetailsPage() {
             type="file"
             ref={fileInputRef}
             multiple
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             style={{ display: 'none' }}
             onChange={handleImageFileSelect}
           />
@@ -931,45 +1157,23 @@ export function AdminProductDetailsPage() {
           </div>
 
           {imagePreviews.length > 0 && (
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+            <div className="admin-upload-previews">
               {imagePreviews.map((src, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    position: 'relative',
-                    width: 70,
-                    height: 70,
-                    borderRadius: 6,
-                    border: '1px solid #e2e8f0',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <img src={src} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div key={`${src}-${idx}`} className="admin-upload-preview">
+                  <img src={src} alt={`Selected image ${idx + 1}`} />
                   <button
                     type="button"
+                    className="admin-upload-preview__remove"
+                    aria-label={`Remove image ${idx + 1}`}
                     onClick={() => removeSelectedFile(idx)}
-                    style={{
-                      position: 'absolute',
-                      top: 2,
-                      right: 2,
-                      background: 'rgba(0,0,0,0.6)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: 18,
-                      height: 18,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                    }}
                   >
-                    <X size={10} />
+                    <X size={12} />
                   </button>
                 </div>
               ))}
             </div>
           )}
+
         </div>
       </Modal>
 
