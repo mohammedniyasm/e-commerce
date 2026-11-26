@@ -1,0 +1,72 @@
+name: ecommerce
+
+services:
+ postgres:
+  image: postgres:18-alpine
+  container_name: ecommerce-postgres
+  restart: unless-stopped
+  env_file:
+    - .env.production
+  volumes:
+    - postgres-data:/var/lib/postgresql
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ecommerce_app -d ecommerce"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+  networks:
+  - ecommerce-network
+ redis: 
+  image: redis:7-alpine
+  container_name: ecommerce-redis
+  restart: unless-stopped
+  volumes:
+    - redis-data:/data
+  command: redis-server --appendonly yes
+  networks:
+    - ecommerce-network
+
+  healthcheck:
+    test: ["CMD", "redis-cli",  "ping"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+
+# go backend  
+ backend: 
+  image: mohammedniyasm/ecommerce-backend:1.1
+  container_name: ecommerce-backend
+  restart: unless-stopped
+  env_file: 
+    - .env.production
+  depends_on:
+    redis:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+  expose:
+    - "8080"
+  networks:
+    - ecommerce-network
+
+# frontend
+ frontend:
+  image: mohammedniyasm/ecommerce-frontend:1.1
+  container_name: ecommerce-frontend
+  restart: unless-stopped
+  depends_on: 
+    - backend
+
+  ports:
+    - "0.0.0.0:80:80"
+
+  networks:
+    - ecommerce-network
+
+networks:
+  ecommerce-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  postgres-data:
