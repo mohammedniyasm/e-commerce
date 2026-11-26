@@ -76,7 +76,8 @@ func validateImage(size int64, contentType string) error {
 	switch contentType {
 	case "image/jpeg",
 		"image/png",
-		"image/webp":
+		"image/webp",
+		"image/avif":
 		return nil
 
 	default:
@@ -297,7 +298,6 @@ func (u *ProductImageUseCase) ReplaceProductImage(ctx context.Context, id int64,
 	)
 	return image, nil
 }
-
 func (u *ProductImageUseCase) GetProductImageContent(ctx context.Context, id int64) (io.ReadCloser, string, error) {
 	if id <= 0 {
 		return nil, "", domainerrors.ErrInvalidProductImageID
@@ -318,7 +318,6 @@ func (u *ProductImageUseCase) GetProductImageContent(ctx context.Context, id int
 	}
 	return content, contentType, nil
 }
-
 func (u *ProductImageUseCase) ListProductImages(ctx context.Context, productID int64) ([]models.ProductImage, error) {
 
 	if err := u.validateProduct(ctx, productID); err != nil {

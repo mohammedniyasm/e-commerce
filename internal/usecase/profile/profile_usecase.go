@@ -370,14 +370,22 @@ func (u *ProfileUseCase) UploadProfileImage(ctx context.Context, userID uint, fi
 	if userID == 0 {
 		return "", domainerrors.ErrInvalidUserID
 	}
-	const maxFileSize int64 = 5 * 1024 * 1024
+	const maxFileSize int64 = 10 * 1024 * 1024
 	if size <= 0 || size > maxFileSize {
 		return "", domainerrors.ErrInvalidProfileImage
 	}
 	switch contentType {
 	case "image/jpeg",
 		"image/png",
-		"image/webp":
+		"image/webp",
+		"image/avif",
+		"image/gif",
+		"image/svg+xml",
+		"image/bmp",
+		"image/tiff",
+		"image/x-icon",
+		"image/heic",
+		"image/heif":
 	default:
 		return "", domainerrors.ErrInvalidProfileImage
 	}

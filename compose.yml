@@ -34,7 +34,7 @@ services:
 
 # go backend  
  backend: 
-  image: mohammedniyasm/ecommerce-backend:1.1
+  image: mohammedniyasm/ecommerce-backend:1.2
   container_name: ecommerce-backend
   restart: unless-stopped
   env_file: 
@@ -51,7 +51,7 @@ services:
 
 # frontend
  frontend:
-  image: mohammedniyasm/ecommerce-frontend:1.1
+  image: mohammedniyasm/ecommerce-frontend:1.2
   container_name: ecommerce-frontend
   restart: unless-stopped
   depends_on: 
@@ -59,6 +59,11 @@ services:
 
   ports:
     - "0.0.0.0:80:80"
+    - "0.0.0.0:443:443"
+
+  volumes:
+    - /etc/letsencrypt:/etc/letsencrypt:ro
+    - /var/www/certbot:/var/www/certbot:ro
 
   networks:
     - ecommerce-network
